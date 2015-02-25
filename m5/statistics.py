@@ -1,41 +1,46 @@
 """  The module that produces statistics, maps and plots. """
 
-
 from m5.model import Order, Checkin, Checkpoint, Client
-from sqlalchemy.orm.session import Session as DatabaseSession
+from sqlalchemy.orm.session import Session
 from m5.user import User
-from pandas import DataFrame
+from pandas import DataFrame, set_option
 from matplotlib.pyplot import show
 
 
 class Stats():
 
-    def __init__(self, database_session: DatabaseSession):
-        """ Instantiate a Stats object
+    def __init__(self, session: Session):
+        """ Pull the data from the database. Tables are saved as Pandas dataframes. """
 
-        :param database_session: the current user's database session
-        :return:
-        """
+        self.session = session
 
-        self.session = database_session
-        self.engine = engine
+        query = self.session.query(Order)
+        data = [rec.__dict__ for rec in query.all()]
+        self.orders = DataFrame.from_records(data)
+        self.orders = self.orders.drop('_sa_instance_state', 1)
 
-    def get_frames(self):
-        query = self.session.query(Order).order_by(Order.id)
-        data_records = [rec.__dict__ for rec in query.all()]
-        df = DataFrame.from_records(data_records)
-        print(df.head(10))
-        print(df.tail(10))
+        query = self.session.query(Client)
+        data = [rec.__dict__ for rec in query.all()]
+        self.clients = DataFrame.from_records(data)
+        self.clients = self.clients.drop('_sa_instance_state', 1)
 
-        #df.plot(kind='scatter', x='distance', y='city_tour')
-        #show()
+        query = self.session.query(Checkin)
+        data = [rec.__dict__ for rec in query.all()]
+        self.checkins = DataFrame.from_records(data)
+        self.checkins = self.checkins.drop('_sa_instance_state', 1)
 
-        df.plot(kind='hist')
+        query = self.session.query(Checkpoint)
+        data = [rec.__dict__ for rec in query.all()]
+        self.checkpoints = DataFrame.from_records(data)
+        self.checkpoints = self.checkpoints.drop('_sa_instance_state', 1)
+
+        set_option('display.width', 300)
+        print(self.checkpoints.head(10))
+        print(self.checkpoints.tail(10))
+
+        self.orders.plot(kind='scatter', x='distance', y='city_tour')
         show()
-
 
 if __name__ == '__main__':
     u = User('m-134', 'PASSWORD')
-    s = Stats(u.database_session, u.engine)
-
-    s.get_frames()
+    s = Stats(u.database_session)

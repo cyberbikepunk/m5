@@ -4,32 +4,38 @@
 from m5.model import Order, Checkin, Checkpoint, Client
 from sqlalchemy.orm.session import Session as DatabaseSession
 from m5.user import User
+from pandas import DataFrame
+from matplotlib.pyplot import show
 
 
 class Stats():
 
     def __init__(self, database_session: DatabaseSession):
+        """ Instantiate a Stats object
+
+        :param database_session: the current user's database session
+        :return:
+        """
+
         self.session = database_session
+        self.engine = engine
 
-    def play(self):
+    def get_frames(self):
+        query = self.session.query(Order).order_by(Order.id)
+        data_records = [rec.__dict__ for rec in query.all()]
+        df = DataFrame.from_records(data_records)
+        print(df.head(10))
+        print(df.tail(10))
 
-        for instance in self.session.query(Client).order_by(Client.id):
-            print(instance.id, instance.name)
+        #df.plot(kind='scatter', x='distance', y='city_tour')
+        #show()
 
-        for instance in self.session.query(Order).order_by(Order.id):
-            print(instance.id, instance.date)
+        df.plot(kind='hist')
+        show()
 
-        for instance in self.session.query(Checkin).order_by(Checkin.id):
-            print(instance.id, instance.timestamp)
-
-        for instance in self.session.query(Checkpoint).order_by(Checkpoint.postal_code):
-            print(instance.postal_code, instance.street)
-
-        for instance in self.session.query(Order).filter(Order.cash is True).order_by(Order.id):
-            print(instance.id, instance.date)
 
 if __name__ == '__main__':
     u = User('m-134', 'PASSWORD')
-    s = Stats(u.database_session)
+    s = Stats(u.database_session, u.engine)
 
-    s.play()
+    s.get_frames()

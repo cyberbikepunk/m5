@@ -1,4 +1,4 @@
-""" Varrious unittest scripts for the factory module. """
+""" Various unittest scripts for the factory module. """
 
 
 from unittest import TestCase

@@ -1,20 +1,21 @@
 """  The module that produces statistics, maps and plots. """
 
 from m5.model import Order, Checkin, Checkpoint, Client
-from sqlalchemy.orm.session import Session
-from m5.user import User
-from pandas import DataFrame, set_option
-import matplotlib.pyplot as plt
-import pandas as pd
+
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm.session import Session
+from pandas import DataFrame, set_option
 from m5.utilities import DEBUG
 from datetime import date
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 class Stats():
 
     def __init__(self, session: Session, engine: Engine):
-        """ Pull the data from the database. Tables are stored as pandas dataframes. """
+        """ Instantiate an empty object. """
 
         self.session = session
         self.engine = engine
@@ -24,42 +25,19 @@ class Stats():
         self.checkins = None
         self.checkpoints = None
 
-    def read_orm(self):
+    def fetch_data(self):
+        """ Pull database tables into Pandas. """
 
-        query = self.session.query(Order)
-        data = [rec.__dict__ for rec in query.all()]
-        orders = DataFrame.from_records(data)
-        self.orders = orders.drop('_sa_instance_state', 1)
-
-        query = self.session.query(Client)
-        data = [rec.__dict__ for rec in query.all()]
-        clients = DataFrame.from_records(data)
-        self.clients = clients.drop('_sa_instance_state', 1)
-
-        query = self.session.query(Checkin)
-        data = [rec.__dict__ for rec in query.all()]
-        checkins = DataFrame.from_records(data)
-        self.checkins = checkins.drop('_sa_instance_state', 1)
-
-        query = self.session.query(Checkpoint)
-        data = [rec.__dict__ for rec in query.all()]
-        checkpoints = DataFrame.from_records(data)
-        self.checkpoints = checkpoints.drop('_sa_instance_state', 1)
-        self.checkpoints = checkpoints.drop('display_name', 1)
-
-        set_option('display.width', 300)
-        print(self.checkpoints.head(10), end='\n\n')
-        print(self.checkins.head(10), end='\n\n')
-        print(self.orders.head(10), end='\n\n')
-        print(self.clients.head(10), end='\n\n')
-
-    def read_sql(self):
-        """ Read-out all the tables from the database. """
-
-        self.clients = pd.read_sql_table('client', self.engine, index_col='client_id')
-        self.orders = pd.read_sql('order', self.engine, index_col='order_id', parse_dates=['date'])
-        self.checkins = pd.read_sql('checkin', self.engine, index_col='timestamp', parse_dates=['timestamp', 'after_', 'until'])
-        self.checkpoints = pd.read_sql('checkpoint', self.engine, index_col='checkpoint_id')
+        self.clients = pd.read_sql_table('client', self.engine,
+                                         index_col='client_id')
+        self.orders = pd.read_sql('order', self.engine,
+                                  index_col='order_id',
+                                  parse_dates=['date'])
+        self.checkins = pd.read_sql('checkin', self.engine,
+                                    index_col='checkin_id',
+                                    parse_dates=['timestamp', 'after_', 'until'])
+        self.checkpoints = pd.read_sql('checkpoint', self.engine,
+                                       index_col='checkpoint_id')
 
         if DEBUG:
             pd.set_option('display.width', 300)
@@ -70,32 +48,7 @@ class Stats():
             print(self.checkins)
             print(self.checkpoints)
 
-    def make_timeseries(self):
-
-        self.orders['price'] = self.orders['city_tour'] + \
-                               self.orders['overnight'] + \
-                               self.orders['waiting_time'] + \
-                               self.orders['extra_stops'] + \
-                               self.orders['fax_confirm']
-
-
-        income = self.orders.groupby('date').sum()
-        income = income[date(2014, 1, 1):date(2014, 12, 30)]
-        print(income)
-
-        # timeseries['day'] = timeseries.index.day
-        # timeseries['month'] = timeseries.index.month
-        # timeseries['year'] = timeseries.index.year
-
-        # fig = plt.figure()
-        # ax = fig.add_subplot(2, 1, 1)
-        # print(fig)
-        # print(ax)
-        # fig.show()
-        plt.bar(left=income.index.values, height=income.price.values)
-        plt.show()
-
-    def diagnose(self):
+     def summarize_data(self):
         """ Check the quality of the data. """
 
         print('Clients: {shape}'.format(shape=self.clients.shape))
@@ -188,8 +141,3 @@ class Stats():
         print(postalcodes.head(10))
 
 
-if __name__ == '__main__':
-    u = User('m-134', 'PASSWORD', local=True)
-    s = Stats(u.database_session, u.engine)
-    s.read_sql()
-    s.make_timeseries()

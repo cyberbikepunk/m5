@@ -4,12 +4,11 @@ from m5.utilities import DEBUG, FILL_1, FILL_2, SKIP, CENTER
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
+from math import ceil
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-
-
 
 
 class Stats():
@@ -46,18 +45,31 @@ class Stats():
             print(self.checkins)
             print(self.checkpoints)
 
-    def count_empty_cells(self):
-        """ Count the number of empty cells (NaN and 0). """
+    def check_data(self):
+        """ Count the number of empty cells (distinguish NaN and 0). """
 
-        # This is definitely not the Pandas way to do it.
-        # Especially when it comes to counting NaN instances.
+        # I'm creating an empty data-frame and filling each
+        # cell on by one. This is definitely not the Pandas
+        # way to do it, especially counting NaN instances.
         # But hey, it's a beginner's exercise like any other.
+
         reports = dict()
         count = dict()
-        percentages = list()
-        print(SKIP)
 
-        indices = [('NaN', 'total'), ('NaN', '%'), ('Zero', 'total'), ('Zero', '%')]
+        print(SKIP)
+        print('{title:{fill}{align}100}'.format(title='Data check', fill=FILL_1, align=CENTER, end=SKIP))
+        pd.set_option('precision', 3)
+        pd.set_option('display.mpl_style', 'default')
+
+        indices = [('True', 'total'),
+                   ('True', '%'),
+                   ('Zero', 'total'),
+                   ('Zero', '%'),
+                   ('NaN', 'total'),
+                   ('NaN', '%'),
+                   ('None', 'total'),
+                   ('None', '%')]
+
         index = pd.MultiIndex.from_tuples(indices, names=['type', 'count'])
 
         for table_name, table in self.df.items():
@@ -70,29 +82,44 @@ class Stats():
                 # In each column, we now look
                 # for occurrences of 0 and NaN.
                 series = self.df[table_name][column]
-                conditions = {'Zero': series == 0, 'NaN': series.isnull()}
 
-                for index_name, condition in conditions.items():
+                conditions = [('True', (series.apply(lambda x: bool(x)))),
+                              ('Zero', (series == 0)),
+                              ('NaN', (series.isnull())),
+                              ('None', (series.apply(lambda x: True if x is None else False)))]
+
+                for (row, condition) in conditions:
                     total = series[condition].size
 
                     count['total'] = total
                     count['%'] = total / series.size * 100
 
-                    # Done: store the results in the right place inside the report table.
-                    reports[table_name].loc[(index_name, 'total'), column] = count['total']
-                    reports[table_name].loc[(index_name, '%'), column] = count['%']
+                    # Store the results in the right place inside the report table.
+                    reports[table_name].loc[(row, 'total'), column] = count['total']
+                    reports[table_name].loc[(row, '%'), column] = ceil(count['%'])
 
+            # Check-sum using the NaN and None counts separately
+            nans = reports[table_name].xs('%', level='count').drop('None').T
+            nones = reports[table_name].xs('%', level='count').drop('NaN').T
+            sum = reports[table_name].xs('%', level='count').T
+
+            nans['Sum'] = nans.sum(axis=1)
+            nones['Sum'] = nones.sum(axis=1)
+
+            # Print the report
             print('{title:{fill}{align}100}'.format(title=table_name, fill=FILL_2, align=CENTER))
             print(reports[table_name], end=SKIP)
 
-            # Keep the percentages only for the graph
-            percentages.append(reports[table_name].xs('%', level='count'))
+            print('Sum with NaN:')
+            print(nans, end=SKIP)
+            print('Sum with Nones:')
+            print(nones, end=SKIP)
 
-        # Make a nice bar plot of the results
-        percentages = pd.concat(percentages, join='inner', axis=1)
-        print(percentages)
-        percentages.plot(kind='bar')
-        plt.show()
+            nans.plot(kind='bar', stacked=True)
+            plt.show(block=True)
+
+
+        pd.reset_option('precision')
 
     def diagnose_data(self):
         """

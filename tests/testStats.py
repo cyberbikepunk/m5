@@ -21,7 +21,7 @@ class TestStats(TestCase):
     def testStats(self):
 
         self.stats.fetch_data()
-        self.stats.count_empty_cells()
+        self.stats.check_data()
 
     def testDatabase(self):
 

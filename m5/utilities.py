@@ -5,6 +5,12 @@ from collections import namedtuple
 
 DEBUG = True
 
+FILL_1 = '-'
+FILL_2 = '.'
+CENTER = '^'
+SKIP = '\n\n'
+
+
 Stamped = namedtuple('Stamped', ['stamp', 'data'])
 Stamp = namedtuple('Stamp', ['date', 'uuid'])
 Tables = namedtuple('Tables', ['clients', 'orders', 'checkpoints', 'checkins'])

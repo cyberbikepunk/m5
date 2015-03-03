@@ -2,7 +2,7 @@
 
 from unittest import TestCase
 from m5.user import User
-from m5.streetcloud import StreetCloud
+from m5.cloud import StreetCloud
 
 
 class TestStreetCloud(TestCase):

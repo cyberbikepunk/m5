@@ -1,6 +1,6 @@
 """ Choose a column in the database and generate a wordcloud. """
 
-from m5.utilities import DEBUG
+from m5.settings import DEBUG
 
 from sqlalchemy.engine import Engine
 from wordcloud import WordCloud

@@ -1,6 +1,7 @@
 """  The module that produces statistics, maps and plots. """
 
-from m5.utilities import DEBUG, FILL_1, FILL_2, SKIP, CENTER
+from m5.settings import DEBUG, FILL_1, FILL_2, SKIP, CENTER
+from m5.utilities import force_unique
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
@@ -18,6 +19,7 @@ class Stats():
 
         self.session = session
         self.engine = engine
+
         self.df = dict()
 
         self.orders = None
@@ -50,8 +52,7 @@ class Stats():
 
         # I'm creating an empty data-frame and filling each
         # cell on by one. This is definitely not the Pandas
-        # way to do it, especially counting NaN instances.
-        # But hey, it's a beginner's exercise like any other.
+        # way to do it, especially when counting NaN instances.
 
         reports = dict()
         count = dict()
@@ -101,7 +102,6 @@ class Stats():
             # Check-sum using the NaN and None counts separately
             nans = reports[table_name].xs('%', level='count').drop('None').T
             nones = reports[table_name].xs('%', level='count').drop('NaN').T
-            sum = reports[table_name].xs('%', level='count').T
 
             nans['Sum'] = nans.sum(axis=1)
             nones['Sum'] = nones.sum(axis=1)
@@ -115,25 +115,20 @@ class Stats():
             print('Sum with Nones:')
             print(nones, end=SKIP)
 
-            nans.plot(kind='bar', stacked=True)
-            plt.show(block=True)
-
+            nones.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
+            plt.savefig(force_unique(table_name + '-nans' + '.png'))
+            nans.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
+            plt.savefig(force_unique(table_name + '-nones' + '.png'))
 
         pd.reset_option('precision')
 
-    def diagnose_data(self):
+    def show_data(self):
         """
         The quality of the data scraped from the website is crucial.
         This method gives a quick overview of what the data looks like.
         """
 
         print(SKIP)
-
-        def percent(count, total=None):
-            return (1 - count/total) * 100
-
-        def iszero(cell):
-            return True if cell is 0 else False
 
         # Table sizes
         # -----------------------------------------------------------------------------------------------------
@@ -144,7 +139,7 @@ class Stats():
         print('Checkins table : {shape}'.format(shape=self.checkins.shape))
         print('Checkpoints table: {shape}'.format(shape=self.checkpoints.shape), end=SKIP)
 
-        # Table info
+        # Table information
         # -----------------------------------------------------------------------------------------------------
         print('{title:{fill}{align}100}'.format(title='Table infos', fill=FILL_1, align=CENTER), end=SKIP)
 
@@ -160,47 +155,6 @@ class Stats():
         print('{title:{fill}{align}50}'.format(title='CHECKPOINTS', fill=FILL_2, align=CENTER))
         print(self.checkpoints.info(), end=SKIP)
 
-        # Count NaNs
-        # -----------------------------------------------------------------------------------------------------
-        print('{title:{fill}{align}100}'.format(title='NaN occurences', fill=FILL_1, align=CENTER), end=SKIP)
-        pd.set_option('precision', 1)
 
-        nan_clients = self.clients.count(axis=0).to_frame(name='count')
-        nan_orders = self.orders.count(axis=0).to_frame(name='count')
-        nan_checkins = self.checkins.count(axis=0).to_frame(name='count')
-        nan_checkpoints = self.checkpoints.count(axis=0).to_frame(name='count')
-
-        nan_orders['NaN (%)'] = nan_orders.apply(percent, total=self.orders.shape[0])
-        nan_clients['NaN (%)'] = nan_clients.apply(percent, total=self.clients.shape[0])
-        nan_checkins['NaN (%)'] = nan_checkins.apply(percent, total=self.checkins.shape[0])
-        nan_checkpoints['NaN (%)'] = nan_checkpoints.apply(percent, total=self.checkpoints.shape[0])
-
-        print('{title:{fill}{align}50}'.format(title='CLIENTS', fill=FILL_2, align=CENTER))
-        print(nan_clients, end='\n\n')
-
-        print('{title:{fill}{align}50}'.format(title='ORDERS', fill=FILL_2, align=CENTER))
-        print(nan_orders, end='\n\n')
-
-        print('{title:{fill}{align}50}'.format(title='CHECKINS', fill=FILL_2, align=CENTER))
-        print(nan_checkins, end='\n\n')
-
-        print('{title:{fill}{align}50}'.format(title='CHECKPOINTS', fill=FILL_2, align=CENTER))
-        print(nan_checkpoints, end='\n\n')
-
-        # Count Zeros
-        # -----------------------------------------------------------------------------------------------------
-        print('{title:{fill}{align}100}'.format(title='Zeros occurences', fill=FILL_1, align=CENTER), end=SKIP)
-
-        iszero_all = np.vectorize(iszero)
-        zeros_orders = iszero_all(self.orders.values)
-        print(zeros_orders)
-#
-#         print(self.orders.groupby('overnight').size(), end='\n\n')
-#         print(self.orders.groupby('fax_confirm').size(), end='\n\n')
-#         print(self.orders.groupby('waiting_time').size(), end='\n\n')
-#         print(self.orders.groupby('city_tour').size(), end='\n\n')
-#         print(self.orders.groupby('extra_stops').size(), end='\n\n')
-#         print(self.checkpoints.groupby('postal_code').size(), end='\n\n')
-#         print(self.orders.groupby('client_id').size(), end='\n\n')
 
 

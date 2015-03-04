@@ -1,19 +1,25 @@
 """ Miscellaneous utility classes and functions """
 
-from datetime import datetime
 from collections import namedtuple
+from os.path import splitext, join
+from uuid import uuid1
 
-DEBUG = True
+from m5.settings import OUTPUT
 
-FILL_1 = '-'
-FILL_2 = '.'
-CENTER = '^'
-SKIP = '\n\n'
+
+#######################
+# Named tuple classes #
+#######################
 
 
 Stamped = namedtuple('Stamped', ['stamp', 'data'])
 Stamp = namedtuple('Stamp', ['date', 'uuid'])
 Tables = namedtuple('Tables', ['clients', 'orders', 'checkpoints', 'checkins'])
+
+
+##############
+# Decorators #
+##############
 
 
 def log_me(f):
@@ -32,11 +38,11 @@ def safe_request(f):
     return f
 
 
-def notify(message, *args):
-    """ Print a message to the screen. """
-
-    message = message.format(*args)
-    timestamp = '{:%Y-%m-%d %H:%M}'.format(datetime.now())
-    print('%s | %s' % (timestamp, message))
+#####################
+# Utility functions #
+#####################
 
 
+def force_unique(filename: str) -> str:
+    """ Return a unique and absolute file path in the output folder. """
+    return join(OUTPUT, splitext(filename)[0] + '-' + str(uuid1()) + splitext(filename)[1])

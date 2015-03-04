@@ -15,7 +15,8 @@ from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as DatabaseSession
 
-from m5.utilities import notify, log_me, time_me, Stamped, Stamp, Tables, DEBUG
+from m5.settings import DEBUG
+from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
 from m5.model import Checkin, Checkpoint, Client, Order
 from m5.user import User
 
@@ -289,7 +290,7 @@ class Packager():
                 checkpoints.append(checkpoint)
                 checkins.append(checkin)
 
-            notify('Packaged {}-uuid-{}.', str(day), uuid)
+            print('Packaged {day}-uuid-{uuid}.'.format(str(day), uuid))
 
         # The order matters when we commit to the database
         # because foreign keys must be refer to existing

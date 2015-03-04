@@ -1,12 +1,12 @@
 """ User class and related stuff. """
 
-from os.path import dirname, join
 from getpass import getpass
-from requests import Session as RequestsSession
+from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from m5.utilities import notify, log_me, safe_request, DEBUG
+from m5.settings import DEBUG, DATABASE, LOGIN, LOGOUT
+from m5.utilities import log_me, safe_request
 from m5.model import Base
 
 
@@ -22,20 +22,14 @@ class User:
 
         self.username = username
         self._password = password
-        self.local = local
 
         # Say hello to the company server
         if not local:
-            self.remote_session = RequestsSession()
-            self._authenticate(self.username, self._password)
-
-        # Make paths bulletproof
-        self.m5_path = dirname(__file__)
-        self.db_path = join(self.m5_path, '../db/%s.sqlite' % self.username)
-        self.downloads = join(self.m5_path, '../downloads', username)
+            self.remote_session = RemoteSession()
+            self._authenticate(username, password)
 
         # Create one database per user
-        self.engine = create_engine('sqlite:///%s' % self.db_path, echo=DEBUG)
+        self.engine = create_engine('sqlite:///%s' % DATABASE, echo=DEBUG)
         self.Base = Base.metadata.create_all(self.engine)
 
         # Start a database query session
@@ -52,7 +46,6 @@ class User:
         if not password:
             self._password = getpass('Enter password: ')
 
-        url = 'http://bamboo-mec.de/ll.php5'
         credentials = {'username': self.username,
                        'password': self._password}
 
@@ -60,7 +53,7 @@ class User:
         headers = {'user-agent': 'Mozilla/5.0'}
         self.remote_session.headers.update(headers)
 
-        response = self.remote_session.post(url, credentials)
+        response = self.remote_session.post(LOGIN, credentials)
         if not response.ok:
             self._authenticate()
         else:
@@ -68,20 +61,13 @@ class User:
 
     def quit(self):
         """ Make a clean exit from the program. """
-
         self._logout()
+        self.remote_session.close()
         exit(0)
 
     def _logout(self):
         """ Logout from the server and close the session. """
-
-        url = 'http://bamboo-mec.de/index.php5'
-        payload = {'logout': '1'}
-
-        response = self.remote_session.get(url, params=payload)
-
+        response = self.remote_session.get(LOGOUT, params={'logout': '1'})
         if response.history[0].status_code == 302:
             # We have been redirected to the home page
-            notify('Logged out. Goodbye!')
-
-        self.remote_session.close()
+            print('Logged out. Goodbye!')

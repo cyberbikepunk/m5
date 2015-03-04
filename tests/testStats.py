@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from m5.model import Order, Checkin, Checkpoint, Client
 from m5.user import User
-from m5.stats import Stats
+from m5.quality import Stats
 
 
 class TestStats(TestCase):
@@ -22,6 +22,7 @@ class TestStats(TestCase):
 
         self.stats.fetch_data()
         self.stats.check_data()
+        self.stats.show_data()
 
     def testDatabase(self):
 

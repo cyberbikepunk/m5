@@ -1,6 +1,6 @@
-"""
-The factory module: to make it short, we're duplicating a database. But not the easiest way.
-"""
+""" The factory module migrates remote data to the local database. """
+
+import sys
 
 from os import path
 from geopy.exc import GeocoderTimedOut
@@ -15,7 +15,7 @@ from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as DatabaseSession
 
-from m5.settings import DEBUG
+from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY
 from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
 from m5.model import Checkin, Checkpoint, Client, Order
 from m5.user import User
@@ -28,97 +28,109 @@ from m5.user import User
 
 
 class Factory():
-    """
-    The factory class is the API for data migrations from the remote server to the local database.
-    It's basically a user-friendly wrapper around the Miner, Scraper, Packager and Pusher classes.
-    """
+    """ A wrapper class to download, scrape, package and archive data in bulk. """
 
-    def __init__(self, user: User, overwrite: bool=None):
-        """  Prepare everything we need for a data migration process. """
+    def __init__(self, user: User):
+        """  Instantiate re-usable Scraper, Packager and Archiver objects. """
 
-        assert isinstance(user, User), 'Argument 1 must be a User object'
+        self._downloader = Downloader(user.remote_session)
+        self._scraper = Scraper()
+        self._packager = Packager()
+        self._pusher = Archiver(user.local_session)
 
-        # Factory departments
-        self.miner = Miner(user.remote_session, user.downloads, overwrite=overwrite)
-        self.scraper = Scraper()
-        self.packager = Packager()
-        self.pusher = Pusher(user.database_session)
+    @time_me
+    def bulk_download(self, start_date: date):
+        """
+        Download all html pages since that day.
+        Files will be downloaded but NOT scraped.
 
-    def migrate(self, begin: date, end: date):
-        """  Migrate data in bulk from the remote server into the local database. """
+        :param start_date: a date object (in the past)
+        """
 
-        assert isinstance(begin, date), 'Argument 1 must be a date object'
-        assert isinstance(end, date), 'Argument 2 must be a date object'
+        delta = date.today() - start_date
+        for d in range(delta.days):
+            self._download(start_date + timedelta(days=d))
 
-        period = end - begin
+    @time_me
+    def bulk_migrate(self, start_date: date):
+        """
+        Migrate all data since that day. Whenever possible,
+        HTML files will served from cache to spare the server.
+
+        :param start_date: a date object (in the past)
+        """
+
+        period = date.today() - start_date
         days = range(period.days)
 
         for d in days:
             # Take one day's worth of data and
             # walk through the data migration
             # process from beginning to end
-            day = begin + timedelta(days=d)
+            day = start_date + timedelta(days=d)
 
-            soup_jobs = self.mine(day)
+            # The downloader will serve files
+            # from cache if it already has them.
+            soup_jobs = self._download(day)
+
             if soup_jobs:
-                serial_jobs = self.scrape(soup_jobs)
-                table_jobs = self.package(serial_jobs)
-                self.push(table_jobs)
+                serial_jobs = self._scrape(soup_jobs)
+                table_jobs = self._package(serial_jobs)
+                self._archive(table_jobs)
 
-            print('Migrated {n}/{N} ({percent}%).'
+            print('Processed {n}/{N} ({percent}%).'
                   .format(n=d, N=len(days), percent=int((d+1)/len(days)*100)))
 
-    def push(self, table_jobs: Tables) -> dict:
-        return self.pusher.push(table_jobs)
+    def _archive(self, table_jobs: Tables) -> dict:
+        return self._pusher.archive(table_jobs)
 
-    def package(self, serial_jobs: list) -> Tables:
-        return self.packager.package(serial_jobs)
+    def _package(self, serial_jobs: list) -> Tables:
+        return self._packager.package(serial_jobs)
 
-    def scrape(self, soup_jobs: list) -> list:
-        return self.scraper.scrape(soup_jobs)
+    def _scrape(self, soup_jobs: list) -> list:
+        return self._scraper.scrape(soup_jobs)
 
-    def mine(self, day: date) -> list:
-        return self.miner.mine(day)
+    def _download(self, day) -> list:
+        return self._downloader.download(day)
 
 
-class Pusher():
+class Archiver():
+    """ The Archiver class saves packaged data inside the local database. """
 
     def __init__(self, database_session: DatabaseSession):
-        self.database_session = database_session
+        self._database_session = database_session
 
-    def push(self, tables: Tables):
+    def archive(self, tables: Tables):
 
         for table in tables:
             for row in table:
                 try:
-                    self.database_session.merge(row)
-                    self.database_session.commit()
+                    self._database_session.merge(row)
+                    self._database_session.commit()
                 except IntegrityError:
-                    self.database_session.rollback()
+                    self._database_session.rollback()
                     print('Database Intergrity ERROR: {table}'
                           .format(table=str(row)))
 
 
-class Miner():
-    """ The Miner class downloads html files from the remote server. """
+class Downloader():
+    """ The Downloader class gets html files from the remote server. """
 
-    def __init__(self, remote_session: RemoteSession, directory: str, overwrite: bool=None):
-        """ Instantiate a re-useable Miner object. """
+    def __init__(self, remote_session: RemoteSession, overwrite: bool=None):
+        """ Instantiate a re-useable Downloader object. """
 
-        self.overwrite = overwrite
-        self.remote_session = remote_session
-        self.directory = directory
+        self._overwrite = overwrite
+        self._remote_session = remote_session
 
-        # The current job
-        self.stamp = None
+        self._stamp = None
 
-    def mine(self, day: date):
+    def download(self, day: date) -> list:
         """
         Download the web-page showing one day of messenger data.
         Save the raw html files and and return a list of beautiful soups.
-        If that day has already been cached, serve the soup from the local file.
+        If that day has already been cached, serve the soup from file.
 
-        :return: a list of Stamped beautiful soups
+        :return: a list of Stamped(Stamp, soup) objects
         """
 
         assert isinstance(day, date), 'Argument must be a date object'
@@ -136,9 +148,9 @@ class Miner():
 
         else:
             for i, uuid in enumerate(uuids):
-                self.stamp = Stamp(day, uuid)
+                self._stamp = Stamp(day, uuid)
 
-                if self._is_cached() and not self.overwrite:
+                if self._is_cached() and not self._overwrite:
                     soup = self._load_job()
                     verb = 'Loaded'
                 else:
@@ -149,7 +161,7 @@ class Miner():
                     print('{verb} {n}/{N}. {url}'.
                           format(verb=verb, n=i+1, N=len(uuids), url=self._job_url()))
 
-                soup_jobs.append(Stamped(self.stamp, soup))
+                soup_jobs.append(Stamped(self._stamp, soup))
 
         return soup_jobs
 
@@ -157,20 +169,19 @@ class Miner():
         """ Return uuid request parameters for each job by scraping the summary page. """
 
         # Reset
-        self.stamp = Stamp(day, 'NO_JOBS')
+        self._stamp = Stamp(day, 'NO_JOBS')
 
-        # Avoid doing things twice
+        # Don't do things twice
         if self._is_cached():
             return None
 
-        url = 'http://bamboo-mec.de/ll.php5'
+        url = SUMMARY
         payload = {'status': 'delivered', 'datum': day.strftime('%d.%m.%Y')}
-        response = self.remote_session.get(url, params=payload)
+        response = self._remote_session.get(url, params=payload)
 
         # The so called 'uuids' are
         # actually 7 digit numbers.
         pattern = 'uuid=(\d{7})'
-
         jobs = findall(pattern, response.text)
 
         # Dump the duplicates.
@@ -179,12 +190,12 @@ class Miner():
     def _get_job(self) -> BeautifulSoup:
         """ Browse the web-page for that day and return a beautiful soup. """
 
-        url = 'http://bamboo-mec.de/ll_detail.php5'
+        url = JOB
         payload = {'status': 'delivered',
-                   'uuid': self.stamp.uuid,
-                   'datum': self.stamp.date.strftime('%d.%m.%Y')}
-        response = self.remote_session.get(url, params=payload)
+                   'uuid': self._stamp.uuid,
+                   'datum': self._stamp.date.strftime('%d.%m.%Y')}
 
+        response = self._remote_session.get(url, params=payload)
         soup = BeautifulSoup(response.text)
         self._save_job(soup)
 
@@ -192,12 +203,12 @@ class Miner():
 
     def _filepath(self):
         """ Where a job's html file is saved. """
-        filename = '%s-uuid-%s.html' % (self.stamp.date.strftime('%Y-%m-%d'), self.stamp.uuid)
-        return path.join(self.directory, filename)
+        filename = '%s-uuid-%s.html' % (self._stamp.date.strftime('%Y-%m-%d'), self._stamp.uuid)
+        return path.join(DOWNLOADS, filename)
 
     def _job_url(self):
         return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
-            .format(uuid=self.stamp.uuid, date=self.stamp.date.strftime('%d.%m.%Y'))
+            .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
 
     def _is_cached(self):
         if isfile(self._filepath()):
@@ -268,7 +279,7 @@ class Packager():
             orders.append(order)
 
             for address in addresses:
-                geocoded = self.geocode(address)
+                geocoded = self._geocode(address)
 
                 checkpoint = Checkpoint(**{'checkpoint_id': geocoded['osm_id'],
                                            'display_name': geocoded['display_name'],
@@ -300,7 +311,7 @@ class Packager():
         return tables
 
     @staticmethod
-    def geocode(raw_address: dict) -> dict:
+    def _geocode(raw_address: dict) -> dict:
         """
         Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
         The returned osm_id is used as the primary key in the checkpoint table.
@@ -313,7 +324,7 @@ class Packager():
                         'street': raw_address['address'],
                         'city': raw_address['city'],
                         'country': 'Germany'}
-        # TODO Must not default to Germany
+        # TODO Geo-coding must not default to Germany
 
         nothing = {'osm_id': None,
                    'lat': None,
@@ -444,18 +455,17 @@ class Scraper:
                                    until={'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True})}
 
     def __init__(self):
-        self.stamp = None
+        self._stamp = None
 
-    @time_me
     @log_me
     def scrape(self, soup_jobs: list) -> list:
         """
         In goes a bunch of html files (in the form of beautiful soups),
         out comes serial data, i.e. dictionaries of field name/value
-        pairs, where values are raw strings.
+        pairs. At this point, values are stored as raw strings.
 
-        :param soup_jobs: Stamped(Stamp, BeautifulSoup)
-        :return: Stamped(Stamp, (job_details, addresses))
+        :param soup_jobs: a list of Stamped(Stamp, BeautifulSoup)
+        :return: a list of Stamped(Stamp, (job_details, addresses))
         """
 
         assert soup_jobs is not None, 'Argument cannot be None.'
@@ -463,7 +473,7 @@ class Scraper:
         serial_jobs = list()
 
         for i, soup_job in enumerate(soup_jobs):
-            self.stamp = soup_job.stamp
+            self._stamp = soup_job.stamp
 
             job_details, addresses = self._scrape_job(soup_job)
             serial_job = Stamped(soup_job.stamp, (job_details, addresses))
@@ -486,7 +496,7 @@ class Scraper:
     def _job_url(self):
         """ The url of the web-page for a job. """
         return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
-            .format(uuid=self.stamp.uuid, date=self.stamp.date.strftime('%d.%m.%Y'))
+            .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
 
     def _scrape_job(self, soup_item: Stamped) -> tuple:
         """
@@ -552,9 +562,8 @@ class Scraper:
         # a robust set of data. Failure to collect information is not a
         # show-stopper but we should know about it!
 
-        # Split the inner contents of the html tag into a list of lines
+        # Split the contents of the html fragment into a list of lines
         contents = list(soup_fragment.stripped_strings)
-
         collected = {}
 
         # Collect each field one by one, even if that
@@ -564,16 +573,14 @@ class Scraper:
                 matched = match(blueprint['pattern'], contents[blueprint['line_nb']])
             except IndexError:
                 collected[field] = None
-                if DEBUG:
-                    self._elucidate(stamp, field, blueprint, contents, tag)
+                self._elucidate(stamp, field, blueprint, contents, tag)
             else:
                 if matched:
                     collected[field] = matched.group(1)
                 else:
                     collected[field] = None
                     if not blueprint['nullable']:
-                        if DEBUG:
-                            self._elucidate(stamp, field, blueprint, contents, tag)
+                        self._elucidate(stamp, field, blueprint, contents, tag)
 
         return collected
 
@@ -628,17 +635,33 @@ class Scraper:
         :param context: the document fragment
         """
 
-        seperator = '*' * 100
-        print(seperator)
+        reset = sys.stdout
+        sys.stdout = open(ELUCIDATE, 'w+')
+
         print('{date}-{uuid}: Failed to scrape {field} on line {nb} inside {tag}.'
               .format(date=stamp.date,
                       uuid=stamp.uuid,
                       field=field_name,
                       nb=blueprint['line_nb'],
                       tag=tag))
+
         if len(context):
             for line_nb, line_content in enumerate(context):
                 print(str(line_nb) + ': ' + line_content)
         else:
             print('No html content inside {tag}'.format(tag=tag))
-        print(seperator)
+
+        print('-' * 100)
+        sys.stdout = reset
+
+
+def bulk_download(user: User, start_date: date=None):
+    """ Download all html pages since that day. """
+    m = Factory(user)
+    m.bulk_download(start_date if start_date is not None else date.today)
+
+
+def bulk_migrate(user: User, start_date: date=None):
+    """ Migrate all data since that day. In other words: download, scrape, package and archive. """
+    m = Factory(user)
+    m.bulk_migrate(start_date if start_date is not None else date.today)

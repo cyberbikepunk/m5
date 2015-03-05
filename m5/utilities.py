@@ -1,25 +1,23 @@
-""" Miscellaneous utility classes and functions """
+""" Miscellaneous utility classes decorators and functions """
 
 from collections import namedtuple
-from os.path import splitext, join
-from uuid import uuid1
+from datetime import datetime
+from os.path import splitext, join, getctime, isdir
+from os import mkdir
+from glob import iglob
+from re import sub
 
-from m5.settings import OUTPUT
+from m5.settings import USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG
 
 
-#######################
-# Named tuple classes #
-#######################
+# --------------------- NAMED TUPLES
 
 
 Stamped = namedtuple('Stamped', ['stamp', 'data'])
 Stamp = namedtuple('Stamp', ['date', 'uuid'])
 Tables = namedtuple('Tables', ['clients', 'orders', 'checkpoints', 'checkins'])
 
-
-##############
-# Decorators #
-##############
+# --------------------- DECORATORS
 
 
 def log_me(f):
@@ -30,19 +28,38 @@ def time_me(f):
     return f
 
 
-def safe_io(f):
-    return f
+# --------------------- FUNCTIONS
 
 
-def safe_request(f):
-    return f
+def unique_file(name: str) -> str:
+    """ Return a unique path in the output folder. """
+
+    (base, extension) = splitext(name)
+    stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
+    unique = base.ljust(20, '_') + stamp + extension
+    path = join(OUTPUT, unique)
+
+    return path
 
 
-#####################
-# Utility functions #
-#####################
+def latest_file(folder: str):
+    """ Return the most recent file inside the folder. """
+    return min(iglob(join(folder, '*.sqlite')), key=getctime)
 
 
-def force_unique(filename: str) -> str:
-    """ Return a unique and absolute file path in the output folder. """
-    return join(OUTPUT, splitext(filename)[0] + '-' + str(uuid1()) + splitext(filename)[1])
+def check_folders():
+    """ Create user folders if needed. """
+
+    folders = (USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG)
+
+    for folder in folders:
+        if not isdir(folder):
+            # Don't handle IO exception
+            # to get deeper feedback.
+            mkdir(folder, mode=775)
+            print('Created {dir}.'.format(dir=folder))
+
+
+if __name__ == '__main__':
+    print(latest_file(DATABASE))
+    print(unique_file('example.yo'))

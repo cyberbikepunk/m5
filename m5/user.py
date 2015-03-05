@@ -1,45 +1,91 @@
-""" User class and related stuff. """
+""" Connect the user to the local and remote databases. """
 
 from getpass import getpass
+from pandas import DataFrame, read_sql
 from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from os.path import join
+from pandas import merge, set_option
 
-from m5.settings import DEBUG, DATABASE, LOGIN, LOGOUT
-from m5.utilities import log_me, safe_request
+from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP
+from m5.utilities import check_folders, log_me, latest_file
 from m5.model import Base
 
 
 class User:
-    """
-    The User class manages user activity for couriers freelancing
-    for User (http://messenger.de). This is the default user class.
-    It can theoretically be overridden for other courier companies.
-    """
+    """ Users must work for Messenger (http://messenger.de). """
 
-    def __init__(self, username: str=None, password: str=None, local=False):
-        """  Authenticate the user on the remote server and initialise the local database. """
+    def __init__(self, username: str=None, password: str=None):
+        """ Authenticate the user on the remote server and start a local database session. """
 
         self.username = username
         self._password = password
 
-        # Say hello to the company server
-        if not local:
+        if username and password:
+            # Say hello to the remote server.
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
+        else:
+            print('Ignore the remote server.')
 
-        # Create one database per user
-        self.engine = create_engine('sqlite:///%s' % DATABASE, echo=DEBUG)
-        self.Base = Base.metadata.create_all(self.engine)
+        # Create folders for new user.
+        check_folders()
 
-        # Start a database query session
-        _Session = sessionmaker(bind=self.engine)
-        self.database_session = _Session()
+        # Use the most recent database in the folder
+        path = join(DATABASE, latest_file(DATABASE))
+        sqlite = 'sqlite:///{path}'.format(path=path)
+        print('The latest database is {path}'.format(path=path))
+
+        # Start a new local database session.
+        self.engine = create_engine(sqlite, echo=DEBUG)
+        self.base = Base.metadata.create_all(self.engine)
+        self.local_session = sessionmaker(bind=self.engine)()
+
+        # Pull data into memory
+        self.db = self._load()
 
     @log_me
-    @safe_request
+    def _load(self) -> DataFrame:
+        """ Pull the database tables into Pandas and join them together. """
+
+        db = dict()
+        eng = self.engine
+
+        db['clients'] = read_sql('client', eng, index_col='client_id')
+        db['orders'] = read_sql('order', eng, index_col='order_id', parse_dates=['date'])
+        db['checkins'] = read_sql('checkin', eng, index_col='checkin_id', parse_dates=['timestamp', 'after_', 'until'])
+        db['checkpoints'] = read_sql('checkpoint', eng, index_col='checkpoint_id')
+
+        checkins_with_checkpoints = merge(db['checkins'],
+                                          db['checkpoints'],
+                                          left_on='checkpoint_id',
+                                          right_index=True,
+                                          how='outer')
+
+        orders_with_clients = merge(db['orders'],
+                                    db['clients'],
+                                    left_on='client_id',
+                                    right_index=True,
+                                    how='outer')
+
+        db['all'] = merge(checkins_with_checkpoints,
+                          orders_with_clients,
+                          left_on='order_id',
+                          right_index=True,
+                          how='outer')
+
+        if DEBUG:
+            set_option('expand_frame_repr', False)
+            print(SKIP)
+            for table in db.values():
+                print(table.info(), end=SKIP)
+
+        return db
+
+    @log_me
     def _authenticate(self, username=None, password=None):
-        """ Make recursive login attempts until successful. """
+        """ Make recursive login attempts. """
 
         if not username:
             self.username = input('Enter username: ')
@@ -60,14 +106,19 @@ class User:
             print('Now logged into remote server.')
 
     def quit(self):
-        """ Make a clean exit from the program. """
-        self._logout()
-        self.remote_session.close()
+        """ Make a clean exit. """
+
+        if self.username and self._password:
+            response = self.remote_session.get(LOGOUT, params={'logout': '1'})
+            if response.history[0].status_code == 302:
+                # We know we are logged out because we
+                # have been redirected to the login page
+                print('Logged out. Goodbye!')
+            self.remote_session.close()
+
         exit(0)
 
-    def _logout(self):
-        """ Logout from the server and close the session. """
-        response = self.remote_session.get(LOGOUT, params={'logout': '1'})
-        if response.history[0].status_code == 302:
-            # We have been redirected to the home page
-            print('Logged out. Goodbye!')
+
+if __name__ == '__main__':
+    user = User()
+    user.quit()

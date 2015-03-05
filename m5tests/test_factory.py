@@ -12,7 +12,7 @@ from random import sample
 from re import search, match
 from datetime import datetime, date
 
-from m5.factory import Scraper, Miner, Packager
+from m5.factory import Scraper, Downloader, Packager
 from m5.utilities import Stamp, Stamped, Tables
 from m5.model import Client, Order, Checkin, Checkpoint
 
@@ -62,9 +62,9 @@ class TestDownloader(TestCase):
                 remove(join(self.directory, file))
 
     def testMiner(self):
-        """ Check if the Miner class can download files correctly from the company server. """
+        """ Check if the Downloader class can download files correctly from the company server. """
 
-        m = Miner(self.session,
+        m = Downloader(self.session,
                   self.directory,
                   overwrite=True)
 
@@ -73,7 +73,7 @@ class TestDownloader(TestCase):
         self.day = date(2014, random_month, random_day)
 
         print('Testing file download for %s.' % str(self.day))
-        soups = m.mine(self.day)
+        soups = m.download(self.day)
 
         if not soups:
             # No jobs on that day... try again

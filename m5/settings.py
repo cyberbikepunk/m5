@@ -1,60 +1,57 @@
 """ Global settings for the m5 package. """
 
-from os.path import dirname, join, normpath, isdir, expanduser
-from os import mkdir
+from os.path import join, normpath, abspath
 from sys import modules
+
 
 # Verbose
 DEBUG = True
 
+# Folders
+USER = abspath('.')  # TODO Switch USER to user home dir (use expanduser)
+PACKAGE = abspath('.')
+OUTPUT = normpath(join(PACKAGE, '../output/'))
+DATABASE = normpath(join(PACKAGE, '../db/'))
+DOWNLOADS = normpath(join(PACKAGE, '../downloads/'))
+TEMP = normpath(join(PACKAGE, '../temp/'))
+LOG = normpath(join(PACKAGE, '../log/'))
+
+# Files
+ELUCIDATE = join(LOG, 'elucidate.log')
+MASK = join(PACKAGE, 'mask.png')
+MASK2 = 'http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Berlin.svg/1269px-Berlin.svg.png'
+# Wordcloud tweaks
+BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
+WORDS = 'street'
+MAXWORDS = 200
+PROPORTION = 0.8
+
+# URLs
+LOGIN = 'http://bamboo-mec.de/ll.php5'
+LOGOUT = 'http://bamboo-mec.de/index.php5'
+JOB = 'http://bamboo-mec.de/ll_detail.php5'
+SUMMARY = 'http://bamboo-mec.de/ll.php5'
+
 # Readability
-FILL_1 = '-'
-FILL_2 = '.'
+FILL = '.'
 CENTER = '^'
 SKIP = '\n\n'
 
-# Folders
-HOME = '.'  # expanduser('~/.m5')
-OUTPUT = normpath(join(dirname(__file__), '../output/'))
-DATABASE = normpath(join(dirname(__file__), '../db/'))
-DOWNLOAD = normpath(join(dirname(__file__), '../downloads/'))
-TEMP = normpath(join(dirname(__file__), '../temp/'))
-LOG = normpath(join(dirname(__file__), '../log/'))
-
-# HTTP
-LOGIN = 'http://bamboo-mec.de/ll.php5'
-LOGOUT = 'http://bamboo-mec.de/index.php5'
-
-
-def create_folders():
-    """ Create user folders if needed. """
-
-    folders = (HOME, OUTPUT, DATABASE, DOWNLOAD, TEMP, LOG)
-
-    for folder in folders:
-        if not isdir(folder):
-            # Don't handle IO exception
-            # to get better feedback.
-            mkdir(folder, mode=666)
-            print('Created {dir}.'.format(dir=folder))
-
 
 def show_settings():
-    """ Echo the package setting parameters. """
+    """ Echo all package parameters. """
 
-    print('m5 package settings:')
+    print('Settings for M5 package:', end=SKIP)
     objects = dir(modules[__name__])
-    # Assume upper case = setting parameters
+    # Only setting parameters are uppercase
     items = [x for x in objects if x.isupper()]
 
     for item in items:
         value = getattr(modules[__name__], item)
-        print('{item} = {value}' .format(item=item, value=value))
+        print('{item} = {value!r}'
+              .format(item=item.rjust(20, ' '), value=value))
 
 
 if __name__ == '__main__':
-    create_folders()
     show_settings()
-
-
 

@@ -1,4 +1,4 @@
-M5 is a bike messenger data visualization tool. 
+M5 is a bike messenger data analysis tool.
 This is a pivate project but the it could also 
 be used by any of my company colleagues. 
 

@@ -22,6 +22,15 @@ Base = declarative_base()
 #    (foreign key + back-ref)
 
 
+def to_string(obj):
+    """ Common type casting to string. """
+    strings = list()
+    keys = [k for k in obj.__dict__.keys() if k[0] is not '_']
+    for key in keys:
+        strings.append('{key}={value}'.format(key=key, value=obj.__dict__[key]))
+    return '<' + obj.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+
+
 class Client(Base):
     __tablename__ = 'client'
 
@@ -34,15 +43,9 @@ class Client(Base):
         return self.client_id
 
     def __str__(self):
-        """ Return something easy to read. """
-        strings = list()
-        keys = [k for k in self.__dict__.keys() if k[0] is not '_']
-        for key in keys:
-            strings.append('{key}={value}'.format(key=key, value=self.__dict__[key]))
-        return '<' + self.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+        return to_string(self)
 
     def __repr__(self):
-        """ Return something easy to read. """
         return self.__str__()
 
 
@@ -52,12 +55,12 @@ class Order(Base):
     order_id = Column(Integer, primary_key=True, autoincrement=False)
     client_id = Column(Integer, ForeignKey('client.client_id'), nullable=False)
     type = Column(Enum('city_tour', 'overnight', 'help'))
-    city_tour = Column(Float, default=0)
-    overnight = Column(Float, default=0)
-    waiting_time = Column(Float, default=0)
-    extra_stops = Column(Float, default=0)
-    fax_confirm = Column(Float, default=0)
-    distance = Column(Float, default=0)
+    city_tour = Column(Float)
+    overnight = Column(Float)
+    waiting_time = Column(Float)
+    extra_stops = Column(Float)
+    fax_confirm = Column(Float)
+    distance = Column(Float)
     cash = Column(Boolean)
     date = Column(DateTime)
     uuid = Column(Integer)
@@ -70,15 +73,9 @@ class Order(Base):
         return self.order_id
 
     def __str__(self):
-        """ Return something easy to read. """
-        strings = list()
-        keys = [k for k in self.__dict__.keys() if k[0] is not '_']
-        for key in keys:
-            strings.append('{key}={value}'.format(key=key, value=self.__dict__[key]))
-        return '<' + self.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+        return to_string(self)
 
     def __repr__(self):
-        """ Return something easy to read. """
         return self.__str__()
 
 
@@ -102,15 +99,9 @@ class Checkin(Base):
         return self.checkin_id
 
     def __str__(self):
-        """ Return something easy to read. """
-        strings = list()
-        keys = [k for k in self.__dict__.keys() if k[0] is not '_']
-        for key in keys:
-            strings.append('{key}={value}'.format(key=key, value=self.__dict__[key]))
-        return '<' + self.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+        return to_string(self)
 
     def __repr__(self):
-        """ Return something easy to read. """
         return self.__str__()
 
 
@@ -132,13 +123,7 @@ class Checkpoint(Base):
         return self.checkpoint_id
 
     def __str__(self):
-        """ Return something easy to read. """
-        strings = list()
-        keys = [k for k in self.__dict__.keys() if k[0] is not '_']
-        for key in keys:
-            strings.append('{key}={value}'.format(key=key, value=self.__dict__[key]))
-        return '<' + self.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+        return to_string(self)
 
     def __repr__(self):
-        """ Return something easy to read. """
         return self.__str__()

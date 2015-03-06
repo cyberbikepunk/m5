@@ -6,6 +6,9 @@ db/
 tests/temp/
 *.backup
 *.broken
+*.png
+output/
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

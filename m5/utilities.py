@@ -7,7 +7,7 @@ from os import mkdir
 from glob import iglob
 from re import sub
 
-from m5.settings import USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG
+from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG
 
 
 # --------------------- NAMED TUPLES
@@ -36,11 +36,10 @@ def unique_file(name: str) -> str:
 
     (base, extension) = splitext(name)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
-    unique = base.ljust(20, '_') + stamp + extension
+    unique = base.ljust(20, FILL) + stamp + extension
     path = join(OUTPUT, unique)
 
     return path
-
 
 def latest_file(folder: str):
     """ Return the most recent file inside the folder. """

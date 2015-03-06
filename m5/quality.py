@@ -1,4 +1,4 @@
-"""  The module that produces statistics, maps and plots. """
+"""  Check the consistency and quality of the data. """
 
 from math import ceil
 

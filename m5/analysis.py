@@ -1,142 +1,196 @@
 """  The module that produces statistics, maps and plots. """
 
-from math import ceil
-
-from m5.settings import FILL, SKIP, CENTER
+from m5.settings import FONTSIZE, DEBUG, SHOW
 from m5.user import User
 from m5.utilities import unique_file
 
-import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+
 import pandas as pd
-import sys
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Analyser():
-    """
-    The quality of the data depends on how well the scraper performed.
-    QualityCheck helps to quantify and visualize the overall data quality.
-    """
+    """ Data analysis tools. """
 
     def __init__(self, db: pd.DataFrame):
-        """ Copy the dataframes to the new object instance. """
+        """ Duplicate the database and set plotting options. """
+
         self.db = db
 
-    @staticmethod
-    def print_dataframe(df, title: str, file: bool=False):
-        """ Pretty print a dataframe to file or standard output. """
-
-        reset = sys.stdout
-        if file:
-            name = '{title}.txt'.format(title=title)
-            sys.stdout = open(unique_file(name), 'w+')
-
-        print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
-        print(df, end=SKIP)
-
-        if file:
-            sys.stdout = reset
-
-    def check_sums(self):
-        """ Count the number of empty cells (distinguish NaN, None and 0). """
-
-        # I'm creating an empty data-frame and filling each
-        # cell on by one. This is definitely not the Pandas
-        # way to do it, especially when counting NaN instances.
-
-        reports = dict()
-        count = dict()
-
-        print(SKIP)
-        print('{title:{fill}{align}100}'.format(title='Data check', fill=FILL, align=CENTER, end=SKIP))
-        pd.set_option('precision', 3)
+        # Graphs look much better with this setting.
         pd.set_option('display.mpl_style', 'default')
 
-        indices = [('True', 'total'),
-                   ('True', '%'),
-                   ('Zero', 'total'),
-                   ('Zero', '%'),
-                   ('NaN', 'total'),
-                   ('NaN', '%'),
-                   ('None', 'total'),
-                   ('None', '%')]
+        # There are plenty of zeros in the database because the model
+        # forces zero as the default for missing values. This is now fixed,
+        # but the following statement is kept for backward compatibility.
+        self.db['orders'].replace(0, np.nan, inplace=True)
 
-        index = pd.MultiIndex.from_tuples(indices, names=['type', 'count'])
+        # Matplotlib can't find the default
+        # font, so we give it another one.
+        plt.rc('font', family='Droid Sans', size=FONTSIZE)
 
-        for name, table in self.db.items():
-            # Start by producing an empty report
-            # table for each table in the database.
-            columns = list(table.columns.values)
-            reports[name] = pd.DataFrame(None, index=index, columns=columns)
+    def monthly_income(self):
+        """ Plot a timeseries of the monthly income. """
 
-            for column in columns:
-                # In each column, we now look
-                # for occurrences of 0 and NaN.
-                series = self.db[name][column]
+        income = self.db['orders'][['city_tour',
+                                    'overnight',
+                                    'waiting_time',
+                                    'extra_stops',
+                                    'fax_confirm',
+                                    'date']]
 
-                conditions = [('True', (series.apply(lambda x: bool(x)))),
-                              ('Zero', (series == 0)),
-                              ('NaN', (series.isnull())),
-                              ('None', (series.apply(lambda x: True if x is None else False)))]
+        monthly = income.set_index('date').resample('M', how='sum')
 
-                for (row, condition) in conditions:
-                    total = series[condition].size
+        ax = monthly.plot(kind='bar',
+                          stacked=True,
+                          figsize=(12, 10),
+                          title='Monthly income',
+                          fontsize=FONTSIZE)
 
-                    count['total'] = total
-                    count['%'] = total / series.size * 100
+        ax.xaxis.set_minor_formatter(DateFormatter('%y'))
+        ax.set_xlabel('Months')
+        ax.set_ylabel('Income (€)')
+        plt.tight_layout()
 
-                    # Store the results in the right place inside the report table.
-                    reports[name].loc[(row, 'total'), column] = count['total']
-                    reports[name].loc[(row, '%'), column] = ceil(count['%'])
+        if SHOW:
+            plt.show(block=True)
+        else:
+            plt.savefig(unique_file('monthly_income.png'))
 
-            # Check-sum using the NaN and None counts separately
-            nans = reports[name].xs('%', level='count').drop('None').T
-            nones = reports[name].xs('%', level='count').drop('NaN').T
+    def daily_income(self):
+        """ Plot a timeseries of the daily income. """
 
-            nans['Sum'] = nans.sum(axis=1)
-            nones['Sum'] = nones.sum(axis=1)
+        dates = self.db['orders']['date']
+        income = self.db['orders'][['city_tour',
+                                    'overnight',
+                                    'waiting_time',
+                                    'extra_stops',
+                                    'fax_confirm']]
 
-            # Print the report
-            print('{title:{fill}{align}100}'.format(title=name, fill=FILL, align=CENTER))
-            print(reports[name], end=SKIP)
+        prices = pd.concat([income, income.sum(axis=1), dates], axis=1)
+        prices.rename(columns={0: 'total'}, inplace=True)
 
-            self.print_dataframe(nans, 'nans', file=True)
-            # print('Sum with NaN:')
-            # print(nans, end=SKIP)
-            # print('Sum with Nones:')
-            # print(nones, end=SKIP)
+        timeseries = prices.groupby('date').sum()
+        total = timeseries['total']
+        mean = total.mean()
 
-            nones.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
-            plt.savefig(unique_file(name + '-nans' + '.png'))
-            nans.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
-            plt.savefig(unique_file(name + '-nones' + '.png'))
+        fig = plt.figure(figsize=(12, 6))
+        ax = fig.add_subplot(111)
 
-        pd.reset_option('precision')
+        ax.vlines(total.index.values, 0, total.values)
+        ax.set_xlabel('Dates')
+        ax.set_ylabel('Income (€)')
+        ax.set_title('Daily income')
+        ax.axhline(mean, color='k')
+        plt.tight_layout()
 
-    def summarize_db(self):
-        """ Print out the most basic information about the data. """
+        if SHOW:
+            plt.show()
+        else:
+            plt.savefig(unique_file('daily_income.png'))
 
-        print(SKIP)
+    def income_pie(self):
+        """ A pie chart of income per job type. """
 
-        # Table size information
-        print('{title:{fill}{align}100}'
-              .format(title='Table sizes', fill=FILL, align=CENTER), end=SKIP)
+        income = self.db['orders'][['city_tour',
+                                    'overnight',
+                                    'waiting_time',
+                                    'extra_stops',
+                                    'fax_confirm']]
 
-        for name, table in self.db.items():
-            print('{table}: {shape}'
-                  .format(table=name, shape=table.shape), end=SKIP)
+        breakdown = income.sum(axis=0)
+        breakdown.plot(kind='pie',
+                       figsize=(12, 10),
+                       title='Income breakdown',
+                       fontsize=FONTSIZE)
 
-        # Table summary information
-        print('{title:{fill}{align}100}'
-              .format(title='Table infos', fill=FILL, align=CENTER), end=SKIP)
+        if SHOW:
+            plt.show()
+        else:
+            plt.savefig(unique_file('income_pie.png'))
 
-        for name, table in self.db.items():
-            print('{title:{fill}{align}50}'
-                  .format(title=name, fill=FILL, align=CENTER))
-            print(table.info(), end=SKIP)
+    def cummulative_km(self):
 
+        km = self.db['orders'][['date', 'distance']]
+
+        accumulated = km.set_index('date').resample('D', how='sum').replace(np.nan, 0).cumsum()
+        print(accumulated)
+
+        x = accumulated.index.values
+        y = accumulated.values
+
+        with plt.style.context('fivethirtyeight'):
+            fig = plt.figure(figsize=(12, 6))
+            ax = fig.add_subplot()
+
+            ax.plot(x, y, 'r')
+            ax.set_xlabel('time')
+            ax.set_ylabel('km')
+            ax.set_title('cummulative kms')
+
+        if SHOW:
+            plt.show(block=True)
+        else:
+            plt.savefig(unique_file('cummulative_km.png'))
+
+    def price_histogram(self):
+        """ A distribution of job prices stacked by type. """
+
+        prices = self.db['orders'][['city_tour',
+                                    'overnight',
+                                    'waiting_time',
+                                    'extra_stops',
+                                    'fax_confirm']]
+
+        ax = prices.plot(kind='hist',
+                         stacked=True,
+                         bins=40,
+                         xlim=(0, 30),
+                         figsize=(12, 10),
+                         title='Job price distribution',
+                         fontsize=FONTSIZE)
+
+        ax.set_ylabel('Number of jobs')
+        ax.set_xlabel('Job price (€)')
+        plt.tight_layout()
+
+        if SHOW:
+            plt.show()
+        else:
+            plt.savefig(unique_file('price_histogram.png'))
+
+    def price_vs_km(self):
+        """ The wage (in euros) per kilometer. """
+
+        scatter = self.db['orders'][['city_tour', 'distance']]
+
+        ax = scatter.plot(kind='scatter',
+                          x='distance',
+                          y='city_tour',
+                          figsize=(12, 10),
+                          title='Wage vs distance',
+                          fontsize=FONTSIZE)
+
+        ax.set_ylabel('Job distance (km)')
+        ax.set_ylabel('Job price (€)')
+        plt.tight_layout()
+
+        if SHOW:
+            plt.show()
+        else:
+            plt.savefig(unique_file('price_vs_km.png'))
 
 if __name__ == '__main__':
+
     user = User()
-    stats = QualityCheck(user.db)
-    stats.summarize_db()
-    stats.check_sums()
+    a = Analyser(user.db)
+
+    # a.daily_income()
+    # a.income_pie()
+    # a.price_histogram()
+    # a.price_vs_km()
+    # a.monthly_income()
+
+    a.cummulative_km()

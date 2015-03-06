@@ -4,10 +4,11 @@ from os.path import join, normpath, abspath
 from sys import modules
 
 
-# Verbose
+# Flags
 DEBUG = True
+SHOW = True
 
-# Folders
+# User folders
 USER = abspath('.')  # TODO Switch USER to user home dir (use expanduser)
 PACKAGE = abspath('.')
 OUTPUT = normpath(join(PACKAGE, '../output/'))
@@ -16,17 +17,18 @@ DOWNLOADS = normpath(join(PACKAGE, '../downloads/'))
 TEMP = normpath(join(PACKAGE, '../temp/'))
 LOG = normpath(join(PACKAGE, '../log/'))
 
-# Files
+# Files paths
 ELUCIDATE = join(LOG, 'elucidate.log')
 MASK = join(PACKAGE, 'mask.png')
 MASK2 = 'http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Berlin.svg/1269px-Berlin.svg.png'
-# Wordcloud tweaks
+
+# Wordcloud parameters
 BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
 WORDS = 'street'
 MAXWORDS = 200
 PROPORTION = 0.8
 
-# URLs
+# URLs to company server
 LOGIN = 'http://bamboo-mec.de/ll.php5'
 LOGOUT = 'http://bamboo-mec.de/index.php5'
 JOB = 'http://bamboo-mec.de/ll_detail.php5'
@@ -36,6 +38,7 @@ SUMMARY = 'http://bamboo-mec.de/ll.php5'
 FILL = '.'
 CENTER = '^'
 SKIP = '\n\n'
+FONTSIZE = 14
 
 
 def show_settings():

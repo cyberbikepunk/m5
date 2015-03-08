@@ -136,7 +136,7 @@ class QualityCheck():
 
 
 if __name__ == '__main__':
-    user = User()
+    user = User('x', 'y')
     stats = QualityCheck(user.db)
     stats.summarize_db()
     stats.check_sums()

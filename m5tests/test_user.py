@@ -15,7 +15,7 @@ class TestUser(TestCase):
         pass
 
     def testUser(self):
-        user = User()
+        user = User('m-134', 'PASSWORD')
         try:
             user.quit()
         except SystemExit:

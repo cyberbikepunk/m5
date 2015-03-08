@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from os.path import join
 from pandas import merge, set_option
 
-from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP
+from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP, REMOTE
 from m5.utilities import check_install, log_me, latest_file
 from m5.model import Base
 
@@ -16,13 +16,13 @@ from m5.model import Base
 class User:
     """ Users must work for Messenger (http://messenger.de). """
 
-    def __init__(self, username: str=None, password: str=None):
+    def __init__(self, username: str, password: str):
         """ Authenticate the user on the remote server and start a local database session. """
 
         self.username = username
         self._password = password
 
-        if username and password:
+        if REMOTE:
             # Say hello to the remote server.
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
@@ -57,8 +57,8 @@ class User:
         db['checkins'] = read_sql('checkin', eng, index_col='checkin_id', parse_dates=['timestamp', 'after_', 'until'])
         db['checkpoints'] = read_sql('checkpoint', eng, index_col='checkpoint_id')
 
-        checkins_with_checkpoints = merge(db['checkins'],
-                                          db['checkpoints'],
+        checkins_with_checkpoints = merge(left=db['checkins'],
+                                          right=db['checkpoints'],
                                           left_on='checkpoint_id',
                                           right_index=True,
                                           how='outer')
@@ -76,8 +76,6 @@ class User:
                           how='outer')
 
         if DEBUG:
-            set_option('expand_frame_repr', False)
-            print(SKIP)
             for table in db.values():
                 print(table.info(), end=SKIP)
 
@@ -108,7 +106,7 @@ class User:
     def quit(self):
         """ Make a clean exit. """
 
-        if self.username and self._password:
+        if REMOTE:
             response = self.remote_session.get(LOGOUT, params={'logout': '1'})
             if response.history[0].status_code == 302:
                 # We know we are logged out because we
@@ -120,5 +118,5 @@ class User:
 
 
 if __name__ == '__main__':
-    user = User()
+    user = User('x', 'y')
     user.quit()

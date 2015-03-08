@@ -12,7 +12,7 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG, SKIP, CENTER, DBF, PLZ
+from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG, SKIP, CENTER, DBF, SHP
 
 
 # --------------------- NAMED TUPLES
@@ -76,7 +76,7 @@ def check_shapefile():
 
     # READER OBJECT
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='READER OBJECT (.SHP + .DBF)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='READER OBJECT (.SHP + .DBF)', fill=FILL, align=CENTER))
     print('Reader.numRecords = %s' % sf.numRecords)
     print('Reader.bbox = %s' % sf.bbox)
     print('Reader.fields = %s' % sf.fields)
@@ -88,7 +88,7 @@ def check_shapefile():
 
     # SHAPES OBJECTS
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER))
     print('Reader.shapes() = %s' % type(shapes))
     print('len(Reader.shapes()) = %s' % len(shapes))
     print('Sample(10) iteration through shapes:')
@@ -97,7 +97,7 @@ def check_shapefile():
 
     # RECORD OBJECTS
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='RECORD OBJECTS (.DBF FILE)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='RECORD OBJECTS (.DBF FILE)', fill=FILL, align=CENTER))
     print('Reader.records() = %s' % type(records))
     print('len(Reader.records()) = %s' % len(records))
     print('Sample(10) iteration through records:')

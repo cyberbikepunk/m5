@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class Analyser():
+class Analyzer():
     """ Data analysis tools. """
 
     def __init__(self, db: pd.DataFrame):
@@ -136,6 +136,27 @@ class Analyser():
         else:
             plt.savefig(unique_file('cummulative_km.png'))
 
+    def plz_histogram(self):
+        """ A histogramm of of postal code frequencies. """
+
+        plz = self.db['all']['postal_code']
+        print(self.db['all'])
+        ax = plz.plot(kind='hist',
+                      bins=40,
+                      xlim=(0, 30),
+                      figsize=(12, 10),
+                      title='Postal code frequencies',
+                      fontsize=FONTSIZE)
+
+        ax.set_ylabel('Number of checkins')
+        ax.set_xlabel('Postal codes')
+        plt.tight_layout()
+
+        if SHOW:
+            plt.show(block=True)
+        else:
+            plt.savefig(unique_file('plz_histogram.png'))
+
     def price_histogram(self):
         """ A histogramm of job prices stacked by type. """
 
@@ -186,12 +207,13 @@ class Analyser():
 if __name__ == '__main__':
 
     user = User()
-    a = Analyser(user.db)
+    a = Analyzer(user.db)
 
     # a.daily_income()
     # a.income_pie()
     # a.price_histogram()
     # a.price_vs_km()
     # a.monthly_income()
+    # a.cummulative_km()
 
-    a.cummulative_km()
+    a.plz_histogram()

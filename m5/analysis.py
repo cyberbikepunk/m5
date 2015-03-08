@@ -1,6 +1,6 @@
 """  The module that produces statistics, maps and plots. """
 
-from m5.settings import FONTSIZE, DEBUG, SHOW
+from m5.settings import FONTSIZE, SHOW
 from m5.user import User
 from m5.utilities import unique_file
 
@@ -32,7 +32,7 @@ class Analyser():
         plt.rc('font', family='Droid Sans', size=FONTSIZE)
 
     def monthly_income(self):
-        """ Plot a timeseries of the monthly income. """
+        """ A timeseries plot of the monthly income. """
 
         income = self.db['orders'][['city_tour',
                                     'overnight',
@@ -60,7 +60,7 @@ class Analyser():
             plt.savefig(unique_file('monthly_income.png'))
 
     def daily_income(self):
-        """ Plot a timeseries of the daily income. """
+        """ A timeseries plot of the daily income. """
 
         dates = self.db['orders']['date']
         income = self.db['orders'][['city_tour',
@@ -112,6 +112,7 @@ class Analyser():
             plt.savefig(unique_file('income_pie.png'))
 
     def cummulative_km(self):
+        """ A cummulative timeseries of job distances. """
 
         km = self.db['orders'][['date', 'distance']]
 
@@ -136,7 +137,7 @@ class Analyser():
             plt.savefig(unique_file('cummulative_km.png'))
 
     def price_histogram(self):
-        """ A distribution of job prices stacked by type. """
+        """ A histogramm of job prices stacked by type. """
 
         prices = self.db['orders'][['city_tour',
                                     'overnight',
@@ -162,7 +163,7 @@ class Analyser():
             plt.savefig(unique_file('price_histogram.png'))
 
     def price_vs_km(self):
-        """ The wage (in euros) per kilometer. """
+        """ A scatter plot of the wage per kilometer. """
 
         scatter = self.db['orders'][['city_tour', 'distance']]
 

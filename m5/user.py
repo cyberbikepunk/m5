@@ -9,7 +9,7 @@ from os.path import join
 from pandas import merge, set_option
 
 from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP
-from m5.utilities import check_folders, log_me, latest_file
+from m5.utilities import check_install, log_me, latest_file
 from m5.model import Base
 
 
@@ -30,7 +30,7 @@ class User:
             print('Ignore the remote server.')
 
         # Create folders for new user.
-        check_folders()
+        check_install()
 
         # Use the most recent database in the folder
         path = join(DATABASE, latest_file(DATABASE))

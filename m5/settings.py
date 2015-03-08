@@ -16,11 +16,14 @@ DATABASE = normpath(join(PACKAGE, '../db/'))
 DOWNLOADS = normpath(join(PACKAGE, '../downloads/'))
 TEMP = normpath(join(PACKAGE, '../temp/'))
 LOG = normpath(join(PACKAGE, '../log/'))
+INPUT = normpath(join(PACKAGE, '../input/'))
 
 # Files paths
 ELUCIDATE = join(LOG, 'elucidate.log')
 MASK = join(PACKAGE, 'mask.png')
 MASK2 = 'http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Berlin.svg/1269px-Berlin.svg.png'
+SHP = join(INPUT, 'berlin_postleitzahlen.shp')
+DBF = join(INPUT, 'berlin_postleitzahlen.dbf')
 
 # Wordcloud parameters
 BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
@@ -39,7 +42,7 @@ FILL = '.'
 CENTER = '^'
 SKIP = '\n\n'
 FONTSIZE = 14
-
+FORMAT = dict(fill=FILL, align=CENTER, end=SKIP, begin=SKIP)
 
 def show_settings():
     """ Echo all package parameters. """

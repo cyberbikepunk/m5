@@ -284,7 +284,7 @@ class Packager():
                 checkpoint = Checkpoint(**{'checkpoint_id': geocoded['osm_id'],
                                            'display_name': geocoded['display_name'],
                                            'lat': geocoded['lat'],
-                                           'lon': geocoded['lat'],
+                                           'lon': geocoded['lon'],
                                            'street': self._unserialise(str, address['address']),
                                            'city': self._unserialise(str, address['city']),
                                            'postal_code': self._unserialise(int, address['postal_code']),

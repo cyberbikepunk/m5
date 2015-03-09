@@ -7,7 +7,7 @@ from sys import modules
 # Flags
 DEBUG = True
 SHOW = True
-REMOTE = True
+REMOTE = False
 
 # User folders
 USER = abspath('.')  # TODO Switch USER to user home dir (use expanduser)

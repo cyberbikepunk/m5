@@ -6,10 +6,10 @@ from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from os.path import join
-from pandas import merge, set_option
+from pandas import merge
 
 from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP, REMOTE
-from m5.utilities import check_install, log_me, latest_file
+from m5.utilities import check_install, log_me, latest_file, print_header, fix_checkpoints
 from m5.model import Base
 
 
@@ -57,27 +57,33 @@ class User:
         db['checkins'] = read_sql('checkin', eng, index_col='checkin_id', parse_dates=['timestamp', 'after_', 'until'])
         db['checkpoints'] = read_sql('checkpoint', eng, index_col='checkpoint_id')
 
+        # Make sure the primary key of the checkpoint table
+        # is an integer. This bug has now been fixed but we
+        # keep this function call for backward compatibility.
+        db['checkpoints'] = fix_checkpoints(db['checkpoints'])
+
         checkins_with_checkpoints = merge(left=db['checkins'],
                                           right=db['checkpoints'],
                                           left_on='checkpoint_id',
                                           right_index=True,
-                                          how='outer')
+                                          how='left')
 
         orders_with_clients = merge(db['orders'],
                                     db['clients'],
                                     left_on='client_id',
                                     right_index=True,
-                                    how='outer')
+                                    how='left')
 
         db['all'] = merge(checkins_with_checkpoints,
                           orders_with_clients,
                           left_on='order_id',
                           right_index=True,
-                          how='outer')
+                          how='left')
 
         if DEBUG:
-            for table in db.values():
-                print(table.info(), end=SKIP)
+            for title, table in db.items():
+                print_header(__name__ + ': ' + title)
+                print(table.reset_index().info(), end=SKIP)
 
         return db
 

@@ -108,7 +108,7 @@ class Checkin(Base):
 class Checkpoint(Base):
     __tablename__ = 'checkpoint'
 
-    checkpoint_id = Column(String, primary_key=True, autoincrement=False)
+    checkpoint_id = Column(Integer, primary_key=True, autoincrement=False)
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
     city = Column(String, default='Berlin')

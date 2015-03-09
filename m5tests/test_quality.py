@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from m5.model import Order, Checkin, Checkpoint, Client
 from m5.user import User
-from m5.quality import QualityCheck
+from m5.quality import Quality
 
 
 class TestStats(TestCase):
@@ -13,7 +13,7 @@ class TestStats(TestCase):
         u = User('m-134', 'PASSWORD')
         self.session = u.local_session
         self.engine = u.engine
-        self.stats = QualityCheck(u.local_session)
+        self.stats = Quality(u.local_session)
 
     def tearDown(self):
         pass

@@ -4,17 +4,18 @@ from math import ceil
 
 from m5.settings import FILL, SKIP, CENTER
 from m5.user import User
-from m5.utilities import unique_file
+from m5.utilities import unique_file, print_pandas, print_header
 
+import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import sys
 
 
-class QualityCheck():
+class Quality():
     """
     The quality of the data depends on how well the scraper performed.
-    QualityCheck helps to quantify and visualize the overall data quality.
+    Quality helps to quantify and visualize the overall data quality.
     """
 
     def __init__(self, db: pd.DataFrame):
@@ -134,9 +135,39 @@ class QualityCheck():
                   .format(title=name, fill=FILL, align=CENTER))
             print(table.info(), end=SKIP)
 
+    def check_keys(self):
+        """
+        Explore the results of different types of table SQL-type
+        join operations: left, right, inner, outer joins. This
+        exercise is very useful to check the quality of the data.
+        """
+
+        # Play with a copy
+        db = self.db.copy()
+
+        for name, table in db.items():
+            table.reset_index(inplace=True)
+
+        methods = ('left', 'right', 'inner', 'outer')
+
+        for method in methods:
+            joined = pd.merge(left=db['checkins'],
+                              right=db['checkpoints'],
+                              left_on='checkpoint_id',
+                              right_on='checkpoint_id',
+                              how=method)
+            joined.reset_index(inplace=True)
+
+            print_header(method)
+            print(joined.info())
+
 
 if __name__ == '__main__':
+    """ Run all Quality class methods. """
+
     user = User('x', 'y')
-    stats = QualityCheck(user.db)
-    stats.summarize_db()
-    stats.check_sums()
+    q = Quality(user.db)
+
+    # q.summarize_db()
+    # q.check_sums()
+    q.check_keys()

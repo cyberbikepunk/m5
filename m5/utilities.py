@@ -2,6 +2,8 @@
 
 import shapefile
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 
 from matplotlib.collections import PolyCollection
 from collections import namedtuple
@@ -50,6 +52,21 @@ def unique_file(name: str) -> str:
 def latest_file(folder: str):
     """ Return the most recent file inside the folder. """
     return min(iglob(join(folder, '*.sqlite')), key=getctime)
+
+
+def print_header(title):
+    print('{begin}{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER, begin=SKIP), end=SKIP)
+
+
+def print_pandas(obj, title: str):
+    pd.set_option('max_columns', 99)
+    print(SKIP)
+    print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
+    print(SKIP)
+    print(obj.tail(5))
+    if isinstance(obj, pd.DataFrame):
+        print(SKIP)
+        print(obj.info())
 
 
 def check_install():
@@ -115,6 +132,21 @@ def check_shapefile():
         ax.autoscale_view()
         fig.colorbar(coll, ax=ax)
         plt.show()
+
+
+def fix_checkpoints(checkpoints):
+    """
+    Cast the primary key of the checkpoint table (checkpoint_id) into an integer.
+    This bug has now been fixed but we keep this function for backward compatibility.
+    """
+
+    if checkpoints.index.dtype != 'int64':
+        checkpoints.reset_index(inplace=True)
+        checkpoint_ids = checkpoints['checkpoint_id'].astype(np.int64, raise_on_error=True)
+        checkpoints['checkpoint_id'] = checkpoint_ids
+        checkpoints.set_index('checkpoint_id', inplace=True)
+
+    return checkpoints
 
 
 if __name__ == '__main__':

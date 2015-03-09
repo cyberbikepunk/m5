@@ -1,4 +1,6 @@
 """ Miscellaneous utility classes decorators and functions """
+from pprint import pprint
+import fiona
 
 import shapefile
 import matplotlib.pyplot as plt
@@ -121,22 +123,19 @@ def check_shapefile():
     for r in sample(list(sf.iterRecords()), 10):
         print('   r = %s' % r)
 
-    # MERGE INTO MATPLOTLIB
-    vertices = None
-    colors = None
-    if False:
-        coll = PolyCollection(vertices, array=colors, cmap=plt.jet, edgecolors='none')
-
-        fig, ax = plt.subplots()
-        ax.add_collection(coll)
-        ax.autoscale_view()
-        fig.colorbar(coll, ax=ax)
-        plt.show()
+    # THE SAME USING FIONA
+    print(SKIP)
+    print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
+    shapes = fiona.open(SHP)
+    for i, s in enumerate(shapes):
+        pprint(s)
+        if i > 3:
+            break
 
 
 def fix_checkpoints(checkpoints):
     """
-    Cast the primary key of the checkpoint table (checkpoint_id) into an integer.
+    Type cast the primary key of the checkpoint table (checkpoint_id) into an integer.
     This bug has now been fixed but we keep this function for backward compatibility.
     """
 

@@ -111,7 +111,7 @@ class Analyzer():
         else:
             plt.savefig(unique_file('income_pie.png'))
 
-    def cummulative_km(self):
+    def cumulative_km(self):
         """ A cummulative timeseries of job distances. """
 
         km = self.db['orders'][['date', 'distance']]
@@ -137,16 +137,16 @@ class Analyzer():
             plt.savefig(unique_file('cummulative_km.png'))
 
     def plz_histogram(self):
-        """ A histogramm of of postal code frequencies. """
+        """ A histogram of of postal code frequencies. """
 
-        plz = self.db['all']['postal_code']
-        print(self.db['all'])
-        ax = plz.plot(kind='hist',
-                      bins=40,
-                      xlim=(0, 30),
-                      figsize=(12, 10),
-                      title='Postal code frequencies',
-                      fontsize=FONTSIZE)
+        plz = self.db['all']['postal_code'].dropna()
+        subset = plz[(plz > 10100) & (plz < 14200)].astype('category')
+        histogram = subset.groupby(plz).count()
+
+        ax = histogram.plot(kind='bar',
+                            figsize=(12, 10),
+                            title='Postal code frequencies',
+                            fontsize=FONTSIZE)
 
         ax.set_ylabel('Number of checkins')
         ax.set_xlabel('Postal codes')
@@ -206,7 +206,7 @@ class Analyzer():
 
 if __name__ == '__main__':
 
-    user = User()
+    user = User('x', 'y')
     a = Analyzer(user.db)
 
     # a.daily_income()
@@ -214,6 +214,6 @@ if __name__ == '__main__':
     # a.price_histogram()
     # a.price_vs_km()
     # a.monthly_income()
-    # a.cummulative_km()
+    # a.cumulative_km()
 
     a.plz_histogram()

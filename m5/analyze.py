@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class Analyser():
+class Analyzer():
     """ Data analysis tools. """
 
     def __init__(self, db: pd.DataFrame):
@@ -111,7 +111,7 @@ class Analyser():
         else:
             plt.savefig(unique_file('income_pie.png'))
 
-    def cummulative_km(self):
+    def cumulative_km(self):
         """ A cummulative timeseries of job distances. """
 
         km = self.db['orders'][['date', 'distance']]
@@ -135,6 +135,27 @@ class Analyser():
             plt.show(block=True)
         else:
             plt.savefig(unique_file('cummulative_km.png'))
+
+    def plz_histogram(self):
+        """ A histogram of of postal code frequencies. """
+
+        plz = self.db['all']['postal_code'].dropna()
+        subset = plz[(plz > 10100) & (plz < 14200)].astype('category')
+        histogram = subset.groupby(plz).count()
+
+        ax = histogram.plot(kind='bar',
+                            figsize=(12, 10),
+                            title='Postal code frequencies',
+                            fontsize=FONTSIZE)
+
+        ax.set_ylabel('Number of checkins')
+        ax.set_xlabel('Postal codes')
+        plt.tight_layout()
+
+        if SHOW:
+            plt.show(block=True)
+        else:
+            plt.savefig(unique_file('plz_histogram.png'))
 
     def price_histogram(self):
         """ A histogramm of job prices stacked by type. """
@@ -185,13 +206,14 @@ class Analyser():
 
 if __name__ == '__main__':
 
-    user = User()
-    a = Analyser(user.db)
+    user = User('x', 'y')
+    a = Analyzer(user.db)
 
     # a.daily_income()
     # a.income_pie()
     # a.price_histogram()
     # a.price_vs_km()
     # a.monthly_income()
+    # a.cumulative_km()
 
-    a.cummulative_km()
+    a.plz_histogram()

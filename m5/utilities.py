@@ -1,7 +1,11 @@
 """ Miscellaneous utility classes decorators and functions """
+from pprint import pprint
+import fiona
 
 import shapefile
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 
 from matplotlib.collections import PolyCollection
 from collections import namedtuple
@@ -12,7 +16,7 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG, SKIP, CENTER, DBF, PLZ
+from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG, SKIP, CENTER, DBF, SHP
 
 
 # --------------------- NAMED TUPLES
@@ -52,6 +56,21 @@ def latest_file(folder: str):
     return min(iglob(join(folder, '*.sqlite')), key=getctime)
 
 
+def print_header(title):
+    print('{begin}{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER, begin=SKIP), end=SKIP)
+
+
+def print_pandas(obj, title: str):
+    pd.set_option('max_columns', 99)
+    print(SKIP)
+    print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
+    print(SKIP)
+    print(obj.tail(5))
+    if isinstance(obj, pd.DataFrame):
+        print(SKIP)
+        print(obj.info())
+
+
 def check_install():
     """ Create user folders if needed. """
 
@@ -76,7 +95,7 @@ def check_shapefile():
 
     # READER OBJECT
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='READER OBJECT (.SHP + .DBF)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='READER OBJECT (.SHP + .DBF)', fill=FILL, align=CENTER))
     print('Reader.numRecords = %s' % sf.numRecords)
     print('Reader.bbox = %s' % sf.bbox)
     print('Reader.fields = %s' % sf.fields)
@@ -88,7 +107,7 @@ def check_shapefile():
 
     # SHAPES OBJECTS
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER))
     print('Reader.shapes() = %s' % type(shapes))
     print('len(Reader.shapes()) = %s' % len(shapes))
     print('Sample(10) iteration through shapes:')
@@ -97,24 +116,36 @@ def check_shapefile():
 
     # RECORD OBJECTS
     print(SKIP)
-    print('{title:{fill}{align}100}'.format(title='RECORD OBJECTS (.DBF FILE)', fill=FILL, align=CENTER, end=SKIP))
+    print('{title:{fill}{align}100}'.format(title='RECORD OBJECTS (.DBF FILE)', fill=FILL, align=CENTER))
     print('Reader.records() = %s' % type(records))
     print('len(Reader.records()) = %s' % len(records))
     print('Sample(10) iteration through records:')
     for r in sample(list(sf.iterRecords()), 10):
         print('   r = %s' % r)
 
-    # MERGE INTO MATPLOTLIB
-    vertices = None
-    colors = None
-    if False:
-        coll = PolyCollection(vertices, array=colors, cmap=plt.jet, edgecolors='none')
+    # THE SAME USING FIONA
+    print(SKIP)
+    print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
+    shapes = fiona.open(SHP)
+    for i, s in enumerate(shapes):
+        pprint(s)
+        if i > 3:
+            break
 
-        fig, ax = plt.subplots()
-        ax.add_collection(coll)
-        ax.autoscale_view()
-        fig.colorbar(coll, ax=ax)
-        plt.show()
+
+def fix_checkpoints(checkpoints):
+    """
+    Type cast the primary key of the checkpoint table (checkpoint_id) into an integer.
+    This bug has now been fixed but we keep this function for backward compatibility.
+    """
+
+    if checkpoints.index.dtype != 'int64':
+        checkpoints.reset_index(inplace=True)
+        checkpoint_ids = checkpoints['checkpoint_id'].astype(np.int64, raise_on_error=True)
+        checkpoints['checkpoint_id'] = checkpoint_ids
+        checkpoints.set_index('checkpoint_id', inplace=True)
+
+    return checkpoints
 
 
 if __name__ == '__main__':

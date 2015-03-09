@@ -7,6 +7,7 @@ from sys import modules
 # Flags
 DEBUG = True
 SHOW = True
+REMOTE = False
 
 # User folders
 USER = abspath('.')  # TODO Switch USER to user home dir (use expanduser)
@@ -43,6 +44,7 @@ CENTER = '^'
 SKIP = '\n\n'
 FONTSIZE = 14
 FORMAT = dict(fill=FILL, align=CENTER, end=SKIP, begin=SKIP)
+
 
 def show_settings():
     """ Echo all package parameters. """

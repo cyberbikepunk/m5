@@ -31,6 +31,10 @@ class Analyzer():
         # font, so we give it another one.
         plt.rc('font', family='Droid Sans', size=FONTSIZE)
 
+    def best_clients(self):
+
+        print(self.db['all'])
+
     def monthly_income(self):
         """ A timeseries plot of the monthly income. """
 
@@ -215,5 +219,6 @@ if __name__ == '__main__':
     # a.price_vs_km()
     # a.monthly_income()
     # a.cumulative_km()
+    # a.plz_histogram()
 
-    a.plz_histogram()
+    a.best_clients()

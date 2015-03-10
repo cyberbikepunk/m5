@@ -36,13 +36,13 @@ class Factory():
         self._downloader = Downloader(user.remote_session)
         self._scraper = Scraper()
         self._packager = Packager()
-        self._pusher = Archiver(user.local_session)
+        self._archiver = Archiver(user.local_session)
 
     @time_me
     def bulk_download(self, start_date: date):
         """
-        Download all html pages since that day.
-        Files will be downloaded but NOT scraped.
+        Download all html pages since that day. HTML
+        files will be downloaded but NOT scraped.
 
         :param start_date: a date object (in the past)
         """
@@ -82,7 +82,7 @@ class Factory():
                   .format(n=d, N=len(days), percent=int((d+1)/len(days)*100)))
 
     def _archive(self, table_jobs: Tables) -> dict:
-        return self._pusher.archive(table_jobs)
+        return self._archiver.archive(table_jobs)
 
     def _package(self, serial_jobs: list) -> Tables:
         return self._packager.package(serial_jobs)

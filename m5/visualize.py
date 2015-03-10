@@ -8,7 +8,6 @@ from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
-from matplotlib.colors import LogNorm
 from math import log
 
 from m5.settings import SHP, DEBUG, FORMAT, FONTSIZE, SKIP
@@ -109,7 +108,7 @@ class Visualizer():
             else:
                 frequency = frequencies.loc[code]
 
-            # Put the colored patch on the map!
+            # Make a collection of patches
             colour = color_map(frequency / normalize)
             patches.append(PolygonPatch(area, fc=colour, ec='#555555', alpha=1., zorder=1))
 

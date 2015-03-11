@@ -22,7 +22,7 @@ def make_cloud(db: DataFrame):
         raise FileNotFoundError(message)
 
     image = prepare_mask(MASK)
-    text = assemble_text(db)
+    text = assemble_text(db['all'])
     cloud = compute_cloud(text, image)
     save_image(cloud)
 

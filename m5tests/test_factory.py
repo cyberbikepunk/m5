@@ -42,9 +42,8 @@ class TestDownloader(TestCase):
             exit(1)
 
     def tearDown(self):
-        """  Logout. """
+        """  Logout: Say goodbye to the server. """
 
-        # Say goodbye to the server
         url = 'http://bamboo-mec.de/index.php5'
         payload = {'logout': '1'}
 
@@ -64,9 +63,7 @@ class TestDownloader(TestCase):
     def testMiner(self):
         """ Check if the Downloader class can download files correctly from the company server. """
 
-        m = Downloader(self.session,
-                  self.directory,
-                  overwrite=True)
+        m = Downloader(self.session, overwrite=True)
 
         random_day = randint(1, 28)
         random_month = randint(1, 12)

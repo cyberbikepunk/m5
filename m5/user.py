@@ -5,45 +5,58 @@ from pandas import DataFrame, read_sql
 from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from os.path import join
+from os.path import join, isfile, isdir
 from pandas import merge
+from os import mkdir, chmod
 
-from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, SKIP, REMOTE
-from m5.utilities import check_install, log_me, latest_file, print_header, fix_checkpoints
+from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS
+from m5.utilities import log_me, latest_file, fix_checkpoints
 from m5.model import Base
 
 
 class User:
     """ Users must work for Messenger (http://messenger.de). """
 
-    def __init__(self, username: str, password: str):
-        """ Authenticate the user on the remote server and start a local database session. """
+    def __init__(self, username=None, password=None, new_db=None):
+        """ Authenticate the user and start a local database session. """
 
+        # Awaiting authentication.
         self.username = username
-        self._password = password
+        self.password = password
 
-        if REMOTE:
-            # Say hello to the remote server.
-            self.remote_session = RemoteSession()
-            self._authenticate(username, password)
-        else:
-            print('Ignore the remote server.')
+        # Verify the user on the remote server.
+        self.remote_session = RemoteSession()
+        self._authenticate(username, password)
 
-        # Create folders for new user.
-        check_install()
+        # Create folders if needed.
+        self._check_install()
 
-        # Use the most recent database in the folder
-        path = join(DATABASE, latest_file(DATABASE))
+        # Start a fresh database or select the latest.
+        database_file = self._select_database(new_db)
+        path = join(DATABASE, database_file)
         sqlite = 'sqlite:///{path}'.format(path=path)
-        print('The latest database is {path}'.format(path=path))
 
-        # Start a new local database session.
+        # Build the model and switch on the database.
         self.engine = create_engine(sqlite, echo=DEBUG)
         self.base = Base.metadata.create_all(self.engine)
         self.local_session = sessionmaker(bind=self.engine)()
 
         # Pull data into memory
         self.db = self._load()
+
+    @staticmethod
+    def _check_install():
+        """ Create user folders as needed. """
+
+        folders = (USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG)
+
+        for folder in folders:
+            if not isdir(folder):
+                mkdir(folder)
+                # Setting permissions directly with
+                # mkdir gives me bizarre permissions.
+                chmod(folder, 0o755)
+                print('Created %s' % folder)
 
     @log_me
     def _load(self) -> DataFrame:
@@ -59,7 +72,7 @@ class User:
 
         # Make sure the primary key of the checkpoint table
         # is an integer. This bug has now been fixed but we
-        # keep this function call for backward compatibility.
+        # keep this here for compatibility with old databases.
         db['checkpoints'] = fix_checkpoints(db['checkpoints'])
 
         checkins_with_checkpoints = merge(left=db['checkins'],
@@ -68,22 +81,22 @@ class User:
                                           right_index=True,
                                           how='left')
 
-        orders_with_clients = merge(db['orders'],
-                                    db['clients'],
+        orders_with_clients = merge(left=db['orders'],
+                                    right=db['clients'],
                                     left_on='client_id',
                                     right_index=True,
                                     how='left')
 
-        db['all'] = merge(checkins_with_checkpoints,
-                          orders_with_clients,
+        db['all'] = merge(left=checkins_with_checkpoints,
+                          right=orders_with_clients,
                           left_on='order_id',
                           right_index=True,
                           how='left')
 
         if DEBUG:
             for title, table in db.items():
-                print_header(__name__ + ': ' + title)
-                print(table.reset_index().info(), end=SKIP)
+                print('Pandas DataFrame (%s):' % title)
+                print(table.reset_index().info(), end=LEAP)
 
         return db
 
@@ -91,38 +104,52 @@ class User:
     def _authenticate(self, username=None, password=None):
         """ Make recursive login attempts. """
 
-        if not username:
-            self.username = input('Enter username: ')
-        if not password:
-            self._password = getpass('Enter password: ')
-
-        credentials = {'username': self.username,
-                       'password': self._password}
+        self.username = username if username else input('Enter username: ')
+        self.password = password if password else getpass('Enter password: ')
 
         # The server doesn't seem to care but...
         headers = {'user-agent': 'Mozilla/5.0'}
         self.remote_session.headers.update(headers)
 
-        response = self.remote_session.post(LOGIN, credentials)
-        if not response.ok:
-            self._authenticate()
+        url = LOGIN
+        credentials = {'username': self.username, 'password': self.password}
+        response = self.remote_session.post(url, credentials)
+
+        if 'erfolgreich' not in response.text:
+            print('Wrong credentials. Try again.', end=STEP)
+            self._authenticate(None, None)
         else:
-            print('Now logged into remote server.')
+            print('Logged into the remote server.')
 
     def quit(self):
         """ Make a clean exit. """
 
-        if REMOTE:
-            response = self.remote_session.get(LOGOUT, params={'logout': '1'})
-            if response.history[0].status_code == 302:
-                # We know we are logged out because we
-                # have been redirected to the login page
-                print('Logged out. Goodbye!')
-            self.remote_session.close()
+        url = LOGOUT
+        payload = {'logout': '1'}
+        response = self.remote_session.get(url, params=payload)
+
+        if response.history[0].status_code == 302:
+            # We've been redirected to the login page:
+            # either we've successfully logged out or
+            # our request session had timed-out anyways.
+            print('Logged out. Goodbye!')
+        self.remote_session.close()
 
         exit(0)
 
+    @staticmethod
+    def _select_database(fresh):
+        """ Return a new database file path or select the latest in the directory. """
+
+        if fresh:
+            if isfile(join(DATABASE, fresh)):
+                raise FileExistsError('The database file already exists.')
+            else:
+                return fresh
+        else:
+            return latest_file(DATABASE)
+
 
 if __name__ == '__main__':
-    user = User('x', 'y')
+    user = User('m-134', 'PASSWORD')
     user.quit()

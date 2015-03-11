@@ -1,30 +1,32 @@
 """ Global settings for the m5 package. """
 
-from os.path import join, normpath, abspath
+from os.path import join, abspath, expanduser
 from sys import modules
 
 
 # Flags
 DEBUG = True
 SHOW = True
-REMOTE = False
+
+# Parent directories
+USER = join(expanduser('~'), '.m5', )
+PACKAGE = abspath('..')
 
 # User folders
-USER = abspath('.')  # TODO Switch USER to user home dir (use expanduser)
-PACKAGE = abspath('.')
-OUTPUT = normpath(join(PACKAGE, '../output/'))
-DATABASE = normpath(join(PACKAGE, '../db/'))
-DOWNLOADS = normpath(join(PACKAGE, '../downloads/'))
-TEMP = normpath(join(PACKAGE, '../temp/'))
-LOG = normpath(join(PACKAGE, '../log/'))
-INPUT = normpath(join(PACKAGE, '../input/'))
+OUTPUT = join(USER, 'output')
+DATABASE = join(USER, 'db')
+DOWNLOADS = join(USER, 'downloads')
+TEMP = join(USER, 'temp')
+LOG = join(USER, 'log')
+
+# Assets (folder and files)
+ASSETS = join(PACKAGE, 'assets')
+MASK = join(ASSETS, 'mask.png')
+SHP = join(ASSETS, 'berlin_postleitzahlen.shp')
+DBF = join(ASSETS, 'berlin_postleitzahlen.dbf')
 
 # Files paths
 ELUCIDATE = join(LOG, 'elucidate.log')
-MASK = join(PACKAGE, 'mask.png')
-MASK2 = 'http://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Berlin.svg/1269px-Berlin.svg.png'
-SHP = join(INPUT, 'berlin_postleitzahlen.shp')
-DBF = join(INPUT, 'berlin_postleitzahlen.dbf')
 
 # Wordcloud parameters
 BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
@@ -41,17 +43,19 @@ SUMMARY = 'http://bamboo-mec.de/ll.php5'
 # Readability
 FILL = '.'
 CENTER = '^'
-SKIP = '\n\n'
+LEAP = '\n\n'
+STEP = '\n'
+
+# Matplotlib
 FONTSIZE = 14
-FORMAT = dict(fill=FILL, align=CENTER, end=SKIP, begin=SKIP)
 
 
 def show_settings():
     """ Echo all package parameters. """
 
-    print('Settings for M5 package:', end=SKIP)
+    print('Settings for M5 package:', end=LEAP)
     objects = dir(modules[__name__])
-    # Only setting parameters are uppercase
+    # Only setting parameters are uppercase.
     items = [x for x in objects if x.isupper()]
 
     for item in items:

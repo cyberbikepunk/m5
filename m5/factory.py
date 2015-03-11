@@ -140,8 +140,8 @@ class Downloader():
         assert isinstance(day, date), 'Argument must be a date object'
 
         if self._is_hopeless(day):
-            # We have already checked online:
-            # there are no jobs for that day.
+            # We have already checked online in the
+            # past: there are no jobs for that day.
             return None
 
         # Go browse the 'summary' for that day
@@ -164,7 +164,6 @@ class Downloader():
                     verb = 'Loaded'
                 else:
                     soup = self._get_job()
-                    #soup = self._purify(soup)
                     self._save_job(soup)
                     verb = 'Downloaded'
 
@@ -200,7 +199,9 @@ class Downloader():
                    'datum': self._stamp.date.strftime('%d.%m.%Y')}
 
         response = self._remote_session.get(url, params=payload)
-        return BeautifulSoup(response.text)
+        soup = BeautifulSoup(response.text)
+
+        return soup
 
     def _is_hopeless(self, day: date):
         """ True if we already know that the day has jobs to be downloaded. """
@@ -226,8 +227,8 @@ class Downloader():
         """ True if the html file is found locally. """
         return True if isfile(self._filepath()) else False
 
-    def _save_job(self, soup: BeautifulSoup):
-        """ Prettify the html and save it to file. """
+    def _save_job(self, soup):
+        """ Prettify the soup and save it to file. """
         pretty_html = soup.prettify()
         with open(self._filepath(), 'w+') as f:
             f.write(pretty_html)
@@ -237,12 +238,6 @@ class Downloader():
         with open(self._filepath(), 'r') as f:
             html = f.read()
         return BeautifulSoup(html)
-
-    @staticmethod
-    def _purify(soup: BeautifulSoup) -> BeautifulSoup:
-        """ Give the soup the prettify treatment to correct for any lousy markup. """
-        pretty_html = soup.prettify()
-        return BeautifulSoup(pretty_html)
 
 
 class Packager():
@@ -700,7 +695,7 @@ def demo_run(day: date):
     """
     Demonstrate the use of the module: download, scrape
     and package, but don't push the data to the database.
-    This function is deliberately very very very verbose.
+    This function is deliberately very verbose.
     """
 
     assert isinstance(day, date), 'Parameter must be a date object.'

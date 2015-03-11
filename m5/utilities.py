@@ -1,22 +1,21 @@
 """ Miscellaneous utility classes decorators and functions """
-from pprint import pprint
-import fiona
 
+
+import fiona
 import shapefile
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from matplotlib.collections import PolyCollection
+from pprint import pprint
 from collections import namedtuple
 from datetime import datetime
-from os.path import splitext, join, getctime, isdir
-from os import mkdir
+from os.path import splitext, join, getctime
+from os import listdir
 from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG, SKIP, CENTER, DBF, SHP
+from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP
 
 
 # --------------------- NAMED TUPLES
@@ -53,39 +52,33 @@ def unique_file(name: str) -> str:
 
 def latest_file(folder: str):
     """ Return the most recent file inside the folder. """
-    return min(iglob(join(folder, '*.sqlite')), key=getctime)
+
+    if listdir(folder):
+        file = max(iglob(join(folder, '*.sqlite')), key=getctime)
+    else:
+        file = 'database.sqlite'
+    print('Selected {folder}/{file}'.format(folder=folder, file=file))
+    return file
 
 
 def print_header(title):
-    print('{begin}{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER, begin=SKIP), end=SKIP)
+    print('{begin}{title:{fill}{align}100}{end}'.format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
 
 
 def print_pandas(obj, title: str):
     pd.set_option('max_columns', 99)
-    print(SKIP)
+    print(LEAP)
     print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
-    print(SKIP)
+    print(LEAP)
     print(obj.tail(5))
     if isinstance(obj, pd.DataFrame):
-        print(SKIP)
+        print(LEAP)
         print(obj.info())
-
-
-def check_install():
-    """ Create user folders if needed. """
-
-    folders = (USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG)
-
-    for folder in folders:
-        if not isdir(folder):
-            # Don't handle IO exception
-            # to get deeper feedback.
-            mkdir(folder, mode=775)
-            print('Created {dir}.'.format(dir=folder))
 
 
 def check_shapefile():
 
+    # OPEN THE FILES WITH SHAPELY
     shp = open(SHP, 'rb')
     dbf = open(DBF, 'rb')
     sf = shapefile.Reader(shp=shp, dbf=dbf)
@@ -94,7 +87,7 @@ def check_shapefile():
     records = sf.records()
 
     # READER OBJECT
-    print(SKIP)
+    print(LEAP)
     print('{title:{fill}{align}100}'.format(title='READER OBJECT (.SHP + .DBF)', fill=FILL, align=CENTER))
     print('Reader.numRecords = %s' % sf.numRecords)
     print('Reader.bbox = %s' % sf.bbox)
@@ -106,7 +99,7 @@ def check_shapefile():
     print('Reader.shpLength = %s' % sf.shpLength)
 
     # SHAPES OBJECTS
-    print(SKIP)
+    print(LEAP)
     print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER))
     print('Reader.shapes() = %s' % type(shapes))
     print('len(Reader.shapes()) = %s' % len(shapes))
@@ -115,7 +108,7 @@ def check_shapefile():
         print('    s.shapeType = %s, s.bbox = %s, s.points = %s' % (s.shapeType, s.bbox, s.points))
 
     # RECORD OBJECTS
-    print(SKIP)
+    print(LEAP)
     print('{title:{fill}{align}100}'.format(title='RECORD OBJECTS (.DBF FILE)', fill=FILL, align=CENTER))
     print('Reader.records() = %s' % type(records))
     print('len(Reader.records()) = %s' % len(records))
@@ -123,8 +116,8 @@ def check_shapefile():
     for r in sample(list(sf.iterRecords()), 10):
         print('   r = %s' % r)
 
-    # THE SAME USING FIONA
-    print(SKIP)
+    # DO THE SAME WITH FIONA
+    print(LEAP)
     print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
     shapes = fiona.open(SHP)
     for i, s in enumerate(shapes):
@@ -136,7 +129,7 @@ def check_shapefile():
 def fix_checkpoints(checkpoints):
     """
     Type cast the primary key of the checkpoint table (checkpoint_id) into an integer.
-    This bug has now been fixed but we keep this function for backward compatibility.
+    This bug has now been fixed but we keep this function for backwards compatibility.
     """
 
     if checkpoints.index.dtype != 'int64':
@@ -149,7 +142,7 @@ def fix_checkpoints(checkpoints):
 
 
 if __name__ == '__main__':
-    print('M5 utilities module:', end=SKIP)
+    print('M5 utilities module:', end=LEAP)
     print('Latest database = %s' % latest_file(DATABASE))
     print('Unique output file: %s' % unique_file('example.unique'))
     check_shapefile()

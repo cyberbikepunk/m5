@@ -2,7 +2,7 @@
 
 from math import ceil
 
-from m5.settings import FILL, SKIP, CENTER
+from m5.settings import FILL, LEAP, CENTER
 from m5.user import User
 from m5.utilities import unique_file, print_pandas, print_header
 
@@ -32,7 +32,7 @@ class Quality():
             sys.stdout = open(unique_file(name), 'w+')
 
         print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
-        print(df, end=SKIP)
+        print(df, end=LEAP)
 
         if file:
             sys.stdout = reset
@@ -47,8 +47,8 @@ class Quality():
         reports = dict()
         count = dict()
 
-        print(SKIP)
-        print('{title:{fill}{align}100}'.format(title='Data check', fill=FILL, align=CENTER, end=SKIP))
+        print(LEAP)
+        print('{title:{fill}{align}100}'.format(title='Data check', fill=FILL, align=CENTER, end=LEAP))
         pd.set_option('precision', 3)
         pd.set_option('display.mpl_style', 'default')
 
@@ -98,7 +98,7 @@ class Quality():
 
             # Print the report
             print('{title:{fill}{align}100}'.format(title=name, fill=FILL, align=CENTER))
-            print(reports[name], end=SKIP)
+            print(reports[name], end=LEAP)
 
             self.print_dataframe(nans, 'nans', file=True)
             # print('Sum with NaN:')
@@ -116,24 +116,24 @@ class Quality():
     def summarize_db(self):
         """ Print out the most basic information about the data. """
 
-        print(SKIP)
+        print(LEAP)
 
         # Table size information
         print('{title:{fill}{align}100}'
-              .format(title='Table sizes', fill=FILL, align=CENTER), end=SKIP)
+              .format(title='Table sizes', fill=FILL, align=CENTER), end=LEAP)
 
         for name, table in self.db.items():
             print('{table}: {shape}'
-                  .format(table=name, shape=table.shape), end=SKIP)
+                  .format(table=name, shape=table.shape), end=LEAP)
 
         # Table summary information
         print('{title:{fill}{align}100}'
-              .format(title='Table infos', fill=FILL, align=CENTER), end=SKIP)
+              .format(title='Table infos', fill=FILL, align=CENTER), end=LEAP)
 
         for name, table in self.db.items():
             print('{title:{fill}{align}50}'
                   .format(title=name, fill=FILL, align=CENTER))
-            print(table.info(), end=SKIP)
+            print(table.info(), end=LEAP)
 
     def check_keys(self):
         """

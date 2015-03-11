@@ -28,6 +28,10 @@ class User:
             # Verify the user on the remote server.
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
+        else:
+            # Most of the modules can be run in this mode.
+            # Turn it off to download more data from the server.
+            self.remote_session = None
 
         # Create folders if needed.
         self._check_install()
@@ -126,16 +130,18 @@ class User:
     def quit(self):
         """ Make a clean exit. """
 
-        url = LOGOUT
-        payload = {'logout': '1'}
-        response = self.remote_session.get(url, params=payload)
+        if not OFFLINE:
 
-        if response.history[0].status_code == 302:
-            # We've been redirected to the login page:
-            # either we've successfully logged out or
-            # our request session had timed-out anyways.
-            print('Logged out. Goodbye!')
-        self.remote_session.close()
+            url = LOGOUT
+            payload = {'logout': '1'}
+            response = self.remote_session.get(url, params=payload)
+
+            if response.history[0].status_code == 302:
+                # We've been redirected to the login page:
+                # either we've successfully logged out or
+                # our request session had timed-out anyways.
+                print('Logged out. Goodbye!')
+            self.remote_session.close()
 
         exit(0)
 

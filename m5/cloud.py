@@ -1,6 +1,6 @@
 """ Create the wordcloud using Andreas Müller's code cloned from : https://github.com/amueller/word_cloud. """
 
-from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION
+from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP
 from m5.utilities import make_graph
 from m5.user import User
 
@@ -44,9 +44,6 @@ def prepare_mask(mask) -> ndarray:
         print(flattened.max())
         print(flattened.min())
 
-        imshow(flattened)
-        show()
-
     # The problem is that the resulting mask is
     # the exact reverse of what we want. So...
     def invert(x):
@@ -82,8 +79,10 @@ def compute_cloud(words: str, mask: ndarray):
 def save_image(wordcloud):
     """ Pop the image to the screen. """
 
-    imshow(wordcloud)
-    axis("off")
+    if POP:
+        imshow(wordcloud)
+        axis("off")
+
     make_graph('wordcloud.png')
 
 

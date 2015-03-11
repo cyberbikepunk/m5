@@ -108,6 +108,6 @@ class Mapper(Grapher):
 
 
 if __name__ == '__main__':
-    u = User('x', 'y')
+    u = User()
     v = Mapper(u.db)
     v.plz_chloropeth()

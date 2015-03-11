@@ -88,5 +88,5 @@ def save_image(wordcloud):
 
 
 if __name__ == '__main__':
-    user = User('m-134', 'PASSWORD')
+    user = User()
     make_cloud(user.db)

@@ -14,7 +14,7 @@ from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as LocalSession
 
-from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY
+from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
 from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
 from m5.model import Checkin, Checkpoint, Client, Order
 from m5.user import User
@@ -123,9 +123,10 @@ class Downloader():
     def __init__(self, remote_session: RemoteSession, overwrite: bool=None):
         """ Instantiate a re-useable Downloader object. """
 
+        assert OFFLINE is False, 'Offline flag must be turned off in settings modules.'
+
         self._overwrite = overwrite
         self._remote_session = remote_session
-
         self._stamp = None
 
     def download(self, day: date) -> list:

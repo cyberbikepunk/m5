@@ -3,17 +3,16 @@
 import sys
 
 from os import path
-from geopy.exc import GeocoderTimedOut
 from os.path import isfile
 from geopy import Nominatim
 from datetime import datetime, date, timedelta
 from time import strptime
 from requests import Session as RemoteSession
 from bs4 import BeautifulSoup
-from pprint import PrettyPrinter
+from pprint import pprint
 from re import findall, match
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.session import Session as DatabaseSession
+from sqlalchemy.orm.session import Session as LocalSession
 
 from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY
 from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
@@ -31,7 +30,7 @@ class Factory():
     """ A wrapper class to download, scrape, package and archive data in bulk. """
 
     def __init__(self, user: User):
-        """  Instantiate re-usable Scraper, Packager and Archiver objects. """
+        """  Instantiate re-usable Dowmloader, Scraper, Packager and Archiver objects. """
 
         self._downloader = Downloader(user.remote_session)
         self._scraper = Scraper()
@@ -79,7 +78,7 @@ class Factory():
                 self._archive(table_jobs)
 
             print('Processed {n}/{N} ({percent}%).'
-                  .format(n=d, N=len(days), percent=int((d+1)/len(days)*100)))
+                  .format(n=day, N=len(days), percent=int((d+1)/len(days)*100)))
 
     def _archive(self, table_jobs: Tables) -> dict:
         return self._archiver.archive(table_jobs)
@@ -97,18 +96,23 @@ class Factory():
 class Archiver():
     """ The Archiver class saves packaged data inside the local database. """
 
-    def __init__(self, database_session: DatabaseSession):
-        self._database_session = database_session
+    def __init__(self, local_session: LocalSession):
+        self._local_session = local_session
 
     def archive(self, tables: Tables):
-
+        """
+        The archive method takes Table objects produced by the packager
+        and commits them into the database. If a row already exists, the
+        database session will raise an IntegrityError and we rollback
+        the commit.
+        """
         for table in tables:
             for row in table:
                 try:
-                    self._database_session.merge(row)
-                    self._database_session.commit()
+                    self._local_session.merge(row)
+                    self._local_session.commit()
                 except IntegrityError:
-                    self._database_session.rollback()
+                    self._local_session.rollback()
                     print('Database Intergrity ERROR: {table}'
                           .format(table=str(row)))
 
@@ -135,6 +139,11 @@ class Downloader():
 
         assert isinstance(day, date), 'Argument must be a date object'
 
+        if self._is_hopeless(day):
+            # We have already checked online:
+            # there are no jobs for that day.
+            return None
+
         # Go browse the 'summary' for that day
         # and find out how many jobs we have.
         uuids = self._scrape_uuids(day)
@@ -155,6 +164,8 @@ class Downloader():
                     verb = 'Loaded'
                 else:
                     soup = self._get_job()
+                    #soup = self._purify(soup)
+                    self._save_job(soup)
                     verb = 'Downloaded'
 
                 if DEBUG:
@@ -167,13 +178,6 @@ class Downloader():
 
     def _scrape_uuids(self, day: date) -> set:
         """ Return uuid request parameters for each job by scraping the summary page. """
-
-        # Reset
-        self._stamp = Stamp(day, 'NO_JOBS')
-
-        # Don't do things twice
-        if self._is_cached():
-            return None
 
         url = SUMMARY
         payload = {'status': 'delivered', 'datum': day.strftime('%d.%m.%Y')}
@@ -196,25 +200,31 @@ class Downloader():
                    'datum': self._stamp.date.strftime('%d.%m.%Y')}
 
         response = self._remote_session.get(url, params=payload)
-        soup = BeautifulSoup(response.text)
-        self._save_job(soup)
+        return BeautifulSoup(response.text)
 
-        return soup
+    def _is_hopeless(self, day: date):
+        """ True if we already know that the day has jobs to be downloaded. """
 
-    def _filepath(self):
+        # If we have already requested this day and found that it has no jobs,
+        # there is an empty file with 'NO_JOBS' stamped on it inside the downloads
+        # directory. So we just check whether that empty file is there or not.
+        self._stamp = Stamp(day, 'NO_JOBS')
+
+        return self._is_cached()
+
+    def _filepath(self) -> str:
         """ Where a job's html file is saved. """
         filename = '%s-uuid-%s.html' % (self._stamp.date.strftime('%Y-%m-%d'), self._stamp.uuid)
         return path.join(DOWNLOADS, filename)
 
-    def _job_url(self):
+    def _job_url(self) -> bool:
+        """ Return the job url for a given day and uuid. """
         return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
             .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
 
-    def _is_cached(self):
-        if isfile(self._filepath()):
-            return True
-        else:
-            return False
+    def _is_cached(self) -> bool:
+        """ True if the html file is found locally. """
+        return True if isfile(self._filepath()) else False
 
     def _save_job(self, soup: BeautifulSoup):
         """ Prettify the html and save it to file. """
@@ -222,11 +232,17 @@ class Downloader():
         with open(self._filepath(), 'w+') as f:
             f.write(pretty_html)
 
-    def _load_job(self):
+    def _load_job(self) -> BeautifulSoup:
         """ Load an html file and return a beautiful soup. """
         with open(self._filepath(), 'r') as f:
             html = f.read()
         return BeautifulSoup(html)
+
+    @staticmethod
+    def _purify(soup: BeautifulSoup) -> BeautifulSoup:
+        """ Give the soup the prettify treatment to correct for any lousy markup. """
+        pretty_html = soup.prettify()
+        return BeautifulSoup(pretty_html)
 
 
 class Packager():
@@ -301,7 +317,7 @@ class Packager():
                 checkpoints.append(checkpoint)
                 checkins.append(checkin)
 
-            print('Packaged {day}-uuid-{uuid}.'.format(str(day), uuid))
+            print('Packaged {day}-uuid-{uuid}.'.format(day=str(day), uuid=uuid))
 
         # The order matters when we commit to the database
         # because foreign keys must be refer to existing
@@ -337,10 +353,14 @@ class Packager():
                       .format(street=raw_address['address']))
             return nothing
         else:
+            # noinspection PyBroadException
+            # Here we catch everything, including
+            # a ssl socket.timeout error that is
+            # not raised as a python exception.
             try:
                 response = g.geocode(json_address)
-            except GeocoderTimedOut:
-                print('Nominatim timed out for {street}.'
+            except:
+                print('Nominatim returned an error for {street}.'
                       .format(street=raw_address['address']))
                 geocoded = nothing
             else:
@@ -373,9 +393,9 @@ class Packager():
     @staticmethod
     def _unserialise_purpose(raw_value: str):
         """ This is a dirty fix """
-        if raw_value is 'Abholung':
+        if raw_value == 'Abholung':
             return 'pickup'
-        elif raw_value is 'Zustellung':
+        elif raw_value == 'Zustellung':
             return 'dropoff'
         else:
             return None
@@ -396,11 +416,11 @@ class Packager():
     @staticmethod
     def _unserialise_type(raw_value: str):
         """ This is a dirty fix """
-        if raw_value is 'OV':
+        if raw_value == 'OV':
             return 'overnight'
         elif raw_value is 'Ladehilfe':
             return 'help'
-        elif raw_value is 'Stadtkurier':
+        elif raw_value == 'Stadtkurier':
             return 'city_tour'
         else:
             return None
@@ -487,9 +507,8 @@ class Scraper:
                               N=len(soup_jobs),
                               n=i+1))
 
-                pp = PrettyPrinter()
-                pp.pprint(job_details)
-                pp.pprint(addresses)
+                pprint(job_details)
+                pprint(addresses)
 
         return serial_jobs
 
@@ -655,13 +674,50 @@ class Scraper:
         sys.stdout = reset
 
 
-def bulk_download(user: User, start_date: date=None):
-    """ Download all html pages since that day. """
-    m = Factory(user)
-    m.bulk_download(start_date if start_date is not None else date.today)
+def bulk_download(start_date: date=None):
+    """
+    Download all html pages since that day,
+    unless they have already been cached.
+    """
+
+    user = User()
+    factory = Factory(user)
+    factory.bulk_download(start_date if start_date is not None else date.today)
 
 
-def bulk_migrate(user: User, start_date: date=None):
-    """ Migrate all data since that day. In other words: download, scrape, package and archive. """
-    m = Factory(user)
-    m.bulk_migrate(start_date if start_date is not None else date.today)
+def bulk_migrate(start_date: date=None):
+    """
+    Migrate all the remote data since that day. In other words:
+    download (or load from cache), scrape, package and archive.
+    """
+
+    user = User()
+    factory = Factory(user)
+    factory.bulk_migrate(start_date if start_date is not None else date.today)
+
+
+def demo_run(day: date):
+    """
+    Demonstrate the use of the module: download, scrape
+    and package, but don't push the data to the database.
+    This function is deliberately very very very verbose.
+    """
+
+    assert isinstance(day, date), 'Parameter must be a date object.'
+
+    u = User()
+    d = Downloader(u.remote_session)
+    s = Scraper()
+    p = Packager()
+
+    soups = d.download(day)
+    print(soups)
+    serial = s.scrape(soups)
+    pprint(serial)
+    tables = p.package(serial)
+    print(tables)
+
+
+if __name__ == '__main__':
+    demo_run(date(2014, 5, 6))
+

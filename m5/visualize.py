@@ -10,7 +10,7 @@ from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
 from math import log
 
-from m5.settings import SHP, DEBUG, FORMAT, FONTSIZE, SKIP
+from m5.settings import SHP, DEBUG, FILL, CENTER, FONTSIZE, LEAP
 from m5.user import User
 
 
@@ -47,11 +47,12 @@ class Visualizer():
 
         if DEBUG:
             # Print the GeoDataFrame
-            print('{begin}{title:{fill}{align}100}'.format(title=SHP, **FORMAT))
             pd.set_option('expand_frame_repr', False)
-            print(plz, end=SKIP)
-            print(plz.describe(), end=SKIP)
-            print(plz.info(), end=SKIP)
+            print(LEAP)
+            print('{title:{fill}{align}100}'.format(title=SHP, fill=FILL, align=CENTER), end=LEAP)
+            print(plz, end=LEAP)
+            print(plz.describe(), end=LEAP)
+            print(plz.info(), end=LEAP)
 
             # Plot the GeoDataFrame
             plz.plot()
@@ -78,14 +79,14 @@ class Visualizer():
         normalize = max(frequencies)
 
         if DEBUG:
-            print('Frequencies = {end}'.format(end=SKIP), frequencies, end=SKIP)
+            print('Frequencies = {end}'.format(end=LEAP), frequencies, end=LEAP)
             print('Frequencies.loc[13187] = %s' % frequencies.loc[10115])
             print('Areas = %s' % areas)
             print('Codes = %s' % codes)
             print('Zipped(codes, areas) = %s' % plz)
             print('Lowest and highest postal code = (%s, %s)' % (min(codes), max(codes)))
             print('Color map = %s' % color_map)
-            print('Number of colors = %s' % normalize, end=SKIP)
+            print('Number of colors = %s' % normalize, end=LEAP)
 
         # Create the figure
         fig = plt.figure()

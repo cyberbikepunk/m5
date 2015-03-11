@@ -1,7 +1,7 @@
 """ Create the wordcloud using Andreas Müller's code cloned from : https://github.com/amueller/word_cloud. """
 
 from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION
-from m5.utilities import unique_file
+from m5.utilities import unique_file, make_graph
 from m5.user import User
 
 from wordcloud import WordCloud
@@ -84,11 +84,9 @@ def save_image(wordcloud):
 
     imshow(wordcloud)
     axis("off")
-    path = unique_file('wordcloud.png')
-    savefig(path)
-    show()
+    make_graph('wordcloud.png')
 
 
 if __name__ == '__main__':
-    user = User()
+    user = User('m-134', 'PASSWORD')
     make_cloud(user.db)

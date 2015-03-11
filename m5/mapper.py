@@ -1,6 +1,5 @@
-from m5.utilities import unique_file
+from m5.utilities import unique_file, make_graph
 import pandas as pd
-import numpy as np
 import fiona
 import matplotlib.pyplot as plt
 
@@ -10,30 +9,16 @@ from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
 from math import log
 
-from m5.settings import SHP, DEBUG, FILL, CENTER, FONTSIZE, LEAP
+from m5.settings import SHP, DEBUG, FILL, CENTER, LEAP
 from m5.user import User
+from m5.utilities import Grapher
 
 
-class Visualizer():
+class Mapper(Grapher):
     """ Does all the geographic visualization stuff. """
 
     def __init__(self, db: pd.DataFrame):
-        """ Duplicate the database and set plotting options. """
-        # FIXME: Visualizer and Analyzer constructors duplicate code
-
-        self.db = db
-
-        # Graphs look much better with this setting.
-        pd.set_option('display.mpl_style', 'default')
-
-        # There are plenty of zeros in the database because the model forces
-        # zero as the default for certain missing values. This is now fixed,
-        # but the following statement is kept for backward compatibility.
-        self.db['orders'].replace(0, np.nan, inplace=True)
-
-        # Matplotlib can't find the default
-        # font, so we give it another one.
-        plt.rc('font', family='Droid Sans', size=FONTSIZE)
+        super(Mapper, self).__init__(db)
 
     @staticmethod
     def read_plz():
@@ -118,11 +103,11 @@ class Visualizer():
         ax.set_xticks([])
         ax.set_yticks([])
         plt.title('pick-up & drop-off')
-        plt.savefig(unique_file('plz_map_of_checkins.png'), alpha=True, dpi=300)
-        plt.show(block=True)
+
+        make_graph('plz_checkin_map.png')
 
 
 if __name__ == '__main__':
     u = User('x', 'y')
-    v = Visualizer(u.db)
+    v = Mapper(u.db)
     v.plz_chloropeth()

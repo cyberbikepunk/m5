@@ -9,7 +9,7 @@ from os.path import join, isfile, isdir
 from pandas import merge
 from os import mkdir, chmod
 
-from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS
+from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
 from m5.utilities import log_me, latest_file, fix_checkpoints
 from m5.model import Base
 
@@ -24,9 +24,10 @@ class User:
         self.username = username
         self.password = password
 
-        # Verify the user on the remote server.
-        self.remote_session = RemoteSession()
-        self._authenticate(username, password)
+        if not OFFLINE:
+            # Verify the user on the remote server.
+            self.remote_session = RemoteSession()
+            self._authenticate(username, password)
 
         # Create folders if needed.
         self._check_install()

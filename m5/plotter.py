@@ -1,8 +1,8 @@
 """  The module that produces statistics, maps and plots. """
 
-from m5.settings import FONTSIZE, SHOW
+from m5.settings import FONTSIZE
 from m5.user import User
-from m5.utilities import unique_file
+from m5.utilities import Grapher, make_graph
 
 from matplotlib.dates import DateFormatter
 
@@ -11,29 +11,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class Analyzer():
+class Plotter(Grapher):
     """ Data analysis tools. """
 
     def __init__(self, db: pd.DataFrame):
-        """ Duplicate the database and set plotting options. """
-
-        self.db = db
-
-        # Graphs look much better with this setting.
-        pd.set_option('display.mpl_style', 'default')
-
-        # There are plenty of zeros in the database because the model
-        # forces zero as the default for missing values. This is now fixed,
-        # but the following statement is kept for backward compatibility.
-        self.db['orders'].replace(0, np.nan, inplace=True)
-
-        # Matplotlib can't find the default
-        # font, so we give it another one.
-        plt.rc('font', family='Droid Sans', size=FONTSIZE)
-
-    def best_clients(self):
-
-        print(self.db['all'])
+        super(Plotter, self).__init__(db)
 
     def monthly_income(self):
         """ A timeseries plot of the monthly income. """
@@ -58,10 +40,7 @@ class Analyzer():
         ax.set_ylabel('Income (€)')
         plt.tight_layout()
 
-        if SHOW:
-            plt.show(block=True)
-        else:
-            plt.savefig(unique_file('monthly_income.png'))
+        make_graph('monthly_income.png')
 
     def daily_income(self):
         """ A timeseries plot of the daily income. """
@@ -90,10 +69,7 @@ class Analyzer():
         ax.axhline(mean, color='k')
         plt.tight_layout()
 
-        if SHOW:
-            plt.show()
-        else:
-            plt.savefig(unique_file('daily_income.png'))
+        make_graph('daily_income.png')
 
     def income_pie(self):
         """ A pie chart of income per job type. """
@@ -110,10 +86,7 @@ class Analyzer():
                        title='Income breakdown',
                        fontsize=FONTSIZE)
 
-        if SHOW:
-            plt.show()
-        else:
-            plt.savefig(unique_file('income_pie.png'))
+        make_graph('income_pie.png')
 
     def cumulative_km(self):
         """ A cummulative timeseries of job distances. """
@@ -128,17 +101,14 @@ class Analyzer():
 
         with plt.style.context('fivethirtyeight'):
             fig = plt.figure(figsize=(12, 6))
-            ax = fig.add_subplot()
+            ax = fig.add_subplot(111)
 
             ax.plot(x, y, 'r')
             ax.set_xlabel('time')
             ax.set_ylabel('km')
             ax.set_title('cummulative kms')
 
-        if SHOW:
-            plt.show(block=True)
-        else:
-            plt.savefig(unique_file('cummulative_km.png'))
+        make_graph('cummulative_km.png')
 
     def plz_histogram(self):
         """ A histogram of of postal code frequencies. """
@@ -156,10 +126,7 @@ class Analyzer():
         ax.set_xlabel('Postal codes')
         plt.tight_layout()
 
-        if SHOW:
-            plt.show(block=True)
-        else:
-            plt.savefig(unique_file('plz_histogram.png'))
+        make_graph('plz_histogram.png')
 
     def price_histogram(self):
         """ A histogramm of job prices stacked by type. """
@@ -182,10 +149,7 @@ class Analyzer():
         ax.set_xlabel('Job price (€)')
         plt.tight_layout()
 
-        if SHOW:
-            plt.show()
-        else:
-            plt.savefig(unique_file('price_histogram.png'))
+        make_graph('price_histogram.png')
 
     def price_vs_km(self):
         """ A scatter plot of the wage per kilometer. """
@@ -203,22 +167,17 @@ class Analyzer():
         ax.set_ylabel('Job price (€)')
         plt.tight_layout()
 
-        if SHOW:
-            plt.show()
-        else:
-            plt.savefig(unique_file('price_vs_km.png'))
+        make_graph('price_vs_km.png')
 
 if __name__ == '__main__':
 
-    user = User('x', 'y')
-    a = Analyzer(user.db)
+    user = User('m-134', 'PASSWORD')
+    a = Plotter(user.db)
 
-    a.daily_income()
+    a.monthly_income()
     a.income_pie()
     a.price_histogram()
     a.price_vs_km()
-    a.monthly_income()
     a.cumulative_km()
     a.plz_histogram()
-
-    a.best_clients()
+    a.daily_income()

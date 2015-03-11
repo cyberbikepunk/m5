@@ -171,7 +171,7 @@ class Plotter(Grapher):
 
 if __name__ == '__main__':
 
-    user = User('m-134', 'PASSWORD')
+    user = User()
     a = Plotter(user.db)
 
     a.monthly_income()

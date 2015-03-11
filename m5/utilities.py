@@ -5,6 +5,7 @@ import fiona
 import shapefile
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pprint import pprint
 from collections import namedtuple
@@ -15,7 +16,31 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP
+from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP
+
+
+# --------------------- CLASSES
+
+
+class Grapher():
+    """ Parent class for the Plotter and Mapper. """
+
+    def __init__(self, db: pd.DataFrame):
+        """ Copy the database and set plotting options. """
+
+        self.db = db
+
+        # Graphs look much better with this setting.
+        pd.set_option('display.mpl_style', 'default')
+
+        # There are plenty of zeros in the database because the model
+        # forces zero as the default for missing values. This is now fixed,
+        # but the following statement is kept for backward compatibility.
+        self.db['orders'].replace(0, np.nan, inplace=True)
+
+        # Matplotlib can't find the default
+        # font, so we give it another one.
+        plt.rc('font', family='Droid Sans', size=FONTSIZE)
 
 
 # --------------------- NAMED TUPLES
@@ -39,13 +64,21 @@ def time_me(f):
 # --------------------- FUNCTIONS
 
 
-def unique_file(name: str) -> str:
+def make_graph(name):
+
+    if POP:
+        plt.show(block=True)
+    else:
+        plt.savefig(OUTPUT, unique_file(name))
+
+
+def unique_file(path, file: str) -> str:
     """ Return a unique path in the output folder. """
 
-    (base, extension) = splitext(name)
+    (base, extension) = splitext(file)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
-    path = join(OUTPUT, unique)
+    path = join(path, unique)
 
     return path
 
@@ -144,5 +177,5 @@ def fix_checkpoints(checkpoints):
 if __name__ == '__main__':
     print('M5 utilities module:', end=LEAP)
     print('Latest database = %s' % latest_file(DATABASE))
-    print('Unique output file: %s' % unique_file('example.unique'))
+    print('Unique output file: %s' % unique_file(OUTPUT, 'example.unique'))
     check_shapefile()

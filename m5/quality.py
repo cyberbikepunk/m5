@@ -2,14 +2,12 @@
 
 from math import ceil
 
-from m5.settings import FILL, LEAP, CENTER
+from m5.settings import LEAP, POP, OUTPUT
 from m5.user import User
-from m5.utilities import unique_file, print_pandas, print_header
+from m5.utilities import unique_file, print_header
 
-import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import sys
 
 
 class Quality():
@@ -19,23 +17,7 @@ class Quality():
     """
 
     def __init__(self, db: pd.DataFrame):
-        """ Copy the dataframes to the new object instance. """
         self.db = db
-
-    @staticmethod
-    def print_dataframe(df, title: str, file: bool=False):
-        """ Pretty print a dataframe to file or standard output. """
-
-        reset = sys.stdout
-        if file:
-            name = '{title}.txt'.format(title=title)
-            sys.stdout = open(unique_file(name), 'w+')
-
-        print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
-        print(df, end=LEAP)
-
-        if file:
-            sys.stdout = reset
 
     def check_sums(self):
         """ Count the number of empty cells (distinguish NaN, None and 0). """
@@ -47,8 +29,6 @@ class Quality():
         reports = dict()
         count = dict()
 
-        print(LEAP)
-        print('{title:{fill}{align}100}'.format(title='Data check', fill=FILL, align=CENTER, end=LEAP))
         pd.set_option('precision', 3)
         pd.set_option('display.mpl_style', 'default')
 
@@ -97,49 +77,43 @@ class Quality():
             nones['Sum'] = nones.sum(axis=1)
 
             # Print the report
-            print('{title:{fill}{align}100}'.format(title=name, fill=FILL, align=CENTER))
+            print_header(name)
             print(reports[name], end=LEAP)
 
-            self.print_dataframe(nans, 'nans', file=True)
-            # print('Sum with NaN:')
-            # print(nans, end=SKIP)
-            # print('Sum with Nones:')
-            # print(nones, end=SKIP)
+            print('Sum with NaNs = ', end=LEAP)
+            print(nans, end=LEAP)
+            print('Sum with Nones = ', end=LEAP)
+            print(nones, end=LEAP)
 
-            nones.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
-            plt.savefig(unique_file(name + '-nans' + '.png'))
-            nans.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(6, 6), sharex=False)
-            plt.savefig(unique_file(name + '-nones' + '.png'))
+            if POP:
+                nones.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(12, 12), sharex=False)
+                nans.plot(kind='bar', stacked=True, subplots=True, layout=(2, 2), figsize=(12, 12), sharex=False)
+
+            plt.savefig(unique_file(OUTPUT, name + '-nones.png'))
+            plt.savefig(unique_file(OUTPUT, name + '-nans.png'))
 
         pd.reset_option('precision')
 
     def summarize_db(self):
-        """ Print out the most basic information about the data. """
-
-        print(LEAP)
+        """ Print out the most basic information about the database. """
 
         # Table size information
-        print('{title:{fill}{align}100}'
-              .format(title='Table sizes', fill=FILL, align=CENTER), end=LEAP)
+        print_header('Table sizes')
 
         for name, table in self.db.items():
-            print('{table}: {shape}'
-                  .format(table=name, shape=table.shape), end=LEAP)
+            print('{table}: {shape}'.format(table=name, shape=table.shape), end=LEAP)
 
         # Table summary information
-        print('{title:{fill}{align}100}'
-              .format(title='Table infos', fill=FILL, align=CENTER), end=LEAP)
+        print_header('Table infos')
 
         for name, table in self.db.items():
-            print('{title:{fill}{align}50}'
-                  .format(title=name, fill=FILL, align=CENTER))
+            print('Table %s = ' % name, end=LEAP)
             print(table.info(), end=LEAP)
 
     def check_keys(self):
         """
         Explore the results of different types of table SQL-type
-        join operations: left, right, inner, outer joins. This
-        exercise is very useful to check the quality of the data.
+        join operations: left, right, inner, outer joins.
         """
 
         # Play with a copy
@@ -163,11 +137,10 @@ class Quality():
 
 
 if __name__ == '__main__':
-    """ Run all Quality class methods. """
 
-    user = User('x', 'y')
+    user = User()
     q = Quality(user.db)
 
-    # q.summarize_db()
-    # q.check_sums()
+    q.summarize_db()
+    q.check_sums()
     q.check_keys()

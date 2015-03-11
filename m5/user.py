@@ -10,7 +10,7 @@ from pandas import merge
 from os import mkdir, chmod
 
 from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
-from m5.utilities import log_me, latest_file, fix_checkpoints
+from m5.utilities import log_me, latest_file, fix_checkpoints, print_header
 from m5.model import Base
 
 
@@ -95,6 +95,7 @@ class User:
                           how='left')
 
         if DEBUG:
+            print_header('User data summary')
             for title, table in db.items():
                 print('Pandas DataFrame (%s):' % title)
                 print(table.reset_index().info(), end=LEAP)

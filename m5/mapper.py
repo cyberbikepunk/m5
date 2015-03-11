@@ -1,4 +1,4 @@
-from m5.utilities import unique_file, make_graph
+from m5.utilities import make_graph, print_header
 import pandas as pd
 import fiona
 import matplotlib.pyplot as plt
@@ -33,8 +33,7 @@ class Mapper(Grapher):
         if DEBUG:
             # Print the GeoDataFrame
             pd.set_option('expand_frame_repr', False)
-            print(LEAP)
-            print('{title:{fill}{align}100}'.format(title=SHP, fill=FILL, align=CENTER), end=LEAP)
+            print_header(SHP)
             print(plz, end=LEAP)
             print(plz.describe(), end=LEAP)
             print(plz.info(), end=LEAP)
@@ -64,6 +63,7 @@ class Mapper(Grapher):
         normalize = max(frequencies)
 
         if DEBUG:
+            print_header('Chloropeth debug info')
             print('Frequencies = {end}'.format(end=LEAP), frequencies, end=LEAP)
             print('Frequencies.loc[13187] = %s' % frequencies.loc[10115])
             print('Areas = %s' % areas)

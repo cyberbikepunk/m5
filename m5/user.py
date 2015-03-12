@@ -17,7 +17,7 @@ from m5.model import Base
 class User:
     """ Users must work for Messenger (http://messenger.de). """
 
-    def __init__(self, username=None, password=None, new_db=None):
+    def __init__(self, username=None, password=None, db_file=None):
         """ Authenticate the user and start a local database session. """
 
         # Awaiting authentication.
@@ -36,9 +36,9 @@ class User:
         # Create folders if needed.
         self._check_install()
 
-        # Start a fresh database or select the latest.
-        database_file = self._select_database(new_db)
-        path = join(DATABASE, database_file)
+        # Use specified database or select the latest.
+        db_file = latest_file(DATABASE) if not db_file else db_file
+        path = join(DATABASE, db_file)
         sqlite = 'sqlite:///{path}'.format(path=path)
 
         # Build the model and switch on the database.
@@ -144,18 +144,6 @@ class User:
             self.remote_session.close()
 
         exit(0)
-
-    @staticmethod
-    def _select_database(fresh):
-        """ Return a new database file path or select the latest in the directory. """
-
-        if fresh:
-            if isfile(join(DATABASE, fresh)):
-                raise FileExistsError('The database file already exists.')
-            else:
-                return fresh
-        else:
-            return latest_file(DATABASE)
 
 
 if __name__ == '__main__':

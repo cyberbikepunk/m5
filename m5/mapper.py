@@ -8,8 +8,9 @@ from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
 from math import log
+from datetime import date
 
-from m5.settings import SHP, DEBUG, FIGSIZE, LEAP
+from m5.settings import SHP, DEBUG, FIGSIZE, LEAP, FONTSIZE
 from m5.user import User
 from m5.utilities import Grapher
 
@@ -19,6 +20,16 @@ class Mapper(Grapher):
 
     def __init__(self, db: pd.DataFrame):
         super(Mapper, self).__init__(db)
+
+    def day_arrows(self, day):
+
+        one_day = self.db['all'][(self.db['all']['city'] == 'Berlin') & (self.db['all']['date'] == day)]
+        print(one_day)
+        pickups = one_day[one_day['purpose'] == 'pickup']
+        dropoffs = one_day[one_day['purpose'] == 'dropoff']
+
+        print(list(zip(pickups, dropoffs)))
+        #ax.arrow(0, 0, 0.5, 0.5, head_width=0.05, head_length=0.1, fc='k', ec='k')
 
     @staticmethod
     def read_plz():
@@ -38,9 +49,7 @@ class Mapper(Grapher):
             print(plz.describe(), end=LEAP)
             print(plz.info(), end=LEAP)
 
-            # Plot the GeoDataFrame
-            plz.plot()
-            plt.show(block=True)
+        return plz
 
     def plz_chloropeth(self):
         """ A chloropeth map of Berlin postal codes using pick-up & drop-off frequencies. """
@@ -103,16 +112,51 @@ class Mapper(Grapher):
         ax.add_collection(PatchCollection(patches, match_original=True))
         ax.set_xticks([])
         ax.set_yticks([])
-        plt.title('pick-up & drop-off')
+        plt.title('Heat-map of checkpoints')
 
         make_graph('plz_checkin_map.png')
 
+    def pickups_n_dropoffs(self):
+        """ Map checkpoints (pick-ups and drop-offs). """
 
-    def map_checkpoints(self):
-        
+        # Pop a figure with a back-drop
+        ax = self.make_background()
 
+        # Select pick-ups and drop-offs in Berlin
+        pickups = self.db['all'][(self.db['all']['city'] == 'Berlin') & (self.db['all']['purpose'] == 'pickup')]
+        dropoffs = self.db['all'][(self.db['all']['city'] == 'Berlin') & (self.db['all']['purpose'] == 'dropoff')]
+
+        if DEBUG:
+            print_header('Pickups')
+            print(pickups)
+            print_header('Dropoffs')
+            print(dropoffs)
+
+        ax.plot(pickups['lon'], pickups['lat'], 'k.', markersize=12)
+        ax.plot(dropoffs['lon'], dropoffs['lat'], 'b.', markersize=12, alpha=0.5)
+
+        plt.title('Pick-ups (black) and drop-offs (blue)')
+        make_graph('lat_lon.png')
+
+
+    def make_background(self):
+        """ Map the postal code boundary in the background. """
+
+        fig = plt.figure(figsize=FIGSIZE)
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('lon')
+        ax.set_ylabel('lat')
+        ax.set_aspect(1.5)
+
+        # The postal code background.
+        shp = self.read_plz()
+        plz = shp['geometry']
+        plz.plot(alpha=.1, axes=ax)
+
+        return ax
 
 if __name__ == '__main__':
-    u = User()
+    u = User(db_file='m-134-v2.sqlite')
     v = Mapper(u.db)
+    v.pickups_n_dropoffs()
     v.plz_chloropeth()

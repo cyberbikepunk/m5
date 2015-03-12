@@ -375,12 +375,13 @@ class Packager():
     @staticmethod
     def _unserialise(type_cast: type, raw_value: str):
         """
-        Dynamically type-cast raw strings returned by the scraper, with a twist:
-        empty and None return None. The point is that the database will refuse to
-        add a row if a non-nullable column gets the value None. That keeps the
-        database nice and clean. The other variants of this function do the same.
+        Dynamically type-cast raw strings returned by the
+        scraper, with a twist: empty and None return None.
         """
-    
+
+        # The point is that the database will refuse to add a row
+        # if a non-nullable column gets the value None. That keeps the
+        # database clean. The other variants of this function do the same.
         if raw_value in (None, ''):
             return raw_value
         else:
@@ -715,5 +716,6 @@ def demo_run(day: date):
 
 
 if __name__ == '__main__':
+    OFFLINE = False
     demo_run(date(2014, 5, 6))
 

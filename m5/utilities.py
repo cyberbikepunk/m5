@@ -68,8 +68,8 @@ def make_graph(name):
 
     if POP:
         plt.show(block=True)
-    else:
-        plt.savefig(OUTPUT, unique_file(name))
+
+    plt.savefig(unique_file(OUTPUT, name))
 
 
 def unique_file(path, file: str) -> str:
@@ -79,6 +79,8 @@ def unique_file(path, file: str) -> str:
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
     path = join(path, unique)
+
+    print('Saved as ', path)
 
     return path
 
@@ -96,17 +98,6 @@ def latest_file(folder: str):
 
 def print_header(title):
     print('{begin}{title:{fill}{align}100}{end}'.format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
-
-
-def print_pandas(obj, title: str):
-    pd.set_option('max_columns', 99)
-    print(LEAP)
-    print('{title:{fill}{align}100}'.format(title=title, fill=FILL, align=CENTER))
-    print(LEAP)
-    print(obj.tail(5))
-    if isinstance(obj, pd.DataFrame):
-        print(LEAP)
-        print(obj.info())
 
 
 def check_shapefile():

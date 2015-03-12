@@ -49,6 +49,7 @@ STEP = '\n'
 
 # Matplotlib
 FONTSIZE = 14
+FIGSIZE = (18, 12)
 
 
 def show_settings():

@@ -1,6 +1,6 @@
 """  The module that produces statistics, maps and plots. """
 
-from m5.settings import FONTSIZE
+from m5.settings import FONTSIZE, FIGSIZE
 from m5.user import User
 from m5.utilities import Grapher, make_graph
 
@@ -31,7 +31,7 @@ class Plotter(Grapher):
 
         ax = monthly.plot(kind='bar',
                           stacked=True,
-                          figsize=(12, 10),
+                          figsize=FIGSIZE,
                           title='Monthly income',
                           fontsize=FONTSIZE)
 
@@ -59,7 +59,7 @@ class Plotter(Grapher):
         total = timeseries['total']
         mean = total.mean()
 
-        fig = plt.figure(figsize=(12, 6))
+        fig = plt.figure(figsize=FIGSIZE)
         ax = fig.add_subplot(111)
 
         ax.vlines(total.index.values, 0, total.values)
@@ -81,11 +81,11 @@ class Plotter(Grapher):
                                     'fax_confirm']]
 
         breakdown = income.sum(axis=0)
-        breakdown.plot(kind='pie',
-                       figsize=(12, 10),
-                       title='Income breakdown',
-                       fontsize=FONTSIZE)
-
+        ax = breakdown.plot(kind='pie',
+                            figsize=FIGSIZE,
+                            title='Income breakdown',
+                            fontsize=FONTSIZE)
+        ax.set_aspect(1)
         make_graph('income_pie.png')
 
     def cumulative_km(self):
@@ -100,7 +100,7 @@ class Plotter(Grapher):
         y = accumulated.values
 
         with plt.style.context('fivethirtyeight'):
-            fig = plt.figure(figsize=(12, 6))
+            fig = plt.figure(figsize=FIGSIZE)
             ax = fig.add_subplot(111)
 
             ax.plot(x, y, 'r')
@@ -118,9 +118,9 @@ class Plotter(Grapher):
         histogram = subset.groupby(plz).count()
 
         ax = histogram.plot(kind='bar',
-                            figsize=(12, 10),
                             title='Postal code frequencies',
-                            fontsize=FONTSIZE)
+                            fontsize=FONTSIZE,
+                            figsize=FIGSIZE)
 
         ax.set_ylabel('Number of checkins')
         ax.set_xlabel('Postal codes')
@@ -141,7 +141,7 @@ class Plotter(Grapher):
                          stacked=True,
                          bins=40,
                          xlim=(0, 30),
-                         figsize=(12, 10),
+                         figsize=FIGSIZE,
                          title='Job price distribution',
                          fontsize=FONTSIZE)
 
@@ -159,7 +159,7 @@ class Plotter(Grapher):
         ax = scatter.plot(kind='scatter',
                           x='distance',
                           y='city_tour',
-                          figsize=(12, 10),
+                          figsize=FIGSIZE,
                           title='Wage vs distance',
                           fontsize=FONTSIZE)
 
@@ -174,10 +174,10 @@ if __name__ == '__main__':
     user = User()
     a = Plotter(user.db)
 
-    a.monthly_income()
-    a.income_pie()
     a.price_histogram()
     a.price_vs_km()
     a.cumulative_km()
-    a.plz_histogram()
+    a.income_pie()
     a.daily_income()
+    a.monthly_income()
+    a.plz_histogram()

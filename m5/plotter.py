@@ -94,7 +94,6 @@ class Plotter(Grapher):
         km = self.db['orders'][['date', 'distance']]
 
         accumulated = km.set_index('date').resample('D', how='sum').replace(np.nan, 0).cumsum()
-        print(accumulated)
 
         x = accumulated.index.values
         y = accumulated.values

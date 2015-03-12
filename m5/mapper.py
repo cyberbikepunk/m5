@@ -82,6 +82,7 @@ class Mapper(Grapher):
         w, h = maxx - minx, maxy - miny
         ax.set_xlim(minx - 0.1 * w, maxx + 0.1 * w)
         ax.set_ylim(miny - 0.1 * h, maxy + 0.1 * h)
+        # This is dirty:
         ax.set_aspect(1.7)
 
         # Create a collection of patches.
@@ -105,6 +106,10 @@ class Mapper(Grapher):
         plt.title('pick-up & drop-off')
 
         make_graph('plz_checkin_map.png')
+
+
+    def map_checkpoints(self):
+        
 
 
 if __name__ == '__main__':

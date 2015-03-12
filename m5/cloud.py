@@ -1,6 +1,6 @@
 """ Create the wordcloud using Andreas Müller's code cloned from : https://github.com/amueller/word_cloud. """
 
-from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP
+from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP, FIGSIZE
 from m5.utilities import make_graph
 from m5.user import User
 
@@ -11,7 +11,7 @@ from numpy.core import ndarray
 from numpy import vectorize
 from os.path import isfile
 from pandas import DataFrame
-from matplotlib.pyplot import show, imshow, axis
+from matplotlib.pyplot import imshow, axis
 
 
 def make_cloud(db: DataFrame):
@@ -80,7 +80,7 @@ def save_image(wordcloud):
     """ Pop the image to the screen. """
 
     if POP:
-        imshow(wordcloud)
+        imshow(wordcloud, figsize=FIGSIZE)
         axis("off")
 
     make_graph('wordcloud.png')

@@ -2,6 +2,7 @@
 
 
 from unittest import TestCase
+from m5.settings import TEMP, DOWNLOADS
 
 from os import listdir, remove
 from requests import Session
@@ -23,9 +24,7 @@ class TestDownloader(TestCase):
         """  Log into the remote server. """
 
         self.url = 'http://bamboo-mec.de/ll.php5'
-
-        test_dir = dirname(__file__)
-        self.directory = join(test_dir, 'temp')
+        self.directory = TEMP
 
         credentials = {'username': 'm-134',
                        'password': 'PASSWORD'}
@@ -60,7 +59,7 @@ class TestDownloader(TestCase):
             if search(self.day.strftime('%Y-%m-%d'), file):
                 remove(join(self.directory, file))
 
-    def testMiner(self):
+    def testDownloader(self):
         """ Check if the Downloader class can download files correctly from the company server. """
 
         m = Downloader(self.session, overwrite=True)
@@ -74,7 +73,7 @@ class TestDownloader(TestCase):
 
         if not soups:
             # No jobs on that day... try again
-            self.testMiner()
+            self.testDownloader()
         else:
             for soup in soups:
                 self.assertIsInstance(soup.data, BeautifulSoup)
@@ -99,8 +98,7 @@ class TestScraper(TestCase):
         files randomly picked from the download directory.
         """
 
-        path_ = dirname(__file__)
-        downloads = normpath(join(path_, '../downloads/m-134'))
+        downloads = DOWNLOADS
 
         files = listdir(downloads)
         files = [file for file in files if 'NO_JOBS' not in file]

@@ -672,10 +672,7 @@ class Scraper:
 
 
 def bulk_download(start_date: date=None):
-    """
-    Download all html pages since that day,
-    unless they have already been cached.
-    """
+    """ Download all html pages since that day, unless they have already been cached. """
 
     user = User()
     factory = Factory(user)
@@ -695,9 +692,8 @@ def bulk_migrate(start_date: date=None):
 
 def demo_run(day: date):
     """
-    Demonstrate the use of the module: download, scrape
-    and package, but don't push the data to the database.
-    This function is deliberately very verbose.
+    Demonstrate the use of the module: download, scrape and package, but don't
+    push the data to the database. This function is deliberately very verbose.
     """
 
     assert isinstance(day, date), 'Parameter must be a date object.'
@@ -716,6 +712,5 @@ def demo_run(day: date):
 
 
 if __name__ == '__main__':
-    OFFLINE = False
     demo_run(date(2014, 5, 6))
 

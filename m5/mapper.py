@@ -9,7 +9,7 @@ from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
 from math import log
 
-from m5.settings import SHP, DEBUG, FILL, CENTER, LEAP
+from m5.settings import SHP, DEBUG, FIGSIZE, LEAP
 from m5.user import User
 from m5.utilities import Grapher
 
@@ -59,7 +59,7 @@ class Mapper(Grapher):
         plz = dict(zip(codes, areas))
 
         # Prepare the colormap
-        color_map = plt.get_cmap('gist_heat')
+        color_map = plt.get_cmap('Reds')
         normalize = max(frequencies)
 
         if DEBUG:
@@ -74,7 +74,7 @@ class Mapper(Grapher):
             print('Number of colors = %s' % normalize, end=LEAP)
 
         # Create the figure
-        fig = plt.figure()
+        fig = plt.figure(figsize=FIGSIZE)
         ax = fig.add_subplot(111)
 
         # Set the bounds on the axes

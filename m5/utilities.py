@@ -23,7 +23,7 @@ from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE
 
 
 class Grapher():
-    """ Parent class for the Plotter and Mapper. """
+    """ Parent class for the Plotter and Mapper classes. """
 
     def __init__(self, db: pd.DataFrame):
         """ Copy the database and set plotting options. """
@@ -66,10 +66,9 @@ def time_me(f):
 
 def make_graph(name):
 
+    plt.savefig(unique_file(OUTPUT, name))
     if POP:
         plt.show(block=True)
-
-    plt.savefig(unique_file(OUTPUT, name))
 
 
 def unique_file(path, file: str) -> str:
@@ -80,7 +79,7 @@ def unique_file(path, file: str) -> str:
     unique = base.ljust(20, FILL) + stamp + extension
     path = join(path, unique)
 
-    print('Saved as ', path)
+    print('Saved %s' % path)
 
     return path
 
@@ -93,14 +92,17 @@ def latest_file(folder: str):
     else:
         file = 'database.sqlite'
     print('Selected {folder}/{file}'.format(folder=folder, file=file))
+
     return file
 
 
 def print_header(title):
+    """ A wide horizontal section title. """
     print('{begin}{title:{fill}{align}100}{end}'.format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
 
 
 def check_shapefile():
+    """ Examine the inner contents of a shapefile with shapely and fiona. """
 
     # OPEN THE FILES WITH SHAPELY
     shp = open(SHP, 'rb')

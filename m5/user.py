@@ -29,7 +29,7 @@ class User:
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
         else:
-            # Most of the modules can be run in this mode.
+            # Most of the modules can be run in offline mode.
             # Turn it off to download more data from the server.
             self.remote_session = None
 
@@ -39,7 +39,7 @@ class User:
         # Use specified database or select the latest.
         db_file = latest_file(DATABASE) if not db_file else db_file
         path = join(DATABASE, db_file)
-        sqlite = 'sqlite:///{path}'.format(path=path)
+        sqlite = 'sqlite:///{db}'.format(db=path)
 
         # Build the model and switch on the database.
         self.engine = create_engine(sqlite, echo=DEBUG)
@@ -59,7 +59,7 @@ class User:
             if not isdir(folder):
                 mkdir(folder)
                 # Setting permissions directly with
-                # mkdir gives me bizarre permissions.
+                # mkdir gives me bizarre results.
                 chmod(folder, 0o755)
                 print('Created %s' % folder)
 

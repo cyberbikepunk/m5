@@ -80,7 +80,7 @@ def save_image(wordcloud):
     """ Pop the image to the screen. """
 
     if POP:
-        imshow(wordcloud, figsize=FIGSIZE)
+        imshow(wordcloud)
         axis("off")
 
     make_graph('wordcloud.png')

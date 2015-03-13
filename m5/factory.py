@@ -30,8 +30,6 @@ class Factory():
     """ A wrapper class to download, scrape, package and archive data in bulk. """
 
     def __init__(self, user: User):
-        """  Instantiate re-usable Dowmloader, Scraper, Packager and Archiver objects. """
-
         self._downloader = Downloader(user.remote_session)
         self._scraper = Scraper()
         self._packager = Packager()
@@ -39,10 +37,7 @@ class Factory():
 
     @time_me
     def bulk_download(self, start_date: date):
-        """
-        Download all html pages since that day. HTML
-        files will be downloaded but NOT scraped.
-
+        """  Download all html pages since that day.
         :param start_date: a date object (in the past)
         """
 
@@ -52,10 +47,7 @@ class Factory():
 
     @time_me
     def bulk_migrate(self, start_date: date):
-        """
-        Migrate all data since that day. Whenever possible,
-        HTML files will served from cache to spare the server.
-
+        """ Transfer all the user data since that day,serving from cache where possible.
         :param start_date: a date object (in the past)
         """
 
@@ -509,19 +501,20 @@ class Scraper:
 
         return serial_jobs
 
-    def _job_url(self):
-        """ The url of the web-page for a job. """
-        return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
+    @property
+    def _done(self):
+        """ Print the url of the job. """
+        return 'Scraped http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
             .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
 
     def _scrape_job(self, soup_item: Stamped) -> tuple:
         """
         Scrape out of a job's web page using bs4 and re modules.
-        In goes the soup, out come dictionaries contaning field
+        In goes the soup, out come 2 dictionaries contaning field
         name/value pairs as raw strings.
 
         :param soup_item: the job's web page as a soup
-        :return: job_details and addresses as a tuple
+        :return: (dict, dict) job_details and addresses as a tuple
         """
 
         # Pass the soup through the sieve

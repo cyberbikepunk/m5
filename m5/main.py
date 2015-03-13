@@ -2,7 +2,8 @@
 
 """ Command line API for the m5 package. """
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from textwrap import dedent
 
 from m5.user import User
 from m5.settings import show_settings, DEBUG
@@ -11,7 +12,18 @@ from m5.settings import show_settings, DEBUG
 if __name__ == '__main__':
     """ Command line execution. """
 
-    parser = ArgumentParser(description='Analyze your bike messenger data.')
+    parser = ArgumentParser(prog='PROG',
+                            formatter_class=RawDescriptionHelpFormatter,
+                            description=dedent(""" \
+        Please do not mess up this text!
+         --------------------------------
+             I have indented it
+             exactly the way
+             I want it
+         """))
+
+    parser.add_argument('command', metavar='N', type=int, nargs='+',
+                  help='an integer for the accumulator')
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument('download', action='store_true')
     actions.add_argument('migrate', action='store_true')

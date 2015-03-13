@@ -117,7 +117,7 @@ class Mapper(Grapher):
         make_graph('plz_checkin_map.png')
 
     def pickups_n_dropoffs(self):
-        """ Map checkpoints (pick-ups and drop-offs). """
+        """ Spatial map of checkpoints (split pick-ups and drop-offs). """
 
         # Pop a figure with a back-drop
         ax = self.make_background()
@@ -137,7 +137,6 @@ class Mapper(Grapher):
 
         plt.title('Pick-ups (black) and drop-offs (blue)')
         make_graph('lat_lon.png')
-
 
     def make_background(self):
         """ Map the postal code boundary in the background. """

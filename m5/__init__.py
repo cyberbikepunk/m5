@@ -2,3 +2,7 @@
 
 __author__ = 'Loic Jounot (loic@cyberpunk.bike)'
 
+
+if __name__ == '__main__':
+    from m5.main import main
+    main()

@@ -47,7 +47,8 @@ class Factory():
 
     @time_me
     def bulk_migrate(self, start_date: date):
-        """ Transfer all the user data since that day,serving from cache where possible.
+        """ Transfer all the user data since that day,
+            serving from cache where possible.
         :param start_date: a date object (in the past)
         """
 
@@ -672,7 +673,7 @@ def bulk_download(start_date: date=None):
     factory.bulk_download(start_date if start_date is not None else date.today)
 
 
-def bulk_migrate(start_date: date=None):
+def process(start_date: date=None):
     """
     Migrate all the remote data since that day. In other words:
     download (or load from cache), scrape, package and archive.

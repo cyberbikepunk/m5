@@ -16,13 +16,13 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP
+from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP, FIGSIZE
 
 
 # --------------------- CLASSES
 
 
-class Grapher():
+class Visualizor():
     """ Parent class for the Plotter and Mapper classes. """
 
     def __init__(self, db: pd.DataFrame):
@@ -36,11 +36,31 @@ class Grapher():
         # There are plenty of zeros in the database because the model
         # forces zero as the default for missing values. This is now fixed,
         # but the following statement is kept for backward compatibility.
-        self.db['orders'].replace(0, np.nan, inplace=True)
+        # self.db['orders'].replace(0, np.nan, inplace=True)
 
         # Matplotlib can't find the default
         # font, so we give it another one.
         plt.rc('font', family='Droid Sans', size=FONTSIZE)
+
+    @staticmethod
+    def prepare_image(title):
+        fig = plt.figure(figsize=FIGSIZE, tight_layout=True)
+        fig.suptitle(title)
+        return fig
+
+    @staticmethod
+    def make_image(file):
+        plt.savefig(unique_file(OUTPUT, file))
+        if POP:
+            plt.show(block=True)
+
+    def _totals(self):
+        totals = dict()
+        for table in self.db.keys():
+            totals[table] = self.db[table].shape[0]
+            self.db[table].reset_index(inplace=True)
+        return totals
+
 
 
 # --------------------- NAMED TUPLES
@@ -64,7 +84,7 @@ def time_me(f):
 # --------------------- FUNCTIONS
 
 
-def make_graph(name):
+def make_image(name):
 
     plt.savefig(unique_file(OUTPUT, name))
     if POP:

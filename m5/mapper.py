@@ -1,4 +1,4 @@
-from m5.utilities import make_graph, print_header
+from m5.utilities import make_image, print_header
 import pandas as pd
 import fiona
 import matplotlib.pyplot as plt
@@ -12,10 +12,10 @@ from datetime import date
 
 from m5.settings import SHP, DEBUG, FIGSIZE, LEAP, FONTSIZE
 from m5.user import User
-from m5.utilities import Grapher
+from m5.utilities import Visualizor
 
 
-class Mapper(Grapher):
+class Mapper(Visualizor):
     """ Does all the geographic visualization stuff. """
 
     def __init__(self, db: pd.DataFrame):
@@ -114,7 +114,7 @@ class Mapper(Grapher):
         ax.set_yticks([])
         plt.title('Heat-map of checkpoints')
 
-        make_graph('plz_checkin_map.png')
+        make_image('plz_checkin_map.png')
 
     def pickups_n_dropoffs(self):
         """ Spatial map of checkpoints (split pick-ups and drop-offs). """
@@ -136,7 +136,7 @@ class Mapper(Grapher):
         ax.plot(dropoffs['lon'], dropoffs['lat'], 'b.', markersize=12, alpha=0.5)
 
         plt.title('Pick-ups (black) and drop-offs (blue)')
-        make_graph('lat_lon.png')
+        make_image('lat_lon.png')
 
     def make_background(self):
         """ Map the postal code boundary in the background. """

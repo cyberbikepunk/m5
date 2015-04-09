@@ -1,8 +1,8 @@
-"""  The module that produces statistics, maps and plots. """
+"""  The module that produces statistical graphs. """
 
 from m5.settings import FONTSIZE, FIGSIZE
 from m5.user import User
-from m5.utilities import Grapher, make_graph
+from m5.utilities import Visualizor, make_image
 
 from matplotlib.dates import DateFormatter
 
@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class Plotter(Grapher):
+class Plot(Visualizor):
     """ Data analysis tools. """
 
     def __init__(self, db: pd.DataFrame):
-        super(Plotter, self).__init__(db)
+        super(Plot, self).__init__(db)
 
     def monthly_income(self):
         """ A timeseries plot of the monthly income. """
@@ -40,7 +40,7 @@ class Plotter(Grapher):
         ax.set_ylabel('Income (€)')
         plt.tight_layout()
 
-        make_graph('monthly_income.png')
+        make_image('monthly_income.png')
 
     def daily_income(self):
         """ A timeseries plot of the daily income. """
@@ -69,7 +69,7 @@ class Plotter(Grapher):
         ax.axhline(mean, color='k')
         plt.tight_layout()
 
-        make_graph('daily_income.png')
+        make_image('daily_income.png')
 
     def income_pie(self):
         """ A pie chart of income per job type. """
@@ -86,7 +86,7 @@ class Plotter(Grapher):
                             title='Income breakdown',
                             fontsize=FONTSIZE)
         ax.set_aspect(1)
-        make_graph('income_pie.png')
+        make_image('income_pie.png')
 
     def cumulative_km(self):
         """ A cummulative timeseries of job distances. """
@@ -107,7 +107,7 @@ class Plotter(Grapher):
             ax.set_ylabel('km')
             ax.set_title('cummulative kms')
 
-        make_graph('cummulative_km.png')
+        make_image('cummulative_km.png')
 
     def plz_histogram(self):
         """ A histogram of of postal code frequencies. """
@@ -125,7 +125,7 @@ class Plotter(Grapher):
         ax.set_xlabel('Postal codes')
         plt.tight_layout()
 
-        make_graph('plz_histogram.png')
+        make_image('plz_histogram.png')
 
     def price_histogram(self):
         """ A histogramm of job prices stacked by type. """
@@ -136,10 +136,12 @@ class Plotter(Grapher):
                                     'extra_stops',
                                     'fax_confirm']]
 
+        # FIXME Remove hard set axis limits
         ax = prices.plot(kind='hist',
                          stacked=True,
                          bins=40,
-                         xlim=(0, 30),
+                         xlim=(1, 30),
+                         ylim=(0, 500),
                          figsize=FIGSIZE,
                          title='Job price distribution',
                          fontsize=FONTSIZE)
@@ -148,7 +150,7 @@ class Plotter(Grapher):
         ax.set_xlabel('Job price (€)')
         plt.tight_layout()
 
-        make_graph('price_histogram.png')
+        make_image('price_histogram.png')
 
     def price_vs_km(self):
         """ A scatter plot of the wage per kilometer. """
@@ -166,12 +168,12 @@ class Plotter(Grapher):
         ax.set_ylabel('Job price (€)')
         plt.tight_layout()
 
-        make_graph('price_vs_km.png')
+        make_image('price_vs_km.png')
 
 if __name__ == '__main__':
 
     user = User()
-    a = Plotter(user.db)
+    a = Plot(user.db)
 
     a.price_histogram()
     a.price_vs_km()

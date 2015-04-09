@@ -136,12 +136,11 @@ class Plot(Visualizor):
                                     'extra_stops',
                                     'fax_confirm']]
 
-        # FIXME Remove hard set axis limits
+        # FIXME Remove hard set x-axis limit
         ax = prices.plot(kind='hist',
                          stacked=True,
                          bins=40,
                          xlim=(1, 30),
-                         ylim=(0, 500),
                          figsize=FIGSIZE,
                          title='Job price distribution',
                          fontsize=FONTSIZE)

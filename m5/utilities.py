@@ -26,7 +26,7 @@ class Visualizor():
     """ Parent class for the Plotter and Mapper classes. """
 
     def __init__(self, db: pd.DataFrame):
-        """ Copy the database and set plotting options. """
+        """ Copy (and clean up) the database and set plotting options. """
 
         self.db = db
 
@@ -36,7 +36,7 @@ class Visualizor():
         # There are plenty of zeros in the database because the model
         # forces zero as the default for missing values. This is now fixed,
         # but the following statement is kept for backward compatibility.
-        # self.db['orders'].replace(0, np.nan, inplace=True)
+        self.db['orders'].replace(0, np.nan, inplace=True)
 
         # Matplotlib can't find the default
         # font, so we give it another one.
@@ -60,7 +60,6 @@ class Visualizor():
             totals[table] = self.db[table].shape[0]
             self.db[table].reset_index(inplace=True)
         return totals
-
 
 
 # --------------------- NAMED TUPLES
@@ -92,7 +91,7 @@ def make_image(name):
 
 
 def unique_file(path, file: str) -> str:
-    """ Return a unique path in the output folder. """
+    """ Return a unique filepath in the output folder. """
 
     (base, extension) = splitext(file)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
@@ -100,7 +99,6 @@ def unique_file(path, file: str) -> str:
     path = join(path, unique)
 
     print('Saved %s' % path)
-
     return path
 
 
@@ -112,7 +110,6 @@ def latest_file(folder: str):
     else:
         file = 'database.sqlite'
     print('Selected {folder}/{file}'.format(folder=folder, file=file))
-
     return file
 
 
@@ -122,7 +119,7 @@ def print_header(title):
 
 
 def check_shapefile():
-    """ Examine the inner contents of a shapefile with shapely and fiona. """
+    """ Examine the content of a shapefile both with shapely and fiona. """
 
     # OPEN THE FILES WITH SHAPELY
     shp = open(SHP, 'rb')
@@ -149,7 +146,7 @@ def check_shapefile():
     print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER))
     print('Reader.shapes() = %s' % type(shapes))
     print('len(Reader.shapes()) = %s' % len(shapes))
-    print('Sample(10) iteration through shapes:')
+    print('Randomly sampled shapes:')
     for s in sample(list(sf.iterShapes()), 10):
         print('    s.shapeType = %s, s.bbox = %s, s.points = %s' % (s.shapeType, s.bbox, s.points))
 
@@ -166,6 +163,7 @@ def check_shapefile():
     print(LEAP)
     print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
     shapes = fiona.open(SHP)
+    # FIXME Dump loop
     for i, s in enumerate(shapes):
         pprint(s)
         if i > 3:
@@ -175,7 +173,7 @@ def check_shapefile():
 def fix_checkpoints(checkpoints):
     """
     Type cast the primary key of the checkpoint table (checkpoint_id) into an integer.
-    This bug has now been fixed but we keep this function for backwards compatibility.
+    This bug has now been fixed but we keep this function for compatibility with the old databases.
     """
 
     if checkpoints.index.dtype != 'int64':
@@ -183,7 +181,6 @@ def fix_checkpoints(checkpoints):
         checkpoint_ids = checkpoints['checkpoint_id'].astype(np.int64, raise_on_error=True)
         checkpoints['checkpoint_id'] = checkpoint_ids
         checkpoints.set_index('checkpoint_id', inplace=True)
-
     return checkpoints
 
 

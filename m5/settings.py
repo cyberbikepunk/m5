@@ -7,7 +7,7 @@ from sys import modules
 # Flags
 DEBUG = True
 POP = True
-OFFLINE = True
+OFFLINE = False
 
 # Parent directories
 USER = join(expanduser('~'), '.m5', )

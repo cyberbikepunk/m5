@@ -30,21 +30,20 @@ class Factory():
         self._archiver = Archiver(user.local_session)
 
     @time_me
-    def bulk_download(self, start_date: date):
-        """  Download all html pages since that day.
-        :param start_date: a date object (in the past)
-        """
+    def bulk_download(self, start_date=date.today()):
+        """  Download all html pages since that day. """
+
+        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
 
         delta = date.today() - start_date
         for d in range(delta.days):
             self._download(start_date + timedelta(days=d))
 
     @time_me
-    def bulk_migrate(self, start_date: date):
-        """ Transfer all the user data since that day,
-            serving from cache where possible.
-        :param start_date: a date object (in the past)
-        """
+    def bulk_migrate(self, start_date=date.today()):
+        """ Transfer all the user data since that day, serving from cache where possible. """
+
+        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
 
         period = date.today() - start_date
         days = range(period.days)

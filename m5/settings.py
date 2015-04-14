@@ -57,7 +57,7 @@ def show_settings():
 
     print('Settings for M5 package:', end=LEAP)
     objects = dir(modules[__name__])
-    # Only setting parameters are uppercase.
+    # Only setting parameters are uppercase variables.
     parameters = [x for x in objects if x.isupper()]
 
     for p in parameters:

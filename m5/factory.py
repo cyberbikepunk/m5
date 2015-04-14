@@ -308,7 +308,7 @@ class Packager():
     def _geocode(raw_address: dict) -> dict:
         """ Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
         The returned osm_id is used as the primary key in the checkpoint table. So,
-        if we can't geocode an address, None will won't later make it into the database. """
+        if we can't geocode an address, None won't later make it into the database. """
     
         g = Nominatim()
 
@@ -668,8 +668,10 @@ def demo_run(day: date):
 
     soups = d.download(day)
     print(soups)
+
     serial = s.scrape(soups)
     pprint(serial)
+
     tables = p.package(serial)
     print(tables)
 

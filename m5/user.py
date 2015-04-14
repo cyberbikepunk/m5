@@ -25,23 +25,21 @@ class User:
         self.password = password
 
         if not OFFLINE:
-            # Verify the user on the remote server.
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
         else:
-            # Most of the modules can be run in this mode.
+            # Most of the modules can be run in offline mode.
             # Turn it off to download more data from the server.
             self.remote_session = None
 
         # Create folders if needed.
         self._check_install()
 
-        # Use specified database or select the latest.
-        db_file = latest_file(DATABASE) if not db_file else db_file
-        path = join(DATABASE, db_file)
-        sqlite = 'sqlite:///{path}'.format(path=path)
+        # Use specified database or pick the latest by default.
+        self.db_file = latest_file(DATABASE) if not db_file else db_file
+        path = join(DATABASE, self.db_file)
+        sqlite = 'sqlite:///{db}'.format(db=path)
 
-        # Build the model and switch on the database.
         self.engine = create_engine(sqlite, echo=DEBUG)
         self.base = Base.metadata.create_all(self.engine)
         self.local_session = sessionmaker(bind=self.engine)()
@@ -59,7 +57,7 @@ class User:
             if not isdir(folder):
                 mkdir(folder)
                 # Setting permissions directly with
-                # mkdir gives me bizarre permissions.
+                # mkdir gives me bizarre results.
                 chmod(folder, 0o755)
                 print('Created %s' % folder)
 
@@ -99,7 +97,7 @@ class User:
                           how='left')
 
         if DEBUG:
-            print_header('User data summary')
+            print_header('DataFrames loaded into memory')
             for title, table in db.items():
                 print('Pandas DataFrame (%s):' % title)
                 print(table.reset_index().info(), end=LEAP)

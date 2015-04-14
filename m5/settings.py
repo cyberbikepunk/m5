@@ -7,7 +7,7 @@ from sys import modules
 # Flags
 DEBUG = True
 POP = True
-OFFLINE = True
+OFFLINE = False
 
 # Parent directories
 USER = join(expanduser('~'), '.m5', )
@@ -35,7 +35,7 @@ WORDS = 'street'
 MAXWORDS = 200
 PROPORTION = 0.8
 
-# URLs to company server
+# URLs for company server
 LOGIN = 'http://bamboo-mec.de/ll.php5'
 LOGOUT = 'http://bamboo-mec.de/index.php5'
 JOB = 'http://bamboo-mec.de/ll_detail.php5'
@@ -57,13 +57,13 @@ def show_settings():
 
     print('Settings for M5 package:', end=LEAP)
     objects = dir(modules[__name__])
-    # Only setting parameters are uppercase.
-    items = [x for x in objects if x.isupper()]
+    # Only setting parameters are uppercase variables.
+    parameters = [x for x in objects if x.isupper()]
 
-    for item in items:
-        value = getattr(modules[__name__], item)
+    for p in parameters:
+        value = getattr(modules[__name__], p)
         print('{item} = {value!r}'
-              .format(item=item.rjust(20, ' '), value=value))
+              .format(item=p.rjust(20, ' '), value=value))
 
 
 if __name__ == '__main__':

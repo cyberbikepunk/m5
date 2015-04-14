@@ -1,41 +1,58 @@
 #!/usr/bin/python3
+""" Run the m5 package from the command line. """
 
-""" Command line API for the m5 package. """
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from datetime import date
+from textwrap import dedent
+from sys import path
 
-from argparse import ArgumentParser
+# if '.' not in path:
+path.append('.')
+print(path)
+from m5.factory import bulk_download, process
 
-from m5.user import User
-from m5.settings import show_settings, DEBUG
 
+parser = ArgumentParser(prog='m5', formatter_class=RawDescriptionHelpFormatter,
+                        description=dedent("""\nAnalyze your bike messenger data
+                                               --------------------------------
+                                               You must have a login and password
+                                               for the bamboo-mec.de server. """))
 
-if __name__ == '__main__':
-    """ Command line execution. """
+subparsers = parser.add_subparsers()
 
-    parser = ArgumentParser(description='Analyze your bike messenger data.')
-    actions = parser.add_mutually_exclusive_group()
-    actions.add_argument('download', action='store_true')
-    actions.add_argument('migrate', action='store_true')
-    parser.add_argument('-s', actions=)
-    parser.add_argument('x', type=int, help='the base')
-    parser.add_argument('y', type=int, help='the exponent')
-    args = parser.parse_args()
+# create the parser for the "download" command
+parser_foo = subparsers.add_parser('download')
+parser_foo.add_argument('begin', type=str, default=None)
+parser_foo.set_defaults(func=bulk_download)
 
-    # Just in case
+# create the parser for the "process" command
+parser_foo = subparsers.add_parser('process')
+parser_foo.add_argument('begin', type=str, default=None)
+parser_foo.set_defaults(func=process)
 
-    if DEBUG:
-        show_settings()
+# create the parser for the "show" command
+parser_foo = subparsers.add_parser('show')
+parser_foo.add_argument('-y', type=str, default=None, help='a year like 2013')
+parser_foo.add_argument('-m', type=str, default=None, help='a numeric month like 11')
+parser_foo.add_argument('-d', type=str, default=None, help='a numeric day like 28')
+parser_foo.set_defaults(func=process)
 
-    u = User()
+parser.add_argument('-debug',
+                    metavar='verbose option',
+                    type=bool,
+                    default=False,
+                    help='print verbose to standard output')
 
-answer = args.x**args.y
+parser.add_argument('-pop',
+                    metavar='pop option',
+                    type=bool,
+                    default=False,
+                    help='pop the figure windows')
 
-if args.quiet:
-    print(answer)
-elif args.verbose:
-    print('{} to the power {} equals {}'.format(args.x, args.y, answer))
-else:
-    print('{}^{} == {}'.format(args.x, args.y, answer))
+parser.add_argument('-offlibe',
+                    metavar='offline option',
+                    type=bool,
+                    default=False,
+                    help='local database connection only')
 
-        delta = date.today() - start
-    assert isinstance(date, start), 'Please pass a date in the format dd-mm-YY.'
-    assert delta >= 0, 'Please pick a date in the past.'
+print(parser)

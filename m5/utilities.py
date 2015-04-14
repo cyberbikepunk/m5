@@ -16,17 +16,17 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP
+from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP, FIGSIZE
 
 
 # --------------------- CLASSES
 
 
-class Grapher():
+class Visualizor():
     """ Parent class for the Plotter and Mapper classes. """
 
     def __init__(self, db: pd.DataFrame):
-        """ Copy the database and set plotting options. """
+        """ Copy (and clean up) the database and set plotting options. """
 
         self.db = db
 
@@ -41,6 +41,25 @@ class Grapher():
         # Matplotlib can't find the default
         # font, so we give it another one.
         plt.rc('font', family='Droid Sans', size=FONTSIZE)
+
+    @staticmethod
+    def prepare_image(title):
+        fig = plt.figure(figsize=FIGSIZE, tight_layout=True)
+        fig.suptitle(title)
+        return fig
+
+    @staticmethod
+    def make_image(file):
+        plt.savefig(unique_file(OUTPUT, file))
+        if POP:
+            plt.show(block=True)
+
+    def _totals(self):
+        totals = dict()
+        for table in self.db.keys():
+            totals[table] = self.db[table].shape[0]
+            self.db[table].reset_index(inplace=True)
+        return totals
 
 
 # --------------------- NAMED TUPLES
@@ -64,7 +83,7 @@ def time_me(f):
 # --------------------- FUNCTIONS
 
 
-def make_graph(name):
+def make_image(name):
 
     plt.savefig(unique_file(OUTPUT, name))
     if POP:
@@ -72,7 +91,7 @@ def make_graph(name):
 
 
 def unique_file(path, file: str) -> str:
-    """ Return a unique path in the output folder. """
+    """ Return a unique filepath in the output folder. """
 
     (base, extension) = splitext(file)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
@@ -80,7 +99,6 @@ def unique_file(path, file: str) -> str:
     path = join(path, unique)
 
     print('Saved %s' % path)
-
     return path
 
 
@@ -92,7 +110,6 @@ def latest_file(folder: str):
     else:
         file = 'database.sqlite'
     print('Selected {folder}/{file}'.format(folder=folder, file=file))
-
     return file
 
 
@@ -102,7 +119,7 @@ def print_header(title):
 
 
 def check_shapefile():
-    """ Examine the inner contents of a shapefile with shapely and fiona. """
+    """ Examine the content of a shapefile both with shapely and fiona. """
 
     # OPEN THE FILES WITH SHAPELY
     shp = open(SHP, 'rb')
@@ -129,7 +146,7 @@ def check_shapefile():
     print('{title:{fill}{align}100}'.format(title='SHAPE OBJECTS (.SHP FILE)', fill=FILL, align=CENTER))
     print('Reader.shapes() = %s' % type(shapes))
     print('len(Reader.shapes()) = %s' % len(shapes))
-    print('Sample(10) iteration through shapes:')
+    print('Randomly sampled shapes:')
     for s in sample(list(sf.iterShapes()), 10):
         print('    s.shapeType = %s, s.bbox = %s, s.points = %s' % (s.shapeType, s.bbox, s.points))
 
@@ -146,6 +163,7 @@ def check_shapefile():
     print(LEAP)
     print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
     shapes = fiona.open(SHP)
+    # FIXME Dump loop
     for i, s in enumerate(shapes):
         pprint(s)
         if i > 3:
@@ -155,7 +173,7 @@ def check_shapefile():
 def fix_checkpoints(checkpoints):
     """
     Type cast the primary key of the checkpoint table (checkpoint_id) into an integer.
-    This bug has now been fixed but we keep this function for backwards compatibility.
+    This bug has now been fixed but we keep this function for compatibility with the old databases.
     """
 
     if checkpoints.index.dtype != 'int64':
@@ -163,7 +181,6 @@ def fix_checkpoints(checkpoints):
         checkpoint_ids = checkpoints['checkpoint_id'].astype(np.int64, raise_on_error=True)
         checkpoints['checkpoint_id'] = checkpoint_ids
         checkpoints.set_index('checkpoint_id', inplace=True)
-
     return checkpoints
 
 

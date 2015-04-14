@@ -19,45 +19,31 @@ from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
 from m5.model import Checkin, Checkpoint, Client, Order
 from m5.user import User
 
-# TODO Refactor this module DRY.
-#   - blueprints (scraping specifications) should be defined
-#     within the db declarative model and unwrapped on the fly.
-#   - the geo-coding and unserialisation procedures should
-#     also be defined in the model and all dirty fixes removed.
-
 
 class Factory():
     """ A wrapper class to download, scrape, package and archive data in bulk. """
 
     def __init__(self, user: User):
-        """  Instantiate re-usable Dowmloader, Scraper, Packager and Archiver objects. """
-
         self._downloader = Downloader(user.remote_session)
         self._scraper = Scraper()
         self._packager = Packager()
         self._archiver = Archiver(user.local_session)
 
     @time_me
-    def bulk_download(self, start_date: date):
-        """
-        Download all html pages since that day. HTML
-        files will be downloaded but NOT scraped.
+    def bulk_download(self, start_date=date.today()):
+        """  Download all html pages since that day. """
 
-        :param start_date: a date object (in the past)
-        """
+        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
 
         delta = date.today() - start_date
         for d in range(delta.days):
             self._download(start_date + timedelta(days=d))
 
     @time_me
-    def bulk_migrate(self, start_date: date):
-        """
-        Migrate all data since that day. Whenever possible,
-        HTML files will served from cache to spare the server.
+    def bulk_migrate(self, start_date=date.today()):
+        """ Transfer all the user data since that day, serving from cache where possible. """
 
-        :param start_date: a date object (in the past)
-        """
+        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
 
         period = date.today() - start_date
         days = range(period.days)
@@ -94,7 +80,7 @@ class Factory():
 
 
 class Archiver():
-    """ The Archiver class saves packaged data inside the local database. """
+    """ The Archiver class shoves packaged data into the local database. """
 
     def __init__(self, local_session: LocalSession):
         self._local_session = local_session
@@ -148,7 +134,6 @@ class Downloader():
         # Go browse the 'summary' for that day
         # and find out how many jobs we have.
         uuids = self._scrape_uuids(day)
-
         soup_jobs = list()
 
         if not uuids:
@@ -206,12 +191,10 @@ class Downloader():
 
     def _is_hopeless(self, day: date):
         """ True if we already know that the day has jobs to be downloaded. """
-
         # If we have already requested this day and found that it has no jobs,
         # there is an empty file with 'NO_JOBS' stamped on it inside the downloads
         # directory. So we just check whether that empty file is there or not.
         self._stamp = Stamp(day, 'NO_JOBS')
-
         return self._is_cached()
 
     def _filepath(self) -> str:
@@ -230,9 +213,8 @@ class Downloader():
 
     def _save_job(self, soup):
         """ Prettify the soup and save it to file. """
-        pretty_html = soup.prettify()
         with open(self._filepath(), 'w+') as f:
-            f.write(pretty_html)
+            f.write(soup.prettify())
 
     def _load_job(self) -> BeautifulSoup:
         """ Load an html file and return a beautiful soup. """
@@ -324,19 +306,17 @@ class Packager():
 
     @staticmethod
     def _geocode(raw_address: dict) -> dict:
-        """
-        Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
-        The returned osm_id is used as the primary key in the checkpoint table.
-        So, if we can't geocode an address, it will won't make it into the database.
-        """
+        """ Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
+        The returned osm_id is used as the primary key in the checkpoint table. So,
+        if we can't geocode an address, None won't later make it into the database. """
     
         g = Nominatim()
 
+        # TODO Geo-coding must not default to Germany
         json_address = {'postalcode': raw_address['postal_code'],
                         'street': raw_address['address'],
                         'city': raw_address['city'],
                         'country': 'Germany'}
-        # TODO Geo-coding must not default to Germany
 
         nothing = {'osm_id': None,
                    'lat': None,
@@ -345,14 +325,15 @@ class Packager():
 
         if not all(json_address.values()):
             if DEBUG:
-                print('Nominatim skipped {street} due to missing field(s).'
-                      .format(street=raw_address['address']))
+                print('Nominatim skipped {street} due to missing field(s).'.format(street=raw_address['address']))
             return nothing
+
         else:
+            # Here we have to catch everything, including
+            # a ssl socket.timeout error that is not raised
+            # as a python exception. And so PyCharm needs
+            # the following line to avoid squiggling us:
             # noinspection PyBroadException
-            # Here we catch everything, including
-            # a ssl socket.timeout error that is
-            # not raised as a python exception.
             try:
                 response = g.geocode(json_address)
             except:
@@ -371,6 +352,8 @@ class Packager():
                           .format(verb=verb, street=raw_address['address']))
 
         return geocoded
+
+    # FIXME The unserialisation procedures should be defined inside the orm declaration and all dirty fixes removed.
 
     @staticmethod
     def _unserialise(type_cast: type, raw_value: str):
@@ -455,6 +438,7 @@ class Scraper:
                  prices={'name': 'tbody', 'attrs': None},
                  address={'name': 'div', 'attrs': {'data-collapsed': 'true'}})
 
+    # FIXME blueprints should be defined within the orm declarative model and unwrapped here on the fly.
     # Each field has a regex instructions.
     _BLUEPRINTS = {'itinerary': dict(km={'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'nullable': True}),
                    'header': dict(order_id={'line_nb': 0, 'pattern': r'.*(\d{10})', 'nullable': True},
@@ -477,16 +461,14 @@ class Scraper:
     @log_me
     def scrape(self, soup_jobs: list) -> list:
         """
-        In goes a bunch of html files (in the form of beautiful soups),
-        out comes serial data, i.e. dictionaries of field name/value
-        pairs. At this point, values are stored as raw strings.
+        In goes a list of html files (in the form of beautiful soups), out comes a list of serial data,
+        i.e. dictionaries of field name/value pairs. At this point, values are stored as raw strings.
 
-        :param soup_jobs: a list of Stamped(Stamp, BeautifulSoup)
+        :param soup_jobs: a list of Stamped(Stamp, soup)
         :return: a list of Stamped(Stamp, (job_details, addresses))
         """
 
         assert soup_jobs is not None, 'Argument cannot be None.'
-
         serial_jobs = list()
 
         for i, soup_job in enumerate(soup_jobs):
@@ -509,20 +491,15 @@ class Scraper:
 
         return serial_jobs
 
-    def _job_url(self):
-        """ The url of the web-page for a job. """
-        return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
+    @property
+    def _done(self):
+        """ Print the url of the job. """
+        return 'Scraped http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
             .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
 
     def _scrape_job(self, soup_item: Stamped) -> tuple:
-        """
-        Scrape out of a job's web page using bs4 and re modules.
-        In goes the soup, out come dictionaries contaning field
-        name/value pairs as raw strings.
-
-        :param soup_item: the job's web page as a soup
-        :return: job_details and addresses as a tuple
-        """
+        """ Scrape out of a job's web page using bs4 and re modules. In goes the soup,
+        out come a tuple of dictionaries contaning field name/value pairs (strings). """
 
         # Pass the soup through the sieve
         soup = soup_item.data.find(id='order_detail')
@@ -530,7 +507,7 @@ class Scraper:
         # Step 1: scrape job details
         job_details = dict()
 
-        # Step 1.1: everything except prices
+        # Step 1.1: in all fragments except prices
         fragments = ['header', 'client', 'itinerary']
 
         for fragment in fragments:
@@ -539,7 +516,7 @@ class Scraper:
                                                   soup_item.stamp, fragment)
             job_details.update(fields_subset)
 
-        # Step 1.2: the price table
+        # Step 1.2: in the price table
         soup_fragment = soup.find(self._TAGS['prices']['name'])
         prices = self._scrape_prices(soup_fragment)
 
@@ -552,7 +529,6 @@ class Scraper:
         for soup_fragment in soup_fragments:
             address = self._scrape_fragment(self._BLUEPRINTS['address'], soup_fragment,
                                             soup_item.stamp, 'address')
-
             addresses.append(address)
 
         return job_details, addresses
@@ -571,7 +547,7 @@ class Scraper:
         :return: field name/value pairs
         """
 
-        # The document format very is unreliable: the number of lines
+        # The document format quite is unreliable: the number of lines
         # in each section varies and the number of fields on each line
         # also varies. For this reason, our scraping is conservative.
         # The motto is: one field at a time! The goal is to end up with
@@ -602,15 +578,8 @@ class Scraper:
 
     @staticmethod
     def _scrape_prices(soup_fragment: BeautifulSoup) -> dict:
-        """
-        Scrape the 'prices' table at the bottom of the page. There's no
-        objective reason why this section should be treated seperately.
-
-        :param soup_fragment: parsed html
-        :return: item/price pairs
-        """
-
-        # TODO Get rid of the _scrape_prices() method!
+        """ Scrape the 'prices' table at the bottom of the page. """
+        # TODO Get rid of this method! There's no reason why this part should be treated separately.
 
         # The table is scraped as a one-dimensional list
         # of cells but we want it in dictionary format.
@@ -634,8 +603,7 @@ class Scraper:
             else:
                 price_table[new] = None
 
-        # The waiting time cell has the time in minutes
-        # as well as the price. We just want the price.
+        # The waiting time cell has the time in minutes as well as the price. We just want the price.
         if price_table['waiting_time'] is not None:
             price_table['waiting_time'] = price_table['waiting_time'][7::]
 
@@ -667,23 +635,20 @@ class Scraper:
         else:
             print('No html content inside {tag}'.format(tag=tag))
 
-        print('-' * 100)
+        print('-'*100)
         sys.stdout = reset
 
 
 def bulk_download(start_date: date=None):
     """ Download all html pages since that day, unless they have already been cached. """
-
     user = User()
     factory = Factory(user)
     factory.bulk_download(start_date if start_date is not None else date.today)
 
 
-def bulk_migrate(start_date: date=None):
-    """
-    Migrate all the remote data since that day. In other words:
-    download (or load from cache), scrape, package and archive.
-    """
+def process(start_date: date=None):
+    """ Migrate all the remote data since that day. In other words:
+    download (or load from cache), scrape, package and archive. """
 
     user = User()
     factory = Factory(user)
@@ -691,10 +656,8 @@ def bulk_migrate(start_date: date=None):
 
 
 def demo_run(day: date):
-    """
-    Demonstrate the use of the module: download, scrape and package, but don't
-    push the data to the database. This function is deliberately very verbose.
-    """
+    """ Demonstrate the use of the module: download, scrape and package, but don't
+    push the data to the database. This function is deliberately very verbose. """
 
     assert isinstance(day, date), 'Parameter must be a date object.'
 
@@ -705,8 +668,10 @@ def demo_run(day: date):
 
     soups = d.download(day)
     print(soups)
+
     serial = s.scrape(soups)
     pprint(serial)
+
     tables = p.package(serial)
     print(tables)
 

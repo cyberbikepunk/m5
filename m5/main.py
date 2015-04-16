@@ -1,58 +1,112 @@
-#!/usr/bin/python3
-""" Run the m5 package from the command line. """
+#!/usr/bin/env python
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+"""
+--------------------------------
+m5 analyses your messenger data.
+--------------------------------
+
+You will need your credentials to access the bamboo-mec.de server. Running
+the program from the command line is very simple. Here are some examples...
+
+To show this message:
+    $ m5
+
+To fetch today's data:
+    $ m5 fetch
+
+To fetch all your data since the 21st February 2012:
+    $ m5 fetch --since 21-02-2012
+
+To visualize today's data:
+    $ m5 visualize
+
+To visualize a particular period of time:
+    $ m5 visualize --year 2012
+    $ m5 visualize --month 03-2014
+    $ m5 visualize --day 04-04-2015
+
+The program stores your data and visualizations in a hidden folder inside
+your home directoy (~/.m5/). Make sure your file manager shows hidden files!
+
+Please contact loic.jounot@gmail.com if you encounter problems. Have fun!
+"""
+
+from argparse import ArgumentParser
+from sys import argv
 from datetime import date
-from textwrap import dedent
-from sys import path
 
-# if '.' not in path:
-path.append('.')
-print(path)
-from m5.factory import bulk_download, process
+today = None
 
 
-parser = ArgumentParser(prog='m5', formatter_class=RawDescriptionHelpFormatter,
-                        description=dedent("""\nAnalyze your bike messenger data
-                                               --------------------------------
-                                               You must have a login and password
-                                               for the bamboo-mec.de server. """))
+def make_day():
+    return
 
-subparsers = parser.add_subparsers()
 
-# create the parser for the "download" command
-parser_foo = subparsers.add_parser('download')
-parser_foo.add_argument('begin', type=str, default=None)
-parser_foo.set_defaults(func=bulk_download)
+def make_month():
+    return
 
-# create the parser for the "process" command
-parser_foo = subparsers.add_parser('process')
-parser_foo.add_argument('begin', type=str, default=None)
-parser_foo.set_defaults(func=process)
 
-# create the parser for the "show" command
-parser_foo = subparsers.add_parser('show')
-parser_foo.add_argument('-y', type=str, default=None, help='a year like 2013')
-parser_foo.add_argument('-m', type=str, default=None, help='a numeric month like 11')
-parser_foo.add_argument('-d', type=str, default=None, help='a numeric day like 28')
-parser_foo.set_defaults(func=process)
+def make_year():
+    return
 
-parser.add_argument('-debug',
-                    metavar='verbose option',
-                    type=bool,
+
+def main():
+    """ Parse the command line arguments. If the script is called with no arguments, print the docstring."""
+
+    m5 = ArgumentParser(prog='m5', description='m5 analyses your messenger data.')
+    subparsers = m5.add_subparsers()
+
+    # ------------------------ The "fetch" command
+
+    fetch = subparsers.add_parser('fetch')
+    fetch.add_argument('--since', type=str, default=None)
+
+    # ------------------------ The "visualize" command
+
+    visualize = subparsers.add_parser('visualize')
+    time_delta = visualize.add_mutually_exclusive_group()
+
+    time_delta.add_argument('-y', '--year',
+                            help='visualize a year of data',
+                            type=str,
+                            default=None,
+                            dest='time_delta')
+
+    time_delta.add_argument('-m', '--month',
+                            help='visualize a month of data',
+                            type=str,
+                            default=None,
+                            dest='time_delta')
+
+    time_delta.add_argument('-d', '--day',
+                            help='visualize a day of data',
+                            type=str,
+                            default=None,
+                            dest='time_delta')
+
+    # ------------------------ Option flags
+
+    m5.add_argument('-v', '--verbose',
+                    help='run the program in high verbose mode',
                     default=False,
-                    help='print verbose to standard output')
+                    action='store_const',
+                    const=True)
 
-parser.add_argument('-pop',
-                    metavar='pop option',
-                    type=bool,
+    m5.add_argument('-o', '--offline',
+                    help='connect only to the local database',
                     default=False,
-                    help='pop the figure windows')
+                    action='store_const',
+                    const=True)
 
-parser.add_argument('-offlibe',
-                    metavar='offline option',
-                    type=bool,
-                    default=False,
-                    help='local database connection only')
+    # ------------------------ Parse the command line
 
-print(parser)
+    if len(argv) == 1:
+        print(__doc__)
+        exit(1)
+    else:
+        args = m5.parse_args()
+        print(args)
+
+
+if __name__ == '__main__':
+    main()

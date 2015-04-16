@@ -14,10 +14,10 @@ from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as LocalSession
 
-from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
-from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
-from m5.model import Checkin, Checkpoint, Client, Order
-from m5.user import User
+from settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
+from utilities import log_me, time_me, Stamped, Stamp, Tables
+from model import Checkin, Checkpoint, Client, Order
+from user import User
 
 # TODO Refactor this module DRY.
 #   - blueprints (scraping specifications) should be defined

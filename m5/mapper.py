@@ -8,11 +8,10 @@ from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, shape
 from geopandas import GeoDataFrame
 from math import log
-from datetime import date
 
-from m5.settings import SHP, DEBUG, FIGSIZE, LEAP, FONTSIZE
-from m5.user import User
-from m5.utilities import Visualizor
+from settings import SHP, DEBUG, FIGSIZE, LEAP
+from user import User
+from utilities import Visualizor
 
 
 class Mapper(Visualizor):
@@ -21,15 +20,15 @@ class Mapper(Visualizor):
     def __init__(self, db: pd.DataFrame):
         super(Mapper, self).__init__(db)
 
-    def day_arrows(self, day):
-
-        one_day = self.db['all'][(self.db['all']['city'] == 'Berlin') & (self.db['all']['date'] == day)]
-        print(one_day)
-        pickups = one_day[one_day['purpose'] == 'pickup']
-        dropoffs = one_day[one_day['purpose'] == 'dropoff']
-
-        print(list(zip(pickups, dropoffs)))
-        #ax.arrow(0, 0, 0.5, 0.5, head_width=0.05, head_length=0.1, fc='k', ec='k')
+    # def day_arrows(self, day):
+    #
+    #     one_day = self.db['all'][(self.db['all']['city'] == 'Berlin') & (self.db['all']['date'] == day)]
+    #     print(one_day)
+    #     pickups = one_day[one_day['purpose'] == 'pickup']
+    #     dropoffs = one_day[one_day['purpose'] == 'dropoff']
+    #
+    #     print(list(zip(pickups, dropoffs)))
+    #     ax.arrow(0, 0, 0.5, 0.5, head_width=0.05, head_length=0.1, fc='k', ec='k')
 
     @staticmethod
     def read_plz():

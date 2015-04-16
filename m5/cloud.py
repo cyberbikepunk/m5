@@ -1,8 +1,8 @@
 """ Create the wordcloud using Andreas Müller's code cloned from : https://github.com/amueller/word_cloud. """
 
-from m5.settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP, FIGSIZE
-from m5.utilities import make_image
-from m5.user import User
+from settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP, FIGSIZE
+from utilities import make_image
+from user import User
 
 from wordcloud import WordCloud
 from string import punctuation, whitespace

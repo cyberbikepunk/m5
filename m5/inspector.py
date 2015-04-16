@@ -1,11 +1,12 @@
 """  Check the quality and consistency of the database. """
 
-from numbers import Number
-from m5.settings import LEAP, DEBUG
-from m5.user import User
-from m5.utilities import print_header, Visualizor
+from settings import LEAP, DEBUG
+from user import User
+from utilities import print_header, Visualizor
+
 from pandas import DataFrame, isnull, merge
 from numpy import nan
+from numbers import Number
 
 
 class Inspector(Visualizor):

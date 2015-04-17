@@ -1,58 +1,102 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 """ Run the m5 package from the command line. """
 
+
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from sys import argv
+from time import strptime
 from datetime import date
 from textwrap import dedent
-from sys import path
 
-# if '.' not in path:
-path.append('.')
-print(path)
-from m5.factory import bulk_download, process
+from inspector import inspect
+from visualize import show
+from factory import fetch
 
 
-parser = ArgumentParser(prog='m5', formatter_class=RawDescriptionHelpFormatter,
-                        description=dedent("""\nAnalyze your bike messenger data
-                                               --------------------------------
-                                               You must have a login and password
-                                               for the bamboo-mec.de server. """))
+def make_day(date_string):
+    t = strptime(date_string, '%d-%m-%Y')
+    return date(t.tm_year, t.tm_mon, t.tm_mday)
 
-subparsers = parser.add_subparsers()
+examples = \
+    """
+    examples:
+      $ m5 fetch                    fetch today's data...
+      $ m5 fetch -v                 ...with the verbose mode on
+      $ m5 fetch --s 21-02-2012     fetch all data since 21st February 2012
+      $ m5 inspect                  check the overall quality of the data
+      $ m5 show                     visualize today's data
+      $ m5 show -y 2012             visualize 2012 data
+      $ m5 show -m 03-2014          visualize March 2014 data
+      $ m5 show -d 04-04-2015       visualize data for the 4th March 2014
+      4 m5 show -h                  print the help message for the "show" sub-command
+    """
 
-# create the parser for the "download" command
-parser_foo = subparsers.add_parser('download')
-parser_foo.add_argument('begin', type=str, default=None)
-parser_foo.set_defaults(func=bulk_download)
 
-# create the parser for the "process" command
-parser_foo = subparsers.add_parser('process')
-parser_foo.add_argument('begin', type=str, default=None)
-parser_foo.set_defaults(func=process)
+def build_parser():
+    """ Construct a parser using the argparse library. """
 
-# create the parser for the "show" command
-parser_foo = subparsers.add_parser('show')
-parser_foo.add_argument('-y', type=str, default=None, help='a year like 2013')
-parser_foo.add_argument('-m', type=str, default=None, help='a numeric month like 11')
-parser_foo.add_argument('-d', type=str, default=None, help='a numeric day like 28')
-parser_foo.set_defaults(func=process)
+    # ------------------------ The parser and sub-commands
 
-parser.add_argument('-debug',
-                    metavar='verbose option',
-                    type=bool,
-                    default=False,
-                    help='print verbose to standard output')
+    parser = ArgumentParser(prog='m5',
+                            epilog=dedent(examples),
+                            formatter_class=RawDescriptionHelpFormatter)
 
-parser.add_argument('-pop',
-                    metavar='pop option',
-                    type=bool,
-                    default=False,
-                    help='pop the figure windows')
+    subparsers = parser.add_subparsers()
+    show_parser = subparsers.add_parser('show')
+    inspect_parser = subparsers.add_parser('inspect')
+    fetch_parser = subparsers.add_parser('fetch')
 
-parser.add_argument('-offlibe',
-                    metavar='offline option',
-                    type=bool,
-                    default=False,
-                    help='local database connection only')
+    show_parser.set_defaults(func=show)
+    inspect_parser.set_defaults(func=inspect)
+    fetch_parser.set_defaults(func=fetch)
 
-print(parser)
+    show_group = show_parser.add_mutually_exclusive_group()
+
+    fetch_parser.add_argument('-s',
+                              help='fetch all your data since that date',
+                              type=make_day,
+                              default=date.today(),
+                              dest='date')
+
+    show_group.add_argument('-y',
+                            help='show a year of data, e.g. 2013',
+                            type=str,
+                            default=None,
+                            dest='year')
+
+    show_group.add_argument('-m',
+                            help='show a month of data, e.g. 03-2013',
+                            type=str,
+                            default=None,
+                            dest='month')
+
+    show_group.add_argument('-d',
+                            help='show a day of data, e.g. 02-03-2013',
+                            type=str,
+                            default=None,
+                            dest='day')
+
+    parser.add_argument('-v',
+                        help='run the program in verbose mode',
+                        action='store_const',
+                        default=False,
+                        const=True)
+
+    return parser
+
+
+def apply_parser(parser):
+    """ Parse the command line arguments. If the script is called with no arguments, print the help message."""
+
+    if len(argv) == 1:
+        parser.print_help()
+        exit(1)
+
+    args = parser.parse_args()
+    args.func()
+    return args
+
+if __name__ == '__main__':
+    p = build_parser()
+    namespace = apply_parser(p)
+    print(namespace)

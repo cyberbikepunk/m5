@@ -16,7 +16,7 @@ from glob import iglob
 from re import sub
 from random import sample
 
-from m5.settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP, FIGSIZE
+from settings import FILL, OUTPUT, DATABASE, LEAP, CENTER, DBF, SHP, FONTSIZE, POP, FIGSIZE
 
 
 # --------------------- CLASSES

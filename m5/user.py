@@ -5,13 +5,13 @@ from pandas import DataFrame, read_sql
 from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from os.path import join, isfile, isdir
+from os.path import join, isdir
 from pandas import merge
 from os import mkdir, chmod
 
-from m5.settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
-from m5.utilities import log_me, latest_file, fix_checkpoints, print_header
-from m5.model import Base
+from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
+from utilities import log_me, latest_file, fix_checkpoints, print_header
+from model import Base
 
 
 class User:

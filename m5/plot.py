@@ -1,8 +1,8 @@
 """  The module that produces statistical graphs. """
 
-from m5.settings import FONTSIZE, FIGSIZE
-from m5.user import User
-from m5.utilities import Visualizor, make_image
+from settings import FONTSIZE, FIGSIZE
+from user import User
+from utilities import Visualizor, make_image
 
 from matplotlib.dates import DateFormatter
 

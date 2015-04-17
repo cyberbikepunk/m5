@@ -14,10 +14,10 @@ from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as LocalSession
 
-from m5.settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
-from m5.utilities import log_me, time_me, Stamped, Stamp, Tables
-from m5.model import Checkin, Checkpoint, Client, Order
-from m5.user import User
+from settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
+from utilities import log_me, time_me, Stamped, Stamp, Tables
+from model import Checkin, Checkpoint, Client, Order
+from user import User
 
 
 class Factory():
@@ -40,10 +40,18 @@ class Factory():
             self._download(start_date + timedelta(days=d))
 
     @time_me
+<<<<<<< HEAD
     def bulk_migrate(self, start_date=date.today()):
         """ Transfer all the user data since that day, serving from cache where possible. """
 
         assert start_date <= date.today(), 'The date parameter must be a date in the past.'
+=======
+    def fetch(self, start_date: date):
+        """ Transfer all the user data since that day,
+            serving from cache where possible.
+        :param start_date: a date object (in the past)
+        """
+>>>>>>> main
 
         period = date.today() - start_date
         days = range(period.days)
@@ -652,7 +660,11 @@ def process(start_date: date=None):
 
     user = User()
     factory = Factory(user)
-    factory.bulk_migrate(start_date if start_date is not None else date.today)
+    factory.fetch(start_date if start_date is not None else date.today)
+
+
+def fetch():
+    pass
 
 
 def demo_run(day: date):
@@ -668,10 +680,8 @@ def demo_run(day: date):
 
     soups = d.download(day)
     print(soups)
-
     serial = s.scrape(soups)
     pprint(serial)
-
     tables = p.package(serial)
     print(tables)
 

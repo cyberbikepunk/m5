@@ -1,112 +1,102 @@
 #!/usr/bin/env python
+""" Run the m5 package from the command line. """
 
-"""
---------------------------------
-m5 analyses your messenger data.
---------------------------------
 
-You will need your credentials to access the bamboo-mec.de server. Running
-the program from the command line is very simple. Here are some examples...
-
-To show this message:
-    $ m5
-
-To fetch today's data:
-    $ m5 fetch
-
-To fetch all your data since the 21st February 2012:
-    $ m5 fetch --since 21-02-2012
-
-To visualize today's data:
-    $ m5 visualize
-
-To visualize a particular period of time:
-    $ m5 visualize --year 2012
-    $ m5 visualize --month 03-2014
-    $ m5 visualize --day 04-04-2015
-
-The program stores your data and visualizations in a hidden folder inside
-your home directoy (~/.m5/). Make sure your file manager shows hidden files!
-
-Please contact loic.jounot@gmail.com if you encounter problems. Have fun!
-"""
-
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from sys import argv
+from time import strptime
 from datetime import date
+from textwrap import dedent
 
-today = None
-
-
-def make_day():
-    return
-
-
-def make_month():
-    return
+from inspector import inspect
+from visualize import show
+from factory import fetch
 
 
-def make_year():
-    return
+def make_day(date_string):
+    t = strptime(date_string, '%d-%m-%Y')
+    return date(t.tm_year, t.tm_mon, t.tm_mday)
+
+examples = \
+    """
+    examples:
+      $ m5 fetch                    fetch today's data...
+      $ m5 fetch -v                 ...with the verbose mode on
+      $ m5 fetch --s 21-02-2012     fetch all data since 21st February 2012
+      $ m5 inspect                  check the overall quality of the data
+      $ m5 show                     visualize today's data
+      $ m5 show -y 2012             visualize 2012 data
+      $ m5 show -m 03-2014          visualize March 2014 data
+      $ m5 show -d 04-04-2015       visualize data for the 4th March 2014
+      4 m5 show -h                  print the help message for the "show" sub-command
+    """
 
 
-def main():
-    """ Parse the command line arguments. If the script is called with no arguments, print the docstring."""
+def build_parser():
+    """ Construct a parser using the argparse library. """
 
-    m5 = ArgumentParser(prog='m5', description='m5 analyses your messenger data.')
-    subparsers = m5.add_subparsers()
+    # ------------------------ The parser and sub-commands
 
-    # ------------------------ The "fetch" command
+    parser = ArgumentParser(prog='m5',
+                            epilog=dedent(examples),
+                            formatter_class=RawDescriptionHelpFormatter)
 
-    fetch = subparsers.add_parser('fetch')
-    fetch.add_argument('--since', type=str, default=None)
+    subparsers = parser.add_subparsers()
+    show_parser = subparsers.add_parser('show')
+    inspect_parser = subparsers.add_parser('inspect')
+    fetch_parser = subparsers.add_parser('fetch')
 
-    # ------------------------ The "visualize" command
+    show_parser.set_defaults(func=show)
+    inspect_parser.set_defaults(func=inspect)
+    fetch_parser.set_defaults(func=fetch)
 
-    visualize = subparsers.add_parser('visualize')
-    time_delta = visualize.add_mutually_exclusive_group()
+    show_group = show_parser.add_mutually_exclusive_group()
 
-    time_delta.add_argument('-y', '--year',
-                            help='visualize a year of data',
+    fetch_parser.add_argument('-s',
+                              help='fetch all your data since that date',
+                              type=make_day,
+                              default=date.today(),
+                              dest='date')
+
+    show_group.add_argument('-y',
+                            help='show a year of data, e.g. 2013',
                             type=str,
                             default=None,
-                            dest='time_delta')
+                            dest='year')
 
-    time_delta.add_argument('-m', '--month',
-                            help='visualize a month of data',
+    show_group.add_argument('-m',
+                            help='show a month of data, e.g. 03-2013',
                             type=str,
                             default=None,
-                            dest='time_delta')
+                            dest='month')
 
-    time_delta.add_argument('-d', '--day',
-                            help='visualize a day of data',
+    show_group.add_argument('-d',
+                            help='show a day of data, e.g. 02-03-2013',
                             type=str,
                             default=None,
-                            dest='time_delta')
+                            dest='day')
 
-    # ------------------------ Option flags
+    parser.add_argument('-v',
+                        help='run the program in verbose mode',
+                        action='store_const',
+                        default=False,
+                        const=True)
 
-    m5.add_argument('-v', '--verbose',
-                    help='run the program in high verbose mode',
-                    default=False,
-                    action='store_const',
-                    const=True)
+    return parser
 
-    m5.add_argument('-o', '--offline',
-                    help='connect only to the local database',
-                    default=False,
-                    action='store_const',
-                    const=True)
 
-    # ------------------------ Parse the command line
+def apply_parser(parser):
+    """ Parse the command line arguments. If the script is called with no arguments, print the help message."""
 
     if len(argv) == 1:
-        print(__doc__)
+        parser.print_help()
         exit(1)
-    else:
-        args = m5.parse_args()
-        print(args)
 
+    args = parser.parse_args()
+    args.func()
+    return args
 
 if __name__ == '__main__':
-    main()
+    p = build_parser()
+    namespace = apply_parser(p)
+    print(namespace)

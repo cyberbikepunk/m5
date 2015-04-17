@@ -3,7 +3,6 @@
 from os.path import join, abspath, expanduser
 from sys import modules
 
-
 # Flags
 DEBUG = True
 POP = True

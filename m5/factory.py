@@ -20,86 +20,19 @@ from model import Checkin, Checkpoint, Client, Order
 from user import User
 
 
-class Factory():
-    """ A wrapper class to download, scrape, package and archive data in bulk. """
-
-    def __init__(self, user: User):
-        self._downloader = Downloader(user.remote_session)
-        self._scraper = Scraper()
-        self._packager = Packager()
-        self._archiver = Archiver(user.local_session)
-
-    @time_me
-    def bulk_download(self, start_date=date.today()):
-        """  Download all html pages since that day. """
-
-        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
-
-        delta = date.today() - start_date
-        for d in range(delta.days):
-            self._download(start_date + timedelta(days=d))
-
-    @time_me
-<<<<<<< HEAD
-    def bulk_migrate(self, start_date=date.today()):
-        """ Transfer all the user data since that day, serving from cache where possible. """
-
-        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
-=======
-    def fetch(self, start_date: date):
-        """ Transfer all the user data since that day,
-            serving from cache where possible.
-        :param start_date: a date object (in the past)
-        """
->>>>>>> main
-
-        period = date.today() - start_date
-        days = range(period.days)
-
-        for d in days:
-            # Take one day's worth of data and
-            # walk through the data migration
-            # process from beginning to end
-            day = start_date + timedelta(days=d)
-
-            # The downloader will serve files
-            # from cache if it already has them.
-            soup_jobs = self._download(day)
-
-            if soup_jobs:
-                serial_jobs = self._scrape(soup_jobs)
-                table_jobs = self._package(serial_jobs)
-                self._archive(table_jobs)
-
-            print('Processed {n}/{N} ({percent}%).'
-                  .format(n=day, N=len(days), percent=int((d+1)/len(days)*100)))
-
-    def _archive(self, table_jobs: Tables) -> dict:
-        return self._archiver.archive(table_jobs)
-
-    def _package(self, serial_jobs: list) -> Tables:
-        return self._packager.package(serial_jobs)
-
-    def _scrape(self, soup_jobs: list) -> list:
-        return self._scraper.scrape(soup_jobs)
-
-    def _download(self, day) -> list:
-        return self._downloader.download(day)
-
-
 class Archiver():
-    """ The Archiver class shoves packaged data into the local database. """
+    """ The Archiver class pushes packaged data into the local database. """
 
     def __init__(self, local_session: LocalSession):
         self._local_session = local_session
 
     def archive(self, tables: Tables):
         """
-        The archive method takes Table objects produced by the packager
-        and commits them into the database. If a row already exists, the
-        database session will raise an IntegrityError and we rollback
-        the commit.
+        The archive method takes Table objects produced by the packager and
+        commits them into the database. If a row already exists, the database
+        session will raise an IntegrityError and rollback the commit.
         """
+
         for table in tables:
             for row in table:
                 try:
@@ -123,13 +56,21 @@ class Downloader():
         self._remote_session = remote_session
         self._stamp = None
 
+    @time_me
+    def bulk_download(self, start_date=date.today()):
+        """  Download all html pages since that day. """
+
+        assert start_date <= date.today(), 'The date parameter must be a date in the past.'
+
+        delta = date.today() - start_date
+        for d in range(delta.days):
+            self.download(start_date + timedelta(days=d))
+
     def download(self, day: date) -> list:
         """
         Download the web-page showing one day of messenger data.
         Save the raw html files and and return a list of beautiful soups.
         If that day has already been cached, serve the soup from file.
-
-        :return: a list of Stamped(Stamp, soup) objects
         """
 
         assert isinstance(day, date), 'Argument must be a date object'
@@ -316,7 +257,8 @@ class Packager():
     def _geocode(raw_address: dict) -> dict:
         """ Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
         The returned osm_id is used as the primary key in the checkpoint table. So,
-        if we can't geocode an address, None won't later make it into the database. """
+        if we can't geocode an address, None won't later make it into the database.
+        """
     
         g = Nominatim()
 
@@ -361,12 +303,11 @@ class Packager():
 
         return geocoded
 
-    # FIXME The unserialisation procedures should be defined inside the orm declaration and all dirty fixes removed.
+    # FIXME The unserialisation procedures should be defined inside the orm declaration and dirty fixes removed.
 
     @staticmethod
     def _unserialise(type_cast: type, raw_value: str):
-        """
-        Dynamically type-cast raw strings returned by the
+        """ Dynamically type-cast raw strings returned by the
         scraper, with a twist: empty and None return None.
         """
 
@@ -507,7 +448,8 @@ class Scraper:
 
     def _scrape_job(self, soup_item: Stamped) -> tuple:
         """ Scrape out of a job's web page using bs4 and re modules. In goes the soup,
-        out come a tuple of dictionaries contaning field name/value pairs (strings). """
+        out come a tuple of dictionaries contaning field name/value pairs (strings).
+        """
 
         # Pass the soup through the sieve
         soup = soup_item.data.find(id='order_detail')
@@ -647,41 +589,61 @@ class Scraper:
         sys.stdout = reset
 
 
-def bulk_download(start_date: date=None):
-    """ Download all html pages since that day, unless they have already been cached. """
-    user = User()
-    factory = Factory(user)
-    factory.bulk_download(start_date if start_date is not None else date.today)
-
-
-def process(start_date: date=None):
-    """ Migrate all the remote data since that day. In other words:
-    download (or load from cache), scrape, package and archive. """
-
-    user = User()
-    factory = Factory(user)
-    factory.fetch(start_date if start_date is not None else date.today)
-
-
-def fetch():
-    pass
-
-
-def demo_run(day: date):
-    """ Demonstrate the use of the module: download, scrape and package, but don't
-    push the data to the database. This function is deliberately very verbose. """
-
-    assert isinstance(day, date), 'Parameter must be a date object.'
+def factory() -> tuple:
+    """ Return """
 
     u = User()
     d = Downloader(u.remote_session)
     s = Scraper()
     p = Packager()
+    a = Archiver(u.local_session)
 
+    return d, s, p, a
+
+
+@time_me
+def fetch(start_date: date):
+    """
+    Transfer all the user data since that day. Data is transfered
+    from the bamboo-mec.de company server to the local database.
+    """
+
+    assert isinstance(start_date, date), 'Parameter must be a date object.'
+    assert start_date <= date.today(), 'Cannot return to the future'
+
+    d, s, p, a = factory()
+
+    period = date.today() - start_date
+    days = range(period.days)
+
+    for day in days:
+        # Take one day's worth of data and
+        # walk through the data migration
+        # process from beginning to end
+        _date = start_date + timedelta(days=day)
+
+        # The downloader will serve files
+        # from cache if it already has them.
+        soup_jobs = d.download(_date)
+
+        if soup_jobs:
+            serial_jobs = s.scrape(soup_jobs)
+            table_jobs = p.package(serial_jobs)
+            a.archive(table_jobs)
+
+        print('Processed {n}/{N} ({percent}%).'
+              .format(n=day, N=len(days), percent=int((day+1)/len(days)*100)))
+
+
+def demo_run(day: date):
+    """ Demonstrate the use of the module: download, scrape and package, but don't archive. """
+
+    assert isinstance(day, date), 'Parameter must be a date object.'
+    assert day <= date.today(), 'Cannot return to the future'
+
+    d, s, p, a = factory()
     soups = d.download(day)
-    print(soups)
     serial = s.scrape(soups)
-    pprint(serial)
     tables = p.package(serial)
     print(tables)
 

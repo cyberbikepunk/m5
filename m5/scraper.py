@@ -13,11 +13,17 @@ from pprint import pprint
 from re import findall, match
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as LocalSession
+from collections import namedtuple
 
 from settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, SUMMARY, OFFLINE
-from utilities import log_me, time_me, Stamped, Stamp, Tables
 from model import Checkin, Checkpoint, Client, Order
 from user import User
+
+
+# Define useful data types.
+Stamped = namedtuple('Stamped', ['stamp', 'data'])
+Stamp = namedtuple('Stamp', ['date', 'uuid'])
+Tables = namedtuple('Tables', ['clients', 'orders', 'checkpoints', 'checkins'])
 
 
 class Archiver():
@@ -56,7 +62,6 @@ class Downloader():
         self._remote_session = remote_session
         self._stamp = None
 
-    @time_me
     def bulk_download(self, start_date=date.today()):
         """  Download all html pages since that day. """
 
@@ -377,8 +382,8 @@ class Packager():
             return float(raw_price.replace(',', '.'))
 
 
-class Scraper:
-    """ Basically, the Scraper class scrapes data fields from html files. """
+class Reader:
+    """ Basically, the Reader class reads in data fields from html files. """
 
     # Some tags are a target.
     _TAGS = dict(header={'name': 'h2', 'attrs': None},
@@ -407,7 +412,6 @@ class Scraper:
     def __init__(self):
         self._stamp = None
 
-    @log_me
     def scrape(self, soup_jobs: list) -> list:
         """
         In goes a list of html files (in the form of beautiful soups), out comes a list of serial data,
@@ -594,19 +598,15 @@ def factory() -> tuple:
 
     u = User()
     d = Downloader(u.remote_session)
-    s = Scraper()
+    s = Reader()
     p = Packager()
     a = Archiver(u.local_session)
 
     return d, s, p, a
 
 
-@time_me
-def fetch(start_date: date, option):
-    """
-    Transfer all the user data since that day. Data is transfered
-    from the bamboo-mec.de company server to the local database.
-    """
+def scrape(start_date: date, option):
+    """ Transfer all the user data since that day from the bamboo-mec.de company server to the local database. """
 
     assert option == '-since'
     assert isinstance(start_date, date), 'Parameter must be a date object.'

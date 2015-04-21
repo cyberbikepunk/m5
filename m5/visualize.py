@@ -5,17 +5,22 @@ import pandas as pd
 import fiona
 import matplotlib.pyplot as plt
 
+from numpy import vectorize
+from os.path import isfile
 from geopandas import GeoDataFrame
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, shape
 from matplotlib.dates import DateFormatter
 from math import log
+from wordcloud import WordCloud
+from string import punctuation, whitespace
+from scipy import misc
 
 from user import User
-from settings import FONTSIZE, STYLE, OUTPUT, FIGSIZE, FONT, DEBUG, SHP, LEAP
-from utilities import unique_file, print_header
-
+from settings import FONTSIZE, STYLE, OUTPUT, FIGSIZE, FONT, DEBUG
+from settings import SHP, LEAP, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION
+from utilities import unique_file, print_header, make_image
 
 # Set the plotting options module wide.
 pd.set_option('display.mpl_style', STYLE)
@@ -68,7 +73,6 @@ class Visualizor():
 
         # To read in a GeoDataFrame from a file, geopandas will actually assume that
         # the following 3 files live in the same folder: SHP.shp, SHP.dbf and SHP.shx.
-        print(SHP)
         plz = GeoDataFrame.from_file(SHP)
         plz.set_index('PLZ99', inplace=True)
         plz.sort()
@@ -207,6 +211,42 @@ class MonthVisualizor(Visualizor):
 
     def __init__(self, df: pd.DataFrame, start, stop):
         super(MonthVisualizor, self).__init__(df, start, stop)
+
+    def streetcloud(self):
+        """ Create the wordcloud with street names using Andreas Müller's code. """
+
+        assert isfile(MASK), 'Could not find {file} for the mask.'.format(file=MASK)
+
+        # Assemble the text for the algorithm.
+        word_series = self.df[WORDS].dropna()
+        word_list = word_series.values
+        word_string = whitespace.join(word_list).replace(punctuation, whitespace)
+
+        # Read the image and make a heat map.
+        original = misc.imread(MASK)
+        flattened = original.sum(axis=2)
+
+        if DEBUG:
+            print(flattened.dtype)
+            print(flattened.shape)
+            print(flattened.max())
+            print(flattened.min())
+
+        # With this particular image, the resulting
+        # mask is the exact reverse of what I want.
+        invert_all = vectorize(lambda x: 0 if x > 0 else 1)
+        mask = invert_all(flattened)
+
+        w = WordCloud(stopwords=BLACKLIST,
+                      max_words=MAXWORDS,
+                      prefer_horizontal=PROPORTION,
+                      mask=mask)
+
+        image = w.generate(word_string)
+
+        plt.imshow(image)
+        plt.axis("off")
+        make_image('wordcloud.png')
 
     def plz_chloropeth(self):
         """ A chloropeth map of Berlin postal codes using pick-up & drop-off frequencies. """
@@ -353,6 +393,7 @@ def show(time_window: tuple, option: str):
 
         m.daily_income()
         m.plz_chloropeth()
+        m.streetcloud()
 
     elif option == '-day':
         d = DayVisualizor(db, *time_window)

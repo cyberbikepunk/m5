@@ -21,7 +21,7 @@ def make_cloud(db: DataFrame):
         message = 'Could not find {file} for the mask.'.format(file=MASK)
         raise FileNotFoundError(message)
 
-    words = assemble_text(db['all'][WORDS])
+    words = assemble_text(db[WORDS])
     wordcloud = WordCloud(stopwords=BLACKLIST,
                           max_words=MAXWORDS,
                           prefer_horizontal=PROPORTION,

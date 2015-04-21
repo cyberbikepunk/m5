@@ -11,8 +11,8 @@ from calendar import monthrange
 from textwrap import dedent
 
 from inspector import inspect
-from visualize import show
-from factory import fetch
+from visualizor import show
+from scraper import fetch
 
 examples = \
     """

@@ -1,4 +1,5 @@
-from m5.utilities import make_image, print_header
+""" Maps are made here. """
+
 import pandas as pd
 import fiona
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from math import log
 
 from settings import SHP, DEBUG, FIGSIZE, LEAP
 from user import User
-from utilities import Visualizor
+from utilities import Visualizor, make_image, print_header
 
 
 class Mapper(Visualizor):

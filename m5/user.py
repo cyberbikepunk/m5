@@ -100,7 +100,7 @@ class User:
             print_header('DataFrames loaded into memory')
             for title, table in db.items():
                 print('Pandas DataFrame (%s):' % title)
-                print(table.reset_index().info(), end=LEAP)
+                print(table.info(), end=LEAP)
 
         return db
 

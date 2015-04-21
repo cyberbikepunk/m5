@@ -1,12 +1,12 @@
 """ Miscellaneous utility classes decorators and functions """
 
-
 import fiona
 import shapefile
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from geopandas import GeoDataFrame
 from pprint import pprint
 from collections import namedtuple
 from datetime import datetime
@@ -119,7 +119,7 @@ def print_header(title):
 
 
 def check_shapefile():
-    """ Examine the content of a shapefile both with shapely and fiona. """
+    """ Examine the content of a shapefile with shapely, fiona and geopandas. """
 
     # OPEN THE FILES WITH SHAPELY
     shp = open(SHP, 'rb')
@@ -163,11 +163,28 @@ def check_shapefile():
     print(LEAP)
     print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING FIONA', fill=FILL, align=CENTER))
     shapes = fiona.open(SHP)
-    # FIXME Dump loop
+
+    # Pretty print the results
     for i, s in enumerate(shapes):
         pprint(s)
         if i > 3:
             break
+
+    # AND AGAIN WITH GEOPANDAS
+    print(LEAP)
+    print('{title:{fill}{align}100}'.format(title='OPEN BOTH FILES USING GEOPANDAS', fill=FILL, align=CENTER))
+    # Form what I understand, geopandas assumes the following 3
+    # files live in the same folder: SHP.shp, SHP.dbf and SHP.shx.
+    plz = GeoDataFrame.from_file(SHP)
+    plz.set_index('PLZ99', inplace=True)
+    plz.sort()
+
+    # Print the GeoDataFrame
+    pd.set_option('expand_frame_repr', False)
+    print_header(SHP)
+    print(plz, end=LEAP)
+    print(plz.describe(), end=LEAP)
+    print(plz.info(), end=LEAP)
 
 
 def fix_checkpoints(checkpoints):

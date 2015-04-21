@@ -1,6 +1,6 @@
 """ Create the wordcloud using Andreas Müller's code cloned from : https://github.com/amueller/word_cloud. """
 
-from settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP, FIGSIZE
+from settings import DEBUG, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION, POP
 from utilities import make_image
 from user import User
 

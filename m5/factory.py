@@ -602,14 +602,16 @@ def factory() -> tuple:
 
 
 @time_me
-def fetch(start_date: date):
+def fetch(start_date: date, option):
     """
     Transfer all the user data since that day. Data is transfered
     from the bamboo-mec.de company server to the local database.
     """
 
+    assert option == '-since'
     assert isinstance(start_date, date), 'Parameter must be a date object.'
     assert start_date <= date.today(), 'Cannot return to the future'
+    print('Transfering data from the remote server...')
 
     d, s, p, a = factory()
 

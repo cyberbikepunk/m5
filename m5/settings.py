@@ -6,11 +6,11 @@ from sys import modules
 # Flags
 DEBUG = True
 POP = True
-OFFLINE = False
+OFFLINE = True
 
 # Parent directories
 USER = join(expanduser('~'), '.m5', )
-PACKAGE = abspath('..')
+PACKAGE = abspath(__file__ + '/../..')
 
 # User folders
 OUTPUT = join(USER, 'output')
@@ -49,6 +49,8 @@ STEP = '\n'
 # Matplotlib
 FONTSIZE = 14
 FIGSIZE = (18, 12)
+STYLE = 'default'
+FONT = 'Droid Sans'
 
 
 def show_settings():

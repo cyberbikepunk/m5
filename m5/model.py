@@ -3,9 +3,9 @@
 from sqlalchemy import Column, ForeignKey, DateTime
 from sqlalchemy.types import Integer, Float, String, Boolean, Enum
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base, synonym_for
+from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+Model = declarative_base()
 
 #       Clients
 #           ^
@@ -31,16 +31,11 @@ def to_string(obj):
     return '<' + obj.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
 
 
-class Client(Base):
+class Client(Model):
     __tablename__ = 'client'
 
     client_id = Column(Integer, primary_key=True, autoincrement=False)
     name = Column(String)
-
-    @synonym_for('client_id')
-    @property
-    def id(self):
-        return self.client_id
 
     def __str__(self):
         return to_string(self)
@@ -49,7 +44,7 @@ class Client(Base):
         return self.__str__()
 
 
-class Order(Base):
+class Order(Model):
     __tablename__ = 'order'
 
     order_id = Column(Integer, primary_key=True, autoincrement=False)
@@ -67,11 +62,6 @@ class Order(Base):
 
     client = relationship('Client', backref=backref('order'))
 
-    @synonym_for('order_id')
-    @property
-    def id(self):
-        return self.order_id
-
     def __str__(self):
         return to_string(self)
 
@@ -79,7 +69,7 @@ class Order(Base):
         return self.__str__()
 
 
-class Checkin(Base):
+class Checkin(Model):
     __tablename__ = 'checkin'
 
     checkin_id = Column(Integer, primary_key=True, autoincrement=False)
@@ -93,11 +83,6 @@ class Checkin(Base):
     checkpoint = relationship('Checkpoint', backref=backref('checkin'))
     order = relationship('Order', backref=backref('checkin'))
 
-    @synonym_for('checkin_id')
-    @property
-    def id(self):
-        return self.checkin_id
-
     def __str__(self):
         return to_string(self)
 
@@ -105,7 +90,7 @@ class Checkin(Base):
         return self.__str__()
 
 
-class Checkpoint(Base):
+class Checkpoint(Model):
     __tablename__ = 'checkpoint'
 
     checkpoint_id = Column(Integer, primary_key=True, autoincrement=False)
@@ -116,11 +101,6 @@ class Checkpoint(Base):
     postal_code = Column(Integer)
     street = Column(String)
     company = Column(String)
-
-    @synonym_for('checkpoint_id')
-    @property
-    def id(self):
-        return self.checkpoint_id
 
     def __str__(self):
         return to_string(self)

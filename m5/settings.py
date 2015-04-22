@@ -6,11 +6,12 @@ from sys import modules
 # Flags
 DEBUG = True
 POP = True
-OFFLINE = True
+OFFLINE = False
 
-# Parent directories
+# Program folders
 USER = join(expanduser('~'), '.m5', )
 PACKAGE = abspath(__file__ + '/../..')
+ASSETS = join(PACKAGE, 'assets')
 
 # User folders
 OUTPUT = join(USER, 'output')
@@ -19,13 +20,12 @@ DOWNLOADS = join(USER, 'downloads')
 TEMP = join(USER, 'temp')
 LOG = join(USER, 'log')
 
-# Assets (folder and files)
-ASSETS = join(PACKAGE, 'assets')
+# Assets files
 MASK = join(ASSETS, 'mask.png')
 SHP = join(ASSETS, 'berlin_postleitzahlen.shp')
 DBF = join(ASSETS, 'berlin_postleitzahlen.dbf')
 
-# Files paths
+# Log files
 ELUCIDATE = join(LOG, 'elucidate.log')
 
 # Wordcloud parameters
@@ -34,7 +34,7 @@ WORDS = 'street'
 MAXWORDS = 200
 PROPORTION = 0.8
 
-# URLs for company server
+# URLs to the company server
 LOGIN = 'http://bamboo-mec.de/ll.php5'
 LOGOUT = 'http://bamboo-mec.de/index.php5'
 JOB = 'http://bamboo-mec.de/ll_detail.php5'
@@ -44,9 +44,11 @@ SUMMARY = 'http://bamboo-mec.de/ll.php5'
 FILL = '.'
 CENTER = '^'
 LEAP = '\n\n'
-STEP = '\n'
+STEP = ''
+BREAK = '\n' + '-'*100 + '\n'
 
-# Matplotlib
+
+# Plotting
 FONTSIZE = 14
 FIGSIZE = (18, 12)
 STYLE = 'default'

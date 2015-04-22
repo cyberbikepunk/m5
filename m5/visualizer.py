@@ -63,7 +63,8 @@ class Visualizer():
     @staticmethod
     def _print_header(title):
         """ A wide horizontal section title. """
-        print('{begin}{title:{fill}{align}100}{end}'.format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
+        print('{begin}{title:{fill}{align}100}{end}'
+              .format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
 
     @staticmethod
     def _set_options():
@@ -74,12 +75,10 @@ class Visualizer():
     @staticmethod
     def _unique(path: str, file: str) -> str:
         """ Return a unique filepath. """
-
         (base, extension) = splitext(file)
         stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
         unique = base.ljust(20, FILL) + stamp + extension
         path = join(path, unique)
-
         print('Saved %s' % path)
         return path
 
@@ -223,12 +222,10 @@ class MonthVisualizor(Visualizer):
 
         assert isfile(MASK), 'Could not find {file} for the mask.'.format(file=MASK)
 
-        # Assemble the text for the algorithm.
         word_series = self.df[WORDS].dropna()
         word_list = word_series.values
         word_string = whitespace.join(word_list).replace(punctuation, whitespace)
 
-        # Read the image and make a heat map.
         original = misc.imread(MASK)
         flattened = original.sum(axis=2)
 

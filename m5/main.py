@@ -21,10 +21,10 @@ examples = \
       $ m5 fetch -v                     ...with the verbose mode on
       $ m5 fetch --since 21-02-2012     fetch all data since the 21st February 2012
       $ m5 visualize                    visualize today's data
+      $ m5 inspect                      "inspect" works exactly like "visualize"
       $ m5 visualize -year 2012         visualize 2012 data
       $ m5 visualize -month 03-2014     visualize data for the month of March 2014
       $ m5 visualize -day 04-04-2015    visualize data for the 4th March 2014
-      $ m5 inspect -month 01-2015       check the quality of today's data ("inspect" works just like "visualize")
       4 m5 visualize -h                 print the help message for the "visualize" sub-command
     """
 
@@ -53,7 +53,7 @@ def month(month_string: str) -> tuple:
 
 
 def year(year_string: str) -> tuple:
-    """ Return the first a last datetime objects of a given year year. """
+    """ Return the first a last datetime objects of a given year. """
     t = strptime(year_string, '%Y')
     d1 = Datetime(t.tm_year, 1, 1)
     d2 = Datetime(t.tm_year, 12, 31, hour=23, minute=59)
@@ -123,15 +123,10 @@ def build_parser():
 
 
 def apply_parser(parser):
-    """
-    Parse the command line. Running the script
-    with no arguments prints the help message.
-    """
-
+    """ Running the script with no arguments prints the help message. """
     if len(argv) == 1:
         parser.print_help()
         exit(1)
-
     parser.parse_args()
 
 

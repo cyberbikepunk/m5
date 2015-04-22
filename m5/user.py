@@ -11,8 +11,8 @@ from pandas import merge
 from os import mkdir, chmod, listdir
 from numpy import int64
 
-from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, LEAP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
-from model import Base
+from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
+from model import Model
 
 
 class User:
@@ -21,7 +21,6 @@ class User:
     def __init__(self, username=None, password=None, db_file=None):
         """ Authenticate the user and start a local database session. """
 
-        # Awaiting authentication.
         self.username = username
         self.password = password
 
@@ -29,24 +28,19 @@ class User:
             self.remote_session = RemoteSession()
             self._authenticate(username, password)
         else:
-            # Most of the modules can be run in offline mode.
-            # Turn it off to download more data from the server.
             self.remote_session = None
 
-        # Create folders if needed.
         self._check_install()
 
-        # Use specified database or pick the latest by default.
-        self.db_file = self._latest(DATABASE) if not db_file else db_file
+        self.db_file = db_file if db_file else self._latest_db
         path = join(DATABASE, self.db_file)
         sqlite = 'sqlite:///{db}'.format(db=path)
 
         self.engine = create_engine(sqlite, echo=DEBUG)
-        self.base = Base.metadata.create_all(self.engine)
+        self.model = Model.metadata.create_all(self.engine)
         self.local_session = sessionmaker(bind=self.engine)()
 
-        # Pull data into memory
-        self.df = self._load()
+        self.df, self.tables = self._load()
 
     @staticmethod
     def _check_install():
@@ -56,26 +50,26 @@ class User:
 
         for folder in folders:
             if not isdir(folder):
-                mkdir(folder)
                 # Setting permissions directly with
-                # mkdir gives me bizarre results.
+                # mkdir gives me bizarre results. Why?
+                mkdir(folder)
                 chmod(folder, 0o755)
                 print('Created %s' % folder)
 
-    @staticmethod
-    def _latest(db_folder: str):
+    @property
+    def _latest_db(self):
         """ Return the most recent database. """
 
-        if listdir(db_folder):
-            file = max(iglob(join(db_folder, '*.sqlite')), key=getctime)
+        if listdir(DATABASE):
+            filepath = max(iglob(join(DATABASE, '*.sqlite')), key=getctime)
         else:
-            file = 'database.sqlite'
+            filepath = '%s.sqlite' % self.username
 
-        print('Selected {folder}/{file}'.format(folder=db_folder, file=file))
-        return file
+        print('Selected %s' % filepath)
+        return filepath
 
     def _load(self) -> DataFrame:
-        """ Pull the database tables into Pandas and join them together. """
+        """ Pull the database tables into Pandas and join them. """
 
         eng = self.engine
 
@@ -83,11 +77,7 @@ class User:
         orders = read_sql('order', eng, index_col='order_id', parse_dates=['date'])
         checkins = read_sql('checkin', eng, index_col='timestamp', parse_dates=['timestamp', 'after_', 'until'])
         checkpoints = read_sql('checkpoint', eng, index_col='checkpoint_id')
-
-        # Make sure the primary key of the checkpoint table
-        # is an integer. This bug has now been fixed but we
-        # keep this here for compatibility with old databases.
-        checkpoints = self._typecast_checkpoints(checkpoints)
+        checkpoints = self._typecast_checkpoint_ids(checkpoints)
 
         checkins_with_checkpoints = merge(left=checkins,
                                           right=checkpoints,
@@ -108,12 +98,17 @@ class User:
                    how='left')
 
         df.sort_index(inplace=True)
-        print('Loaded the database into Pandas.')
 
+        tables = {'clients': clients.sort_index(),
+                  'orders': orders.sort_index(),
+                  'checkins': checkins.sort_index(),
+                  'checkpoins': checkpoints.sort_index()}
+
+        print('Loaded the database into Pandas.')
         if DEBUG:
             print(df.info())
 
-        return df
+        return df, tables
 
     def _authenticate(self, username=None, password=None):
         """ Make recursive login attempts. """
@@ -121,7 +116,7 @@ class User:
         self.username = username if username else input('Enter username: ')
         self.password = password if password else getpass('Enter password: ')
 
-        # The server doesn't seem to care but...
+        # The server doesn't seem to care.
         headers = {'user-agent': 'Mozilla/5.0'}
         self.remote_session.headers.update(headers)
 
@@ -129,6 +124,7 @@ class User:
         credentials = {'username': self.username, 'password': self.password}
         response = self.remote_session.post(url, credentials)
 
+        # Login failure gives me 200, so here's the fix:
         if 'erfolgreich' not in response.text:
             print('Wrong credentials. Try again.', end=STEP)
             self._authenticate(None, None)
@@ -136,9 +132,8 @@ class User:
             print('Logged into the remote server.')
 
     @staticmethod
-    def _typecast_checkpoints(checkpoints):
-        """ This bug has been fixed but we keep this function for backwards compatibility. """
-
+    def _typecast_checkpoint_ids(checkpoints):
+        # This bug has been fixed but we keep this function just in case.
         if checkpoints.index.dtype != 'int64':
             checkpoints.reset_index(inplace=True)
             checkpoint_ids = checkpoints['checkpoint_id'].astype(int64, raise_on_error=True)
@@ -150,7 +145,6 @@ class User:
         """ Make a clean exit. """
 
         if not OFFLINE:
-
             url = LOGOUT
             payload = {'logout': '1'}
             response = self.remote_session.get(url, params=payload)

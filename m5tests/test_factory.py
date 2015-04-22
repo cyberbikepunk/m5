@@ -13,9 +13,9 @@ from random import sample
 from re import search, match
 from datetime import datetime, date
 
-from m5.factory import Scraper, Downloader, Packager
-from m5.utilities import Stamp, Stamped, Tables
-from m5.model import Client, Order, Checkin, Checkpoint
+from factory import Scraper, Downloader, Packager
+from utilities import Stamp, Stamped, Tables
+from model import Client, Order, Checkin, Checkpoint
 
 
 class TestDownloader(TestCase):

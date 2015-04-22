@@ -75,8 +75,8 @@ class Inspector(Visualizer):
 
             for index, method in zip(indexes, methods):
                 key = right[:-1] + '_id'
-                joined = merge(left=self.df[left],
-                               right=self.df[right],
+                joined = merge(left=self.tables[left],
+                               right=self.tables[right],
                                left_on=key,
                                right_on=key,
                                how=method)

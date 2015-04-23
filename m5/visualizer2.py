@@ -1,52 +1,58 @@
 """ A better class-oriented visualization module. """
 
 
-from settings import DEBUG
-from pandas import DataFrame
-from datetime import date as Date
+from re import sub
+from geopandas import GeoDataFrame
+from matplotlib.figure import Figure
+from os.path import splitext, join
+from settings import DEBUG, FONT, FONTSIZE, STYLE, FILL, FIGSIZE, OUTPUT, SHP
+from pandas import DataFrame, set_option
+from datetime import date as Date, datetime
 from user import User
+from matplotlib.pyplot import rc, figure, show, savefig
+
+
+def _slice(df: DataFrame, start: Date, stop: Date) -> DataFrame:
+    """ Select a time window. """
+    first = df.index.searchsorted(start)
+    last = df.index.searchsorted(stop)
+    return df.ix[first:last]
 
 
 class Canvas():
-    pass
+    """ A Matplotlib figure window. """
+
+    def __init__(self, title, file):
+        self.title = title
+        self.file = self._unique(file)
+
+    def prepare(self):
+        """ Return a new figure handle. """
+        fig = figure(figsize=FIGSIZE, tight_layout=True)
+        fig.suptitle(self.title)
+        return fig
 
     def pop(self):
-        pass
+        show(block=True)
 
     def save(self):
-        pass
+        savefig(self._unique(self.file))
+
+    @staticmethod
+    def _unique(file: str) -> str:
+        """ Return a unique filepath. """
+        (base, extension) = splitext(file)
+        stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
+        unique = base.ljust(20, FILL) + stamp + extension
+        path = join(OUTPUT, unique)
+        print('Saved %s' % path)
+        return path
 
 
-class YearCanvas():
-            y = YearVisualizor(u.df, *time_window)
-        y.monthly_income()
-        y.price_histogram()
-        y.cumulative_km()
-        y.price_vs_km()
 
-class Data():
-    def __init__(self, data: DataFrame, tables, start: Date, stop: Date):
-        self.start = start
-        self.stop = stop
-        self.data = self._slice([data])
-        self.tables = None
-
-        if DEBUG:
-            print(self.data.info())
-
-    def _slice(self, df: DataFrame) -> DataFrame:
-        """ Select a time window inside the pandas dataframe. """
-
-        # Find the indices closest to the window boundaries
-        first = df.index.searchsorted(self.start)
-        last = df.index.searchsorted(self.stop)
-        return df.ix[first:last]
-
-    def serve(self, table_name=None):
-        if not table_name:
-            return self.data
-        else:
-            return self.tables[table_name]
+def set_plotting_options():
+    set_option('display.mpl_style', STYLE)
+    rc('font', family=FONT, size=FONTSIZE)
 
 
 class Plot():
@@ -54,20 +60,41 @@ class Plot():
         self._figure = None
         self._axes = None
         self.draw = None
-        self.xlabel = None
+        self._xlabel = None
         self.ylabel = None
         self.title = None
         self.placement = None
         self.file = None
+        self.aspect_ratio = None
 
     def define(self):
         pass
 
-    def draw(self):
+    def plot(self):
         pass
 
-    def prepare(self):
-        pass
+    def _set_axes(self, fig: Figure):
+        """ Draw the postal code boundaries on a new figure. """
+        ax = fig.add_subplot(self.placement)
+        ax.set_xlabel(self._xlabel)
+        ax.set_ylabel(self.ylabel)
+        ax.set_aspect(self.aspect_ratio)
+        return ax
+
+    def _draw_plz(self):
+        """ Draw the postal code boundaries on a new figure. """
+        shp = self._read_plz()
+        plz = shp['geometry']
+        plz.plot(alpha=.1, axes=self._axes)
+
+    @staticmethod
+    def _read_plz() -> GeoDataFrame:
+        """ Read in Berlin postal code data from the shapely file. """
+        shp = GeoDataFrame.from_file(SHP)
+        shp.set_index('PLZ99', inplace=True)
+        return shp.sort()
+
+
 
 
 class MonthlyIncome(Plot):
@@ -92,18 +119,11 @@ def visualize(time_window: tuple, option: str):
 
     print('Starting data visualization...')
     u = User(db_file='m-134-v2.sqlite')
-
-    data = Data(u.df, *time_window)
+    data = _slice(u.df, *time_window)
 
     if option == '-year':
-        fig = YearCanvas(data)
-
+        fig = Canvas(data)
     elif option == '-month':
-        m = MonthVisualizor(u.df, *time_window)
-        m.daily_income()
-        m.plz_chloropeth()
-        m.streetcloud()
-
+        pass
     elif option == '-day':
-        d = DayVisualizor(u.df, *time_window)
-        d.pickups_n_dropoffs()
+        pass

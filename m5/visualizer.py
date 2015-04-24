@@ -6,7 +6,7 @@ import fiona
 import matplotlib.pyplot as plt
 
 from numpy import vectorize
-from os.path import isfile, join
+from os.path import isfile, join, splitext
 from geopandas import GeoDataFrame
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
@@ -36,6 +36,8 @@ class Visualizer():
 
         if DEBUG:
             print(self.df.info())
+
+        self._set_options()
 
     def _slice(self, df: pd.DataFrame) -> pd.DataFrame:
         """ Select a time window inside the database. """
@@ -376,7 +378,10 @@ def visualize(time_window: tuple, option: str):
     """ Visualize data by day, month or year. """
 
     print('Starting data visualization...')
-    u = User(db_file='m-134-v2.sqlite')
+
+    u = User(username='m-134',
+             password='PASSWORD',
+             db_file='m-134-v2.sqlite')
 
     if option == '-year':
         y = YearVisualizor(u.df, *time_window)

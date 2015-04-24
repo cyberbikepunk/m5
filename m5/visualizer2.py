@@ -4,114 +4,52 @@
 from re import sub
 from geopandas import GeoDataFrame
 from matplotlib.figure import Figure
-from os.path import splitext, join
-from settings import DEBUG, FONT, FONTSIZE, STYLE, FILL, FIGSIZE, OUTPUT, SHP
-from pandas import DataFrame, set_option
-from datetime import date as Date, datetime
+from os.path import join
+from settings import DEBUG, FILL, FIGSIZE, OUTPUT, SHP, BAD
+from pandas import DataFrame
+from datetime import date, datetime
 from user import User
-from matplotlib.pyplot import rc, figure, show, savefig
 
 
-def _slice(df: DataFrame, start: Date, stop: Date) -> DataFrame:
-    """ Select a time window. """
+def _slice(df: DataFrame, start: date, stop: date) -> DataFrame:
     first = df.index.searchsorted(start)
     last = df.index.searchsorted(stop)
     return df.ix[first:last]
 
 
-class Canvas():
-    """ A Matplotlib figure window. """
-
-    def __init__(self, title, file):
-        self.title = title
-        self.file = self._unique(file)
-
-    def prepare(self):
-        """ Return a new figure handle. """
-        fig = figure(figsize=FIGSIZE, tight_layout=True)
-        fig.suptitle(self.title)
-        return fig
-
-    def pop(self):
-        show(block=True)
-
-    def save(self):
-        savefig(self._unique(self.file))
-
-    @staticmethod
-    def _unique(file: str) -> str:
-        """ Return a unique filepath. """
-        (base, extension) = splitext(file)
-        stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
-        unique = base.ljust(20, FILL) + stamp + extension
-        path = join(OUTPUT, unique)
-        print('Saved %s' % path)
-        return path
+def _unique_filename(title: str) -> str:
+    base, extension = title, 'png'
+    stamp = sub(BAD, '', str(datetime.now()))
+    unique = base.ljust(20, FILL) + stamp + extension
+    return join(OUTPUT, unique)
 
 
+def _read_plz() -> GeoDataFrame:
+    shp = GeoDataFrame.from_file(SHP)
+    shp.set_index('PLZ99', inplace=True)
+    plz = shp.sort()
+    return plz['geometry']
 
-def set_plotting_options():
-    set_option('display.mpl_style', STYLE)
-    rc('font', family=FONT, size=FONTSIZE)
+_PLZ = _read_plz()
 
 
 class Plot():
-    def __init__(self, data):
-        self._figure = None
-        self._axes = None
-        self.draw = None
-        self._xlabel = None
-        self.ylabel = None
-        self.title = None
-        self.placement = None
-        self.file = None
-        self.aspect_ratio = None
+    figure = None
+    xlabel = None
+    ylabel = None
+    title = None
+    placement = None
+    filepath = None
 
-    def define(self):
+    def __init__(self, data):
         pass
 
     def plot(self):
         pass
 
-    def _set_axes(self, fig: Figure):
-        """ Draw the postal code boundaries on a new figure. """
-        ax = fig.add_subplot(self.placement)
-        ax.set_xlabel(self._xlabel)
-        ax.set_ylabel(self.ylabel)
-        ax.set_aspect(self.aspect_ratio)
-        return ax
-
-    def _draw_plz(self):
-        """ Draw the postal code boundaries on a new figure. """
-        shp = self._read_plz()
-        plz = shp['geometry']
-        plz.plot(alpha=.1, axes=self._axes)
-
-    @staticmethod
-    def _read_plz() -> GeoDataFrame:
-        """ Read in Berlin postal code data from the shapely file. """
-        shp = GeoDataFrame.from_file(SHP)
-        shp.set_index('PLZ99', inplace=True)
-        return shp.sort()
-
-
-
 
 class MonthlyIncome(Plot):
-    def __init__(self, data):
-        super(MonthlyIncome, self).__init__(data)
-
-    def
-        self._figure = None
-        self._axes = None
-        self.draw = None
-        self.xlabel = None
-        self.ylabel = None
-        self.title = None
-        self.placement = None
-        self.file = None
-
-        self.draw()
+    pass
 
 
 def visualize(time_window: tuple, option: str):

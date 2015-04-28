@@ -6,7 +6,7 @@ from sys import modules
 # Flags
 DEBUG = True
 POP = True
-OFFLINE = False
+OFFLINE = True
 
 # Program folders
 USER = join(expanduser('~'), '.m5', )

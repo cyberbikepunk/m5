@@ -27,12 +27,18 @@ from settings import SHP, LEAP, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION
 class Visualizer():
     """ Parent class for the visualization magic. """
 
-    def __init__(self, df: pd.DataFrame, start: datetime, stop: datetime):
+    def __init__(self, df: pd.DataFrame, tables: dict, start: datetime, stop: datetime):
         """ Initialize object attributes. """
 
         self.start = start
         self.stop = stop
         self.df = self._slice(df)
+        self.tables = dict
+
+        for name, table in tables.items():
+            self.tables[name] = self._slice(table)
+            if DEBUG:
+                print(self.tables[name].info())
 
         if DEBUG:
             print(self.df.info())
@@ -115,12 +121,6 @@ class Visualizer():
 
         return plz
 
-
-class YearVisualizor(Visualizer):
-
-    def __init__(self, df: pd.DataFrame, start, stop):
-        super(YearVisualizor, self).__init__(df, start, stop)
-
     @staticmethod
     def repair_prices(prices):
         """ Correct the price information. """
@@ -153,13 +153,13 @@ class YearVisualizor(Visualizer):
         self._make_image('monthly_income.png')
 
     def price_histogram(self):
-        """ A histogramm of job prices stacked by type. """
+        """ A histogram of job prices stacked by type. """
 
-        prices = self.df[['city_tour',
-                          'overnight',
-                          'waiting_time',
-                          'extra_stops',
-                          'fax_confirm']]
+        prices = self.tables['orders'][['city_tour',
+                                        'overnight',
+                                        'waiting_time',
+                                        'extra_stops',
+                                        'fax_confirm']]
 
         # FIXME Remove hard set x-axis limit
         ax = prices.plot(kind='hist',
@@ -377,25 +377,32 @@ class DayVisualizor(Visualizer):
 def visualize(time_window: tuple, option: str):
     """ Visualize data by day, month or year. """
 
+    assert time_window[0] <= time_window[1], 'Cannot return to the future'
     print('Starting data visualization...')
 
     u = User(username='m-134',
              password='PASSWORD',
              db_file='m-134-v2.sqlite')
 
+    v = Visualizer(u.df, u.tables, *time_window)
+
     if option == '-year':
-        y = YearVisualizor(u.df, *time_window)
-        y.monthly_income()
-        y.price_histogram()
-        y.cumulative_km()
-        y.price_vs_km()
+        v.monthly_income()
+        v.price_histogram()
+        v.cumulative_km()
+        v.price_vs_km()
 
     elif option == '-month':
-        m = MonthVisualizor(u.df, *time_window)
+        m = MonthVisualizor(u.df, u.tables, *time_window)
         m.daily_income()
         m.plz_chloropeth()
         m.streetcloud()
 
     elif option == '-day':
-        d = DayVisualizor(u.df, *time_window)
+        d = DayVisualizor(u.df, u.tables, *time_window)
         d.pickups_n_dropoffs()
+
+if __name__ == '__main__':
+    option_ = '-year'
+    time_window_ = datetime(2013, 1, 1), datetime(2013, 12, 31, hour=23, minute=59)
+    visualize(time_window_, option_)

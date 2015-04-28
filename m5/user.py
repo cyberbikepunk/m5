@@ -11,7 +11,7 @@ from pandas import merge
 from os import mkdir, chmod, listdir
 from numpy import int64
 
-from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE
+from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE, LEAP, SKIP
 from model import Model
 
 
@@ -19,7 +19,7 @@ class User:
     """ Users work for Messenger (http://messenger.de). """
 
     def __init__(self, username=None, password=None, db_file=None):
-        """ Authenticate the user and start a local database session. """
+        """ Authenticate the user and load data from the local database. """
 
         self.username = username
         self.password = password
@@ -40,7 +40,13 @@ class User:
         self.model = Model.metadata.create_all(self.engine)
         self.local_session = sessionmaker(bind=self.engine)()
 
-        self.df, self.tables = self._load()
+        self.db = None
+        self.orders = None
+        self.clients = None
+        self.checkins = None
+        self.checkpoints = None
+
+        self._load_db()
 
     @staticmethod
     def _check_install():
@@ -50,8 +56,7 @@ class User:
 
         for folder in folders:
             if not isdir(folder):
-                # Setting permissions directly with
-                # mkdir gives me bizarre results. Why?
+                # Setting permissions directly with mkdir gives me bizarre results. Why?
                 mkdir(folder)
                 chmod(folder, 0o755)
                 print('Created %s' % folder)
@@ -68,7 +73,7 @@ class User:
         print('Selected %s' % filepath)
         return filepath
 
-    def _load(self) -> DataFrame:
+    def _load_db(self) -> DataFrame:
         """ Pull the database tables into Pandas and join them. """
 
         eng = self.engine
@@ -91,32 +96,39 @@ class User:
                                     right_index=True,
                                     how='left')
 
-        df = merge(left=checkins_with_checkpoints,
-                   right=orders_with_clients,
-                   left_on='order_id',
-                   right_index=True,
-                   how='left')
+        joined = merge(left=checkins_with_checkpoints,
+                       right=orders_with_clients,
+                       left_on='order_id',
+                       right_index=True,
+                       how='left')
 
-        df.sort_index(inplace=True)
+        self.db = joined.sort_index()
+        self.clients = clients.sort_index()
+        self.orders = orders.sort_index()
+        self.checkins = checkins.sort_index()
+        self.checkpoins = checkpoints.sort_index()
 
-        tables = {'clients': clients.sort_index(),
-                  'orders': orders.sort_index(),
-                  'checkins': checkins.sort_index(),
-                  'checkpoins': checkpoints.sort_index()}
+        print('Loaded the database into Pandas.', end=LEAP)
 
-        print('Loaded the database into Pandas.')
         if DEBUG:
-            print(df.info())
-
-        return df, tables
-
+            print('ORDERS:', end=SKIP)
+            print(orders.info(), end=LEAP)
+            print('CLIENTS:', end=SKIP)
+            print(clients.info(), end=LEAP)
+            print('CHECKINS:', end=SKIP)
+            print(checkins.info(), end=LEAP)
+            print('CHECKPOINTS:', end=SKIP)
+            print(checkpoints.info(), end=LEAP)
+            print('JOINED:', end=SKIP)
+            print(joined.info(), end=SKIP)
+            
     def _authenticate(self, username=None, password=None):
         """ Make recursive login attempts. """
 
         self.username = username if username else input('Enter username: ')
         self.password = password if password else getpass('Enter password: ')
 
-        # The server doesn't seem to care.
+        # The server doesn't seem to care anyways.
         headers = {'user-agent': 'Mozilla/5.0'}
         self.remote_session.headers.update(headers)
 
@@ -124,7 +136,7 @@ class User:
         credentials = {'username': self.username, 'password': self.password}
         response = self.remote_session.post(url, credentials)
 
-        # Login failure gives me 200, so here's the fix:
+        # Login failure gives me a 200 response.
         if 'erfolgreich' not in response.text:
             print('Wrong credentials. Try again.', end=STEP)
             self._authenticate(None, None)
@@ -133,7 +145,7 @@ class User:
 
     @staticmethod
     def _typecast_checkpoint_ids(checkpoints):
-        # This bug has been fixed but we keep this function just in case.
+        # This bug has been fixed but we keep this for older versions of the database.
         if checkpoints.index.dtype != 'int64':
             checkpoints.reset_index(inplace=True)
             checkpoint_ids = checkpoints['checkpoint_id'].astype(int64, raise_on_error=True)

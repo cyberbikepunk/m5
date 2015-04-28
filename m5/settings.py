@@ -44,6 +44,7 @@ SUMMARY = 'http://bamboo-mec.de/ll.php5'
 FILL = '.'
 CENTER = '^'
 LEAP = '\n\n'
+SKIP = '\n'
 STEP = ''
 BREAK = '\n' + '-'*100 + '\n'
 

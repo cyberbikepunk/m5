@@ -1,5 +1,6 @@
 """ Connect the user to the local and remote databases. """
 
+from collections import namedtuple
 from getpass import getpass
 from glob import iglob
 from pandas import DataFrame, read_sql
@@ -13,6 +14,8 @@ from numpy import int64
 
 from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE, LEAP, SKIP
 from model import Model
+
+Database = namedtuple('Database', ['joined', 'orders', 'clients', 'checkins', 'checkouts'])
 
 
 class User:
@@ -41,11 +44,6 @@ class User:
         self.local_session = sessionmaker(bind=self.engine)()
 
         self.db = None
-        self.orders = None
-        self.clients = None
-        self.checkins = None
-        self.checkpoints = None
-
         self._load_db()
 
     @staticmethod
@@ -102,12 +100,13 @@ class User:
                        right_index=True,
                        how='left')
 
-        self.db = joined.sort_index()
-        self.clients = clients.sort_index()
-        self.orders = orders.sort_index()
-        self.checkins = checkins.sort_index()
-        self.checkpoins = checkpoints.sort_index()
+        joined.sort_index(inplace=True)
+        clients.sort_index(inplace=True)
+        orders.sort_index(inplace=True)
+        checkins.sort_index(inplace=True)
+        checkpoints.sort_index(inplace=True)
 
+        self.db = Database(joined, orders, clients, checkins, checkpoints)
         print('Loaded the database into Pandas.', end=LEAP)
 
         if DEBUG:
@@ -121,7 +120,7 @@ class User:
             print(checkpoints.info(), end=LEAP)
             print('JOINED:', end=SKIP)
             print(joined.info(), end=SKIP)
-            
+
     def _authenticate(self, username=None, password=None):
         """ Make recursive login attempts. """
 

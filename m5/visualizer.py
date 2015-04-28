@@ -374,6 +374,10 @@ class DayVisualizor(Visualizer):
         self._make_image('lat_lon.png')
 
 
+def select():
+    pass
+
+
 def visualize(time_window: tuple, option: str):
     """ Visualize data by day, month or year. """
 
@@ -384,6 +388,7 @@ def visualize(time_window: tuple, option: str):
              password='PASSWORD',
              db_file='m-134-v2.sqlite')
 
+    db = select()
     v = Visualizer(u.df, u.tables, *time_window)
 
     if option == '-year':

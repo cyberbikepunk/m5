@@ -54,6 +54,7 @@ FONTSIZE = 14
 FIGSIZE = (18, 12)
 STYLE = 'default'
 FONT = 'Droid Sans'
+PLZ_ALPHA = 0.1
 
 
 def show_settings():

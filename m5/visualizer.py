@@ -60,6 +60,24 @@ def _load_plz():
     return plz
 
 
+def _slice_data(df: DataFrame, begin, end):
+    """ Slice a time window from the pandas dataframe. """
+    # Find the indices closest to the window boundaries
+    first = df.index.searchsorted(begin)
+    last = df.index.searchsorted(end)
+    return df.ix[first:last]
+
+
+def _create_unique(filename: str) -> str:
+    """ Return a unique filepath inside the output folder. """
+    (base, extension) = splitext(filename)
+    stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
+    unique = base.ljust(20, FILL) + stamp + extension
+    path = join(OUTPUT_DIR, unique)
+    print('Saved %s' % path)
+    return path
+
+
 # Execute at import time.
 _PLZ = _load_plz()
 _set_plotting_options()
@@ -176,7 +194,7 @@ class Dashboard():
     """ A dashboard is a a Matplotlib figure window with subplots. """
 
     def __init__(self, data: DataFrame, time_window):
-        self.data = self._slice_data(data, *time_window)
+        self.data = _slice_data(data, *time_window)
         self.charts = dict()
         self.title = str()
         self.figure = Figure()
@@ -202,24 +220,6 @@ class Dashboard():
     def _save(self):
         pass
 
-    @staticmethod
-    def _slice_data(df: DataFrame, begin, end):
-        """ Slice a time window from the pandas dataframe. """
-        # Find the indices closest to the window boundaries
-        first = df.index.searchsorted(begin)
-        last = df.index.searchsorted(end)
-        return df.ix[first:last]
-
-    @staticmethod
-    def _create_unique(filename: str) -> str:
-        """ Return a unique filepath inside the output folder. """
-        (base, extension) = splitext(filename)
-        stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
-        unique = base.ljust(20, FILL) + stamp + extension
-        path = join(OUTPUT_DIR, unique)
-        print('Saved %s' % path)
-        return path
-
 
 class DayPanel(Dashboard):
     def __init__(self, data: DataFrame, time_window):
@@ -227,7 +227,7 @@ class DayPanel(Dashboard):
 
     def _configure(self):
         self.title = str(self.data.index[0])
-        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
+        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
 
 
 class MonthPanel(Dashboard):
@@ -236,7 +236,7 @@ class MonthPanel(Dashboard):
 
     def _configure(self):
         self.title = str(self.data.index[0])
-        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
+        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
 
 
 class YearPanel(Dashboard):
@@ -245,7 +245,7 @@ class YearPanel(Dashboard):
 
     def _configure(self):
         self.title = str(self.data.index[0])
-        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
+        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
 
 
 class CumulativeKm(Chart):

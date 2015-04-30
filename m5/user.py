@@ -12,7 +12,8 @@ from pandas import merge
 from os import mkdir, chmod, listdir
 from numpy import int64
 
-from settings import DEBUG, LOGIN, LOGOUT, DATABASE, STEP, USER, OUTPUT, TEMP, LOG, DOWNLOADS, OFFLINE, LEAP, SKIP
+from settings import DEBUG, LOGIN_URL, LOGOUT_URL, DATABASE_DIR, STEP, USER_DIR, OUTPUT_DIR
+from settings import TEMP_DIR, LOG_DIR, DOWNLOADS, OFFLINE, LEAP, SKIP
 from model import Model
 
 Database = namedtuple('Database', ['joined', 'orders', 'clients', 'checkins', 'checkouts'])
@@ -36,7 +37,7 @@ class User:
         self._check_install()
 
         self.db_file = db_file if db_file else self._latest_db
-        path = join(DATABASE, self.db_file)
+        path = join(DATABASE_DIR, self.db_file)
         sqlite = 'sqlite:///{db}'.format(db=path)
 
         self.engine = create_engine(sqlite, echo=DEBUG)
@@ -50,7 +51,7 @@ class User:
     def _check_install():
         """ Create user folders as needed. """
 
-        folders = (USER, OUTPUT, DATABASE, DOWNLOADS, TEMP, LOG)
+        folders = (USER_DIR, OUTPUT_DIR, DATABASE_DIR, DOWNLOADS, TEMP_DIR, LOG_DIR)
 
         for folder in folders:
             if not isdir(folder):
@@ -63,8 +64,8 @@ class User:
     def _latest_db(self):
         """ Return the most recent database. """
 
-        if listdir(DATABASE):
-            filepath = max(iglob(join(DATABASE, '*.sqlite')), key=getctime)
+        if listdir(DATABASE_DIR):
+            filepath = max(iglob(join(DATABASE_DIR, '*.sqlite')), key=getctime)
         else:
             filepath = '%s.sqlite' % self.username
 
@@ -131,7 +132,7 @@ class User:
         headers = {'user-agent': 'Mozilla/5.0'}
         self.remote_session.headers.update(headers)
 
-        url = LOGIN
+        url = LOGIN_URL
         credentials = {'username': self.username, 'password': self.password}
         response = self.remote_session.post(url, credentials)
 
@@ -156,7 +157,7 @@ class User:
         """ Make a clean exit. """
 
         if not OFFLINE:
-            url = LOGOUT
+            url = LOGOUT_URL
             payload = {'logout': '1'}
             response = self.remote_session.get(url, params=payload)
 

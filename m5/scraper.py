@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session as LocalSession
 from collections import namedtuple
 
-from settings import DEBUG, DOWNLOADS, ELUCIDATE, JOB, BREAK, SUMMARY, OFFLINE
+from settings import DEBUG, DOWNLOADS, SCRAPING_WARNING_LOG, JOB_URL, BREAK, SUMMARY_URL, OFFLINE
 from model import Checkin, Checkpoint, Client, Order
 from user import User
 
@@ -105,7 +105,7 @@ class Downloader():
     def _scrape_uuids(self, day: date) -> set:
         """ Return uuid request parameters for each job by scraping the summary page. """
 
-        url = SUMMARY
+        url = SUMMARY_URL
         payload = {'status': 'delivered', 'datum': day.strftime('%d.%m.%Y')}
         response = self._remote_session.get(url, params=payload)
 
@@ -117,7 +117,7 @@ class Downloader():
     def _get_job(self) -> BeautifulSoup:
         """ Fetch the web-page for that day and return a beautiful soup. """
 
-        url = JOB
+        url = JOB_URL
         payload = {'status': 'delivered',
                    'uuid': self._stamp.uuid,
                    'datum': self._stamp.date.strftime('%d.%m.%Y')}
@@ -510,7 +510,7 @@ class Reader:
     def _elucidate(stamp: Stamp, field_name: str, blueprint: dict, fragment: list, tag: str):
         """ Print a debug message showing the context in which the scraping went wrong. """
 
-        with open(ELUCIDATE, 'a') as f:
+        with open(SCRAPING_WARNING_LOG, 'a') as f:
             with redirect_stdout(f):
                 print('{date}-{uuid}: Failed to scrape {field} on line {nb} inside {tag}.'
                       .format(date=stamp.date,

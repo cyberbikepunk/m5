@@ -5,7 +5,7 @@ from re import sub
 from geopandas import GeoDataFrame
 from matplotlib.figure import Figure
 from os.path import join
-from settings import DEBUG, FILL, FIGSIZE, OUTPUT, SHP, BAD
+from settings import DEBUG, FILL, FIGURE_SIZE, OUTPUT_FOLDER, SHP_FILE, BAD
 from pandas import DataFrame
 from datetime import date, datetime
 from user import User
@@ -21,11 +21,11 @@ def _unique_filename(title: str) -> str:
     base, extension = title, 'png'
     stamp = sub(BAD, '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
-    return join(OUTPUT, unique)
+    return join(OUTPUT_FOLDER, unique)
 
 
 def _read_plz() -> GeoDataFrame:
-    shp = GeoDataFrame.from_file(SHP)
+    shp = GeoDataFrame.from_file(SHP_FILE)
     shp.set_index('PLZ99', inplace=True)
     plz = shp.sort()
     return plz['geometry']

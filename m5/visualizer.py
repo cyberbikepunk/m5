@@ -1,5 +1,6 @@
 """ All the visualization happens here. """
 
+
 import numpy as np
 import pandas as pd
 import fiona
@@ -21,34 +22,45 @@ from re import sub
 from datetime import datetime
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from collections import namedtuple
 
 from user import User
-from settings import FONTSIZE, STYLE, OUTPUT, FIGSIZE, FONT, DEBUG, FILL, CENTER, PLZ_ALPHA
-from settings import SHP, LEAP, MASK, WORDS, BLACKLIST, MAXWORDS, PROPORTION
+from settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
+from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL, CENTER
+from settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
+from settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
+
+
+# Charts are subplots on a matplotlib figure.
+Charts = namedtuple('Charts', ['type', 'position'])
 
 
 def _set_plotting_options():
     """ Make the plots reasonnably pretty. """
-    pd.set_option('display.mpl_style', STYLE)
-    plt.rc('font', family=FONT, size=FONTSIZE)
+    pd.set_option('display.mpl_style', FIGURE_STYLE)
+    plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
 
 
 def _load_plz():
     """ Load postal code boundary data from file. """
+
     # Although we specify only one file path,
     # it seems that geopandas assumes that
     # the following 3 files live in the same
     # folder: SHP.shp, SHP.dbf and SHP.shx.
-    plz = GeoDataFrame.from_file(SHP)
+    plz = GeoDataFrame.from_file(SHP_FILE)
     plz.set_index('PLZ99', inplace=True)
     plz.sort()
+
     if DEBUG:
         print(plz, end=LEAP)
         print(plz.describe(), end=LEAP)
         print(plz.info(), end=LEAP)
+
     return plz
 
 
+# Execute at import time.
 _PLZ = _load_plz()
 _set_plotting_options()
 
@@ -64,29 +76,37 @@ class Chart():
         self.ylabel = str()
         self.aspect_ratio = None
 
-    def make(self, data, figure, position):
-        """ Make a subplot from A to Z. """
+    def make(self, data: DataFrame, figure: Figure, position: tuple):
+        """ Create one subplot. """
         self._configure()
         self._add(figure, position)
-        self._plot(data)
+        self._draw(data)
 
     def _configure(self):
         pass
 
-    def _add(self, figure, position):
-        """ Configure the subplot. """
+    def _add(self, figure: Figure, position: tuple):
+        """ Add the subplot and make it right. """
         self.axes = figure.add_subplot(position)
         self.axes.set_title(self.title)
         self.axes.grid(self.grid)
         self.axes.set_xlabel(self.xlabel)
         self.axes.set_ylabel(self.ylabel)
 
-    def _plot(self, data):
+    def _draw(self, data):
         pass
 
-    def _draw_postal_boundaries(self) -> GeoDataFrame:
-        """ Add postal code polygons to the plot. """
-        _PLZ['geometry'].plot(alpha=PLZ_ALPHA, axes=self.axes)
+    def _draw_postal_boundaries(self):
+        """ Add postal code boundaries as a backdrop. """
+        _PLZ['geometry'].plot(alpha=BACKGROUND_ALPHA, axes=self.axes)
+
+    @staticmethod
+    def _header(title):
+        """ A wide horizontal section title for the terminal. """
+        return '{pad}{title:{fill}{align}100}{pad}'.format(title=title,
+                                                           fill=FILL,
+                                                           align=CENTER,
+                                                           pad=LEAP)
 
 
 class PriceHistogram(Chart):
@@ -96,24 +116,21 @@ class PriceHistogram(Chart):
         super(PriceHistogram, self).__init__()
 
     def _configure(self):
-        self.grid = None
         self.title = 'Job'
         self.xlabel = 'Job price (€)'
         self.ylabel = 'Number of jobs'
-        self.aspect_ratio = None
 
-    def _plot(self, data):
-        prices = data[['city_tour',
-                       'overnight',
-                       'waiting_time',
-                       'extra_stops',
-                       'fax_confirm']]
-        prices.plot(kind='hist',
-                    stacked=True,
-                    bins=self._bins,
-                    xlim=self._xlimits,
-                    title=self.title,
-                    axes=self.axes)
+    def _draw(self, data):
+        data[['city_tour',
+              'overnight',
+              'waiting_time',
+              'extra_stops',
+              'fax_confirm']].plot(kind='hist',
+                                   stacked=True,
+                                   bins=self._bins,
+                                   xlim=self._xlimits,
+                                   title=self.title,
+                                   axes=self.axes)
 
     @property
     def _xlimits(self):
@@ -127,122 +144,141 @@ class PriceHistogram(Chart):
 class PriceVsKm(Chart):
     """ A scatter plot of the wage per kilometer. """
 
-    def __init__(self, data, figure, position):
-        super(PriceVsKm, self).__init__(data, figure, position)
+    def __init__(self):
+        super(PriceVsKm, self).__init__()
 
     def _configure(self):
         self.title = 'Wage vs distance'
         self.ylabel = 'Job distance (km)'
         self.xlabel = 'Job price (€)'
 
-    def _plot(self, data):
-        scatter = data.[['city_tour', 'distance']]
-        scatter.plot(kind='scatter', x='distance', y='city_tour')
+    def _draw(self, data):
+        data[['city_tour', 'distance']].plot(kind='scatter', x='distance', y='city_tour')
 
 
 class MonthlyIncome(Chart):
     """ A timeseries plot of the monthly income. """
 
-    def __init__(self, data, figure, position):
-        super(MonthlyIncome, self).__init__(data, figure, position)
+    def __init__(self):
+        super(MonthlyIncome, self).__init__()
 
-    def _plot(self, data):
-        income = data[['city_tour', 'overnight', 'fax_return', 'waiting_time', 'extra_stop']]
-        self.repair_prices(income)
-        monthly = income.resample('M', how='sum')
-        self.axes = monthly.plot(kind='bar', stacked=True)
+    def _draw(self, data):
+        self.axes = data[['city_tour',
+                          'overnight',
+                          'fax_return',
+                          'waiting_time',
+                          'extra_stop']].replace(np.nan, 0).resample('M', how='sum').plot(kind='bar',
+                                                                                          stacked=True)
         self.axes.xaxis.set_minor_formatter(DateFormatter('%y'))
-
-    @staticmethod
-    def repair_prices(prices):
-        """ Replace zeros with NaN in the prices. """
-        # There were lots of zeros in the prices because the database model was
-        # forcing zero as the default for missing values. This is now fixed.
-        return prices.replace(0, np.nan, inplace=True)
 
 
 class Dashboard():
-    """ A dashboard is a collection of subplots in a Matplotlib figure window. """
+    """ A dashboard is a a Matplotlib figure window with subplots. """
 
     def __init__(self, data: DataFrame, time_window):
-        self.data = self._slice(data, *time_window)
-        self.positions = set()
+        self.data = self._slice_data(data, *time_window)
+        self.charts = dict()
         self.title = str()
-        self.figure = None
+        self.figure = Figure()
         self.canvas = None
 
     def make(self):
-        self.figure = Figure()
-        for position in self.positions:
-            Chart(self.data, self.figure, position)
-        self.canvas = FigureCanvasAgg(self.figure)
-        self.canvas.print_figure(self.title)
+        self._configure()
+        self._populate()
+        self._print()
         self._save()
+
+    def _populate(self):
+        for chart_type, chart_position in self.charts.items():
+            chart_type.make(self.data, self.figure, chart_position)
 
     def _configure(self):
         pass
+
+    def _print(self):
+        canvas = FigureCanvasAgg(self.figure)
+        canvas.print_figure(self.title)
 
     def _save(self):
         pass
 
     @staticmethod
-    def _slice(df: DataFrame, begin, end):
-        """ Slice a time window from the data. """
+    def _slice_data(df: DataFrame, begin, end):
+        """ Slice a time window from the pandas dataframe. """
         # Find the indices closest to the window boundaries
         first = df.index.searchsorted(begin)
         last = df.index.searchsorted(end)
         return df.ix[first:last]
 
     @staticmethod
-    def _unique(file: str) -> str:
-        """ Return a unique filepath in the output folder. """
-        (base, extension) = splitext(file)
+    def _create_unique(filename: str) -> str:
+        """ Return a unique filepath inside the output folder. """
+        (base, extension) = splitext(filename)
         stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
         unique = base.ljust(20, FILL) + stamp + extension
-        path = join(OUTPUT, unique)
+        path = join(OUTPUT_DIR, unique)
         print('Saved %s' % path)
         return path
 
 
 class DayPanel(Dashboard):
-
     def __init__(self, data: DataFrame, time_window):
-        super(Dashboard, self).__init__(data, time_window)
+        super(DayPanel, self).__init__(data, time_window)
 
     def _configure(self):
-        self.title = str(day)
-        self.positions = [(1, 1, 1)]
+        self.title = str(self.data.index[0])
+        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
+
+
+class MonthPanel(Dashboard):
+    def __init__(self, data: DataFrame, time_window):
+        super(MonthPanel, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
+
+
+class YearPanel(Dashboard):
+    def __init__(self, data: DataFrame, time_window):
+        super(YearPanel, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = Charts('CumulativeKm', [(1, 1, 1)])
 
 
 class CumulativeKm(Chart):
     """ A cummulative timeseries of job distances. """
 
-    def __init__(self, data, figure, position):
-        super(Chart, self).__init__(data, figure, position)
+    def __init__(self):
+        super(Chart, self).__init__(d)
 
     def _configure(self):
         self.xlabel = 'Time'
         self.ylabel = 'Distance (km)'
         self.title = 'Cummulative distance'
 
-    def _plot(self, data):
+    def _draw(self, data):
         accumulated = data[['distance']].resample('D', how='sum').replace(np.nan, 0).cumsum()
         self.axes.plot(accumulated.index.values, accumulated.values, 'r')
 
 
 class StreetCloud(Chart):
-    """ A wordcloud of street names using Andreas Müller's code. """
+    """ A wordcloud of street names using Andreas Müller's code on GitHub. """
 
-    def __init__(self, data, figure, position):
-        assert isfile(MASK), 'Could not find {file} for the mask.'.format(file=MASK)
-        super(StreetCloud, self).__init__(data, figure, position)
+    def __init__(self):
+        assert isfile(MASK_FILE), 'Could not find {file} for the mask.'.format(file=MASK_FILE)
+        super(StreetCloud, self).__init__()
 
-    def _plot(self, data):
-        word_series = data[WORDS].dropna()
+    def _draw(self, data):
+        # Build the text sample
+        word_series = data[WORD_SOURCE].dropna()
         word_list = word_series.values
         word_string = whitespace.join(word_list).replace(punctuation, whitespace)
 
-        original = misc.imread(MASK)
+        # Build the cloud mask
+        original = misc.imread(MASK_FILE)
         flattened = original.sum(axis=2)
 
         if DEBUG:
@@ -256,27 +292,27 @@ class StreetCloud(Chart):
         invert_all = vectorize(lambda x: 0 if x > 0 else 1)
         mask = invert_all(flattened)
 
-        w = WordCloud(stopwords=BLACKLIST,
-                      max_words=MAXWORDS,
-                      prefer_horizontal=PROPORTION,
+        w = WordCloud(stopwords=WORD_BLACKLIST,
+                      max_words=MAX_WORDS,
+                      prefer_horizontal=HORIZONTAL_WORDS,
                       mask=mask)
 
         image = w.generate(word_string)
-        # plt.imshow(image)
-        # plt.axis("off")
+        self.axes.imshow(image)
 
-def plz_chloropeth():
+
+def plz_chloropeth(data):
     """ A chloropeth map of Berlin postal codes using pick-up & drop-off frequencies. """
 
     # Grab Berlin postal codes.
-    postal_codes = df['postal_code'].dropna()
+    postal_codes = data['postal_code'].dropna()
     berlin = postal_codes[(postal_codes > 10100) & (postal_codes < 14200)]
 
     # Calculate the number of points inside each postal area.
     frequencies = berlin.groupby(postal_codes).count().apply(log)
 
     # Load the Berlin postal code area data from file.
-    records = fiona.open(SHP)
+    records = fiona.open(SHP_FILE)
     codes = [record['properties']['PLZ99_N'] for record in records]
     areas = MultiPolygon([shape(record['geometry']) for record in records])
     plz = dict(zip(codes, areas))
@@ -286,7 +322,7 @@ def plz_chloropeth():
     normalize = max(frequencies)
 
     if DEBUG:
-        _print_header('Chloropeth debug info...')
+        print('Chloropeth debug info...')
         print('Frequencies = {end}'.format(end=LEAP), frequencies, end=LEAP)
         print('Frequencies.loc[13187] = %s' % frequencies.loc[10115])
         print('Areas = %s' % areas)
@@ -297,7 +333,7 @@ def plz_chloropeth():
         print('Number of colors = %s' % normalize, end=LEAP)
 
     # Create the figure
-    fig = plt.figure(figsize=FIGSIZE)
+    fig = plt.figure(figsize=FIGURE_SIZE)
     ax = fig.add_subplot(111)
 
     # Set the bounds on the axes
@@ -328,12 +364,11 @@ def plz_chloropeth():
     ax.set_yticks([])
     plt.title('Heat-map of checkpoints')
 
-    _make_image('plz_checkin_map.png')
 
-def daily_income():
+def daily_income(data):
     """ A timeseries plot of the daily income. """
 
-    db = df.reset_index()
+    db = data.reset_index()
     dates = db['date']
     income = db[['city_tour',
                  'overnight',
@@ -348,7 +383,7 @@ def daily_income():
     total = timeseries['total']
     mean = total.mean()
 
-    fig = plt.figure(figsize=FIGSIZE)
+    fig = plt.figure(figsize=FIGURE_SIZE)
     ax = fig.add_subplot(111)
 
     ax.vlines(total.index.values, 0, total.values)
@@ -358,7 +393,6 @@ def daily_income():
     ax.axhline(mean, color='k')
     plt.tight_layout()
 
-    _make_image('daily_income.png')
 
 def pickups_n_dropoffs():
     """ Spatial map of checkpoints (split pick-ups and drop-offs). """
@@ -367,29 +401,16 @@ def pickups_n_dropoffs():
     dropoffs = df[(df['city'] == 'Berlin') & (df['purpose'] == 'dropoff')]
 
     if DEBUG:
-        _print_header('Pickups...')
+        print('Pickups...')
         print(pickups)
-        _print_header('Dropoffs...')
+        print('Dropoffs...')
         print(dropoffs)
 
-    ax = _make_background()
+    ax = None
     ax.plot(pickups['lon'], pickups['lat'], 'k.', markersize=12)
     ax.plot(dropoffs['lon'], dropoffs['lat'], 'b.', markersize=12, alpha=0.5)
 
     plt.title('Pick-ups (black) and drop-offs (blue)')
-    _make_image('lat_lon.png')
-
-
-class Terminal():
-    """ Print basic statistics in the terminal. """
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def _print_header(title):
-        """ A wide horizontal section title. """
-        print('{begin}{title:{fill}{align}100}{end}'.format(title=title, fill=FILL, align=CENTER, begin=LEAP, end=LEAP))
 
 
 def visualize(time_window: tuple, option: str):
@@ -397,27 +418,18 @@ def visualize(time_window: tuple, option: str):
 
     assert time_window[0] <= time_window[1], 'Cannot return to the future'
     print('Starting data visualization...')
-
     user = User(username='m-134', password='PASSWORD', db_file='m-134-v2.sqlite')
-    dashboard = Dashboard(user.db.joined, time_window)
 
     if option == '-year':
-        Dashboard()
-        dashboard.make(monthly_income, 221)
-        dashboard.make(price_histogram, 222)
-        dashboard.make(cumulative_km, 223)
-        dashboard.make(price_vs_km, 224)
-
+        YearPanel(user.db.joined, time_window)
     elif option == '-month':
-        dashboard.make(daily_income, 221)
-        dashboard.make(plz_chloropeth, 222)
-        dashboard.make(streetcloud, 223)
-
+        MonthPanel(user.db.joined, time_window)
     elif option == '-day':
-        dashboard.make(pickups_n_dropoffs, 221)
+        DayPanel(user.db.joined, time_window)
+
 
 if __name__ == '__main__':
     """ Build an example dashboard. """
-    option_ = '-year'
-    time_window_ = datetime(2013, 1, 1), datetime(2013, 12, 31, hour=23, minute=59)
-    visualize(time_window_, option_)
+    win = datetime(2013, 1, 1), datetime(2013, 12, 31, hour=23, minute=59)
+    opt = '-year'
+    visualize(win, opt)

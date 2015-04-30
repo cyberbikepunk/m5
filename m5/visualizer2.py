@@ -1,90 +1,55 @@
 """ A better class-oriented visualization module. """
 
 
-from settings import DEBUG
+from re import sub
+from geopandas import GeoDataFrame
+from matplotlib.figure import Figure
+from os.path import join
+from settings import DEBUG, FILL, FIGURE_SIZE, OUTPUT_FOLDER, SHP_FILE, BAD
 from pandas import DataFrame
-from datetime import date as Date
+from datetime import date, datetime
 from user import User
 
 
-class Canvas():
-    pass
-
-    def pop(self):
-        pass
-
-    def save(self):
-        pass
+def _slice(df: DataFrame, start: date, stop: date) -> DataFrame:
+    first = df.index.searchsorted(start)
+    last = df.index.searchsorted(stop)
+    return df.ix[first:last]
 
 
-class YearCanvas():
-            y = YearVisualizor(u.df, *time_window)
-        y.monthly_income()
-        y.price_histogram()
-        y.cumulative_km()
-        y.price_vs_km()
+def _unique_filename(title: str) -> str:
+    base, extension = title, 'png'
+    stamp = sub(BAD, '', str(datetime.now()))
+    unique = base.ljust(20, FILL) + stamp + extension
+    return join(OUTPUT_FOLDER, unique)
 
-class Data():
-    def __init__(self, data: DataFrame, tables, start: Date, stop: Date):
-        self.start = start
-        self.stop = stop
-        self.data = self._slice([data])
-        self.tables = None
 
-        if DEBUG:
-            print(self.data.info())
+def _read_plz() -> GeoDataFrame:
+    shp = GeoDataFrame.from_file(SHP_FILE)
+    shp.set_index('PLZ99', inplace=True)
+    plz = shp.sort()
+    return plz['geometry']
 
-    def _slice(self, df: DataFrame) -> DataFrame:
-        """ Select a time window inside the pandas dataframe. """
-
-        # Find the indices closest to the window boundaries
-        first = df.index.searchsorted(self.start)
-        last = df.index.searchsorted(self.stop)
-        return df.ix[first:last]
-
-    def serve(self, table_name=None):
-        if not table_name:
-            return self.data
-        else:
-            return self.tables[table_name]
+_PLZ = _read_plz()
 
 
 class Plot():
+    figure = None
+    xlabel = None
+    ylabel = None
+    title = None
+    placement = None
+    filepath = None
+
     def __init__(self, data):
-        self._figure = None
-        self._axes = None
-        self.draw = None
-        self.xlabel = None
-        self.ylabel = None
-        self.title = None
-        self.placement = None
-        self.file = None
-
-    def define(self):
         pass
 
-    def draw(self):
-        pass
-
-    def prepare(self):
+    def plot(self):
         pass
 
 
 class MonthlyIncome(Plot):
-    def __init__(self, data):
-        super(MonthlyIncome, self).__init__(data)
-
-    def
-        self._figure = None
-        self._axes = None
-        self.draw = None
-        self.xlabel = None
-        self.ylabel = None
-        self.title = None
-        self.placement = None
-        self.file = None
-
-        self.draw()
+    pass
 
 
 def visualize(time_window: tuple, option: str):
@@ -92,18 +57,11 @@ def visualize(time_window: tuple, option: str):
 
     print('Starting data visualization...')
     u = User(db_file='m-134-v2.sqlite')
-
-    data = Data(u.df, *time_window)
+    data = _slice(u.df, *time_window)
 
     if option == '-year':
-        fig = YearCanvas(data)
-
+        fig = Canvas(data)
     elif option == '-month':
-        m = MonthVisualizor(u.df, *time_window)
-        m.daily_income()
-        m.plz_chloropeth()
-        m.streetcloud()
-
+        pass
     elif option == '-day':
-        d = DayVisualizor(u.df, *time_window)
-        d.pickups_n_dropoffs()
+        pass

@@ -36,13 +36,13 @@ Charts = namedtuple('Charts', ['type', 'position'])
 
 
 def _set_plotting_options():
-    """ Make the plots reasonnably pretty. """
+    """ Set rendering options in the pandas and matplotlib modules. """
     pd.set_option('display.mpl_style', FIGURE_STYLE)
     plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
 
 
 def _load_plz():
-    """ Load postal code boundary data from file. """
+    """ Load Berlin postal code boundary data from file. """
 
     # Although we specify only one file path,
     # it seems that geopandas assumes that
@@ -60,7 +60,7 @@ def _load_plz():
     return plz
 
 
-def _slice_data(df: DataFrame, begin, end):
+def _slice_data(df: DataFrame, begin: datetime, end: datetime):
     """ Slice a time window from the pandas dataframe. """
     # Find the indices closest to the window boundaries
     first = df.index.searchsorted(begin)
@@ -68,17 +68,17 @@ def _slice_data(df: DataFrame, begin, end):
     return df.ix[first:last]
 
 
-def _create_unique(filename: str) -> str:
-    """ Return a unique filepath inside the output folder. """
+def _make_unique_filepath(filename):
+    """ Add the path and a timestamp. """
     (base, extension) = splitext(filename)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
-    path = join(OUTPUT_DIR, unique)
-    print('Saved %s' % path)
-    return path
+    filepath = join(OUTPUT_DIR, unique)
+    print('Saved %s' % filepath)
+    return filepath
 
 
-# Execute at import time.
+# Do at import time:
 _PLZ = _load_plz()
 _set_plotting_options()
 
@@ -117,14 +117,6 @@ class Chart():
     def _draw_postal_boundaries(self):
         """ Add postal code boundaries as a backdrop. """
         _PLZ['geometry'].plot(alpha=BACKGROUND_ALPHA, axes=self.axes)
-
-    @staticmethod
-    def _header(title):
-        """ A wide horizontal section title for the terminal. """
-        return '{pad}{title:{fill}{align}100}{pad}'.format(title=title,
-                                                           fill=FILL,
-                                                           align=CENTER,
-                                                           pad=LEAP)
 
 
 class PriceHistogram(Chart):
@@ -171,7 +163,10 @@ class PriceVsKm(Chart):
         self.xlabel = 'Job price (€)'
 
     def _draw(self, data):
-        data[['city_tour', 'distance']].plot(kind='scatter', x='distance', y='city_tour')
+        data[['city_tour',
+              'distance']].plot(kind='scatter',
+                                x='distance',
+                                y='city_tour')
 
 
 class MonthlyIncome(Chart):
@@ -195,7 +190,7 @@ class Dashboard():
 
     def __init__(self, data: DataFrame, time_window):
         self.data = _slice_data(data, *time_window)
-        self.charts = dict()
+        self.charts = list()
         self.title = str()
         self.figure = Figure()
         self.canvas = None
@@ -207,8 +202,8 @@ class Dashboard():
         self._save()
 
     def _populate(self):
-        for chart_type, chart_position in self.charts.items():
-            chart_type.make(self.data, self.figure, chart_position)
+        for Type, position in self.charts:
+            Type().make(self.data, self.figure, position)
 
     def _configure(self):
         pass
@@ -221,38 +216,39 @@ class Dashboard():
         pass
 
 
-class DayPanel(Dashboard):
-    def __init__(self, data: DataFrame, time_window):
-        super(DayPanel, self).__init__(data, time_window)
+class DayDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(DayDashboard, self).__init__(data, time_window)
 
     def _configure(self):
         self.title = str(self.data.index[0])
-        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
+        self.charts = [(Charts(CumulativeKm, 111))]
 
 
-class MonthPanel(Dashboard):
-    def __init__(self, data: DataFrame, time_window):
-        super(MonthPanel, self).__init__(data, time_window)
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
-
-
-class YearPanel(Dashboard):
-    def __init__(self, data: DataFrame, time_window):
-        super(YearPanel, self).__init__(data, time_window)
+class MonthDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(MonthDashboard, self).__init__(data, time_window)
 
     def _configure(self):
         self.title = str(self.data.index[0])
-        self.charts = Charts(CumulativeKm, [(1, 1, 1)])
+        self.charts = [(Charts(CumulativeKm, 111))]
+
+
+class YearDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(YearDashboard, self).__init__(data, time_window)
+        print('Making YearDashboard')
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(Charts(CumulativeKm, 111))]
 
 
 class CumulativeKm(Chart):
     """ A cummulative timeseries of job distances. """
 
     def __init__(self):
-        super(Chart, self).__init__(d)
+        super(CumulativeKm, self).__init__()
 
     def _configure(self):
         self.xlabel = 'Time'
@@ -272,33 +268,27 @@ class StreetCloud(Chart):
         super(StreetCloud, self).__init__()
 
     def _draw(self, data):
-        # Build the text sample
-        word_series = data[WORD_SOURCE].dropna()
-        word_list = word_series.values
-        word_string = whitespace.join(word_list).replace(punctuation, whitespace)
+        words = self._assemble_words(data)
+        mask = self._build_mask()
+        w = WordCloud(stopwords=WORD_BLACKLIST,
+                      prefer_horizontal=HORIZONTAL_WORDS,
+                      max_words=MAX_WORDS,
+                      mask=mask)
+        image = w.generate(words)
+        self.axes.imshow(image)
 
-        # Build the cloud mask
+    @staticmethod
+    def _build_mask():
         original = misc.imread(MASK_FILE)
         flattened = original.sum(axis=2)
-
-        if DEBUG:
-            print(flattened.dtype)
-            print(flattened.shape)
-            print(flattened.max())
-            print(flattened.min())
-
-        # With this particular image, the resulting
-        # mask is the exact reverse of what I want.
+        # The flattened image is the reverse of what we want.
         invert_all = vectorize(lambda x: 0 if x > 0 else 1)
-        mask = invert_all(flattened)
+        return invert_all(flattened)
 
-        w = WordCloud(stopwords=WORD_BLACKLIST,
-                      max_words=MAX_WORDS,
-                      prefer_horizontal=HORIZONTAL_WORDS,
-                      mask=mask)
-
-        image = w.generate(word_string)
-        self.axes.imshow(image)
+    @staticmethod
+    def _assemble_words(data):
+        word_list = data[WORD_SOURCE].dropna().values
+        return whitespace.join(word_list).replace(punctuation, whitespace)
 
 
 def plz_chloropeth(data):
@@ -421,11 +411,14 @@ def visualize(time_window: tuple, option: str):
     user = User(username='m-134', password='PASSWORD', db_file='m-134-v2.sqlite')
 
     if option == '-year':
-        YearPanel(user.db.joined, time_window)
+        dash = YearDashboard(user.db.joined, time_window)
+        dash.make()
     elif option == '-month':
-        MonthPanel(user.db.joined, time_window)
+        dash = MonthDashboard(user.db.joined, time_window)
+        dash.make()
     elif option == '-day':
-        DayPanel(user.db.joined, time_window)
+        dash = DayDashboard(user.db.joined, time_window)
+        dash.make()
 
 
 if __name__ == '__main__':

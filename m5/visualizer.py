@@ -22,17 +22,12 @@ from re import sub
 from datetime import datetime
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-from collections import namedtuple
 
 from user import User
 from settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
-from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL, CENTER
+from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
 from settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
 from settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
-
-
-# Charts are subplots on a matplotlib figure.
-Charts = namedtuple('Charts', ['type', 'position'])
 
 
 def _set_plotting_options():
@@ -59,6 +54,11 @@ def _load_plz():
     return plz
 
 
+# Do at import time:
+_PLZ = _load_plz()
+_set_plotting_options()
+
+
 def _slice_data(df: DataFrame, begin: datetime, end: datetime):
     """ Slice a time window from the pandas dataframe. """
     # Find the indices closest to the window boundaries
@@ -75,11 +75,6 @@ def _make_unique_filepath(filename):
     filepath = join(OUTPUT_DIR, unique)
     print('Saved %s' % filepath)
     return filepath
-
-
-# Do at import time:
-_PLZ = _load_plz()
-_set_plotting_options()
 
 
 class Chart():
@@ -182,65 +177,6 @@ class MonthlyIncome(Chart):
                           'extra_stop']].replace(np.nan, 0).resample('M', how='sum').plot(kind='bar',
                                                                                           stacked=True)
         self.axes.xaxis.set_minor_formatter(DateFormatter('%y'))
-
-
-class Dashboard():
-    """ A dashboard is a a Matplotlib figure window with subplots. """
-
-    def __init__(self, data: DataFrame, time_window):
-        self.data = _slice_data(data, *time_window)
-        self.charts = list()
-        self.title = str()
-        self.figure = Figure()
-        self.canvas = None
-
-    def make(self):
-        self._configure()
-        self._populate()
-        self._print()
-        self._save()
-
-    def _populate(self):
-        for Type, position in self.charts:
-            Type().make(self.data, self.figure, position)
-
-    def _configure(self):
-        pass
-
-    def _print(self):
-        canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(self.title)
-
-    def _save(self):
-        pass
-
-
-class DayDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(DayDashboard, self).__init__(data, time_window)
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
-
-
-class MonthDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(MonthDashboard, self).__init__(data, time_window)
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
-
-
-class YearDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(YearDashboard, self).__init__(data, time_window)
-        print('Making YearDashboard')
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
 
 
 class CumulativeKm(Chart):
@@ -372,7 +308,7 @@ def daily_income(data):
     plt.tight_layout()
 
 
-def pickups_n_dropoffs():
+def pickups_n_dropoffs(df):
     """ Spatial map of checkpoints (split pick-ups and drop-offs). """
 
     pickups = df[(df['city'] == 'Berlin') & (df['purpose'] == 'pickup')]
@@ -391,26 +327,85 @@ def pickups_n_dropoffs():
     plt.title('Pick-ups (black) and drop-offs (blue)')
 
 
+class Dashboard():
+    """ A dashboard is a a Matplotlib figure window with subplots. """
+
+    def __init__(self, data: DataFrame, time_window):
+        self.data = _slice_data(data, *time_window)
+        self.charts = list()
+        self.title = str()
+        self.figure = Figure()
+        self.canvas = None
+
+    def make(self):
+        self._configure()
+        self._populate()
+        self._print()
+        self._save()
+
+    def _populate(self):
+        for blueprint, position in self.charts:
+            a = blueprint()
+            a.make(self.data, self.figure, position)
+
+    def _configure(self):
+        pass
+
+    def _print(self):
+        canvas = FigureCanvasAgg(self.figure)
+        canvas.print_figure(self.title)
+
+    def _save(self):
+        pass
+
+
+class DayDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(DayDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+        print('Making YearDashboard')
+
+
+class MonthDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(MonthDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+
+
+class YearDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(YearDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+
+
 def visualize(time_window: tuple, option: str):
     """ Visualize data by day, month or year. """
 
     assert time_window[0] <= time_window[1], 'Cannot return to the future'
-    print('Starting data visualization...')
+
     user = User(username='m-134', password='PASSWORD', db_file='m-134-v2.sqlite')
+    data = user.db.joined
+    print('Starting data visualization...')
 
     if option == '-year':
-        dash = YearDashboard(user.db.joined, time_window)
-        dash.make()
+        YearDashboard(data, time_window).make()
     elif option == '-month':
-        dash = MonthDashboard(user.db.joined, time_window)
-        dash.make()
+        MonthDashboard(data, time_window).make()
     elif option == '-day':
-        dash = DayDashboard(user.db.joined, time_window)
-        dash.make()
+        DayDashboard(data, time_window).make()
 
 
 if __name__ == '__main__':
-    """ Build an example dashboard. """
+    """ Example """
     win = datetime(2013, 1, 1), datetime(2013, 12, 31, hour=23, minute=59)
     opt = '-year'
     visualize(win, opt)

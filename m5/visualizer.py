@@ -36,7 +36,6 @@ Charts = namedtuple('Charts', ['type', 'position'])
 
 
 def _set_plotting_options():
-    """ Set rendering options in the pandas and matplotlib modules. """
     pd.set_option('display.mpl_style', FIGURE_STYLE)
     plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
 
@@ -69,7 +68,7 @@ def _slice_data(df: DataFrame, begin: datetime, end: datetime):
 
 
 def _make_unique_filepath(filename):
-    """ Add the path and a timestamp. """
+    """ Add the path and a timestamp to the filename. """
     (base, extension) = splitext(filename)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
@@ -294,20 +293,15 @@ class StreetCloud(Chart):
 def plz_chloropeth(data):
     """ A chloropeth map of Berlin postal codes using pick-up & drop-off frequencies. """
 
-    # Grab Berlin postal codes.
     postal_codes = data['postal_code'].dropna()
     berlin = postal_codes[(postal_codes > 10100) & (postal_codes < 14200)]
-
-    # Calculate the number of points inside each postal area.
     frequencies = berlin.groupby(postal_codes).count().apply(log)
 
-    # Load the Berlin postal code area data from file.
     records = fiona.open(SHP_FILE)
     codes = [record['properties']['PLZ99_N'] for record in records]
     areas = MultiPolygon([shape(record['geometry']) for record in records])
     plz = dict(zip(codes, areas))
 
-    # Prepare the colormap
     color_map = plt.get_cmap('Reds')
     normalize = max(frequencies)
 
@@ -322,33 +316,27 @@ def plz_chloropeth(data):
         print('Color map = %s' % color_map)
         print('Number of colors = %s' % normalize, end=LEAP)
 
-    # Create the figure
     fig = plt.figure(figsize=FIGURE_SIZE)
     ax = fig.add_subplot(111)
 
-    # Set the bounds on the axes
     minx, miny, maxx, maxy = records.bounds
     w, h = maxx - minx, maxy - miny
     ax.set_xlim(minx - 0.1 * w, maxx + 0.1 * w)
     ax.set_ylim(miny - 0.1 * h, maxy + 0.1 * h)
-    # This is dirty:
+
     ax.set_aspect(1.7)
 
-    # Create a collection of patches.
     patches = []
     for code, area in plz.items():
 
-        # We haven't everywhere in Berlin...
         if code not in list(frequencies.index.values):
             frequency = 0
         else:
             frequency = frequencies.loc[code]
 
-        # Make a collection of patches
         colour = color_map(frequency / normalize)
         patches.append(PolygonPatch(area, fc=colour, ec='#555555', alpha=1., zorder=1))
 
-    # Add the collection to the figure
     ax.add_collection(PatchCollection(patches, match_original=True))
     ax.set_xticks([])
     ax.set_yticks([])

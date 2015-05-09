@@ -20,7 +20,7 @@ from string import punctuation, whitespace
 from scipy import misc
 from re import sub
 from datetime import datetime
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.backends.backend_agg import FigureCanvasAgg, FigureCanvas
 from matplotlib.figure import Figure
 
 from user import User
@@ -61,14 +61,13 @@ _set_plotting_options()
 
 def _slice_data(df: DataFrame, begin: datetime, end: datetime):
     """ Slice a time window from the pandas dataframe. """
-    # Find the indices closest to the window boundaries
+    # Find the indices closest to the window boundaries.
     first = df.index.searchsorted(begin)
     last = df.index.searchsorted(end)
     return df.ix[first:last]
 
 
 def _make_unique_filepath(filename):
-    """ Add the path and a timestamp to the filename. """
     (base, extension) = splitext(filename)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
@@ -344,16 +343,16 @@ class Dashboard():
         self._save()
 
     def _populate(self):
-        for blueprint, position in self.charts:
-            a = blueprint()
-            a.make(self.data, self.figure, position)
+        for chart, position in self.charts:
+            chart().make(self.data, self.figure, position)
 
     def _configure(self):
         pass
 
     def _print(self):
-        canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(self.title)
+        self.figure.show()
+        # canvas = FigureCanvas(self.figure)
+        # canvas.print_figure(self.title)
 
     def _save(self):
         pass

@@ -20,23 +20,16 @@ from string import punctuation, whitespace
 from scipy import misc
 from re import sub
 from datetime import datetime
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-from collections import namedtuple
 
 from user import User
 from settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
-from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL, CENTER
+from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
 from settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
 from settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
 
 
-# Charts are subplots on a matplotlib figure.
-Charts = namedtuple('Charts', ['type', 'position'])
-
-
 def _set_plotting_options():
-    """ Set rendering options in the pandas and matplotlib modules. """
     pd.set_option('display.mpl_style', FIGURE_STYLE)
     plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
 
@@ -60,27 +53,26 @@ def _load_plz():
     return plz
 
 
+# Do at import time:
+_PLZ = _load_plz()
+_set_plotting_options()
+
+
 def _slice_data(df: DataFrame, begin: datetime, end: datetime):
     """ Slice a time window from the pandas dataframe. """
-    # Find the indices closest to the window boundaries
+    # Find the indices closest to the window boundaries.
     first = df.index.searchsorted(begin)
     last = df.index.searchsorted(end)
     return df.ix[first:last]
 
 
 def _make_unique_filepath(filename):
-    """ Add the path and a timestamp. """
     (base, extension) = splitext(filename)
     stamp = sub(r'[:]|[-]|[_]|[.]|[\s]', '', str(datetime.now()))
     unique = base.ljust(20, FILL) + stamp + extension
     filepath = join(OUTPUT_DIR, unique)
     print('Saved %s' % filepath)
     return filepath
-
-
-# Do at import time:
-_PLZ = _load_plz()
-_set_plotting_options()
 
 
 class Chart():
@@ -185,65 +177,6 @@ class MonthlyIncome(Chart):
         self.axes.xaxis.set_minor_formatter(DateFormatter('%y'))
 
 
-class Dashboard():
-    """ A dashboard is a a Matplotlib figure window with subplots. """
-
-    def __init__(self, data: DataFrame, time_window):
-        self.data = _slice_data(data, *time_window)
-        self.charts = list()
-        self.title = str()
-        self.figure = Figure()
-        self.canvas = None
-
-    def make(self):
-        self._configure()
-        self._populate()
-        self._print()
-        self._save()
-
-    def _populate(self):
-        for Type, position in self.charts:
-            Type().make(self.data, self.figure, position)
-
-    def _configure(self):
-        pass
-
-    def _print(self):
-        canvas = FigureCanvasAgg(self.figure)
-        canvas.print_figure(self.title)
-
-    def _save(self):
-        pass
-
-
-class DayDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(DayDashboard, self).__init__(data, time_window)
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
-
-
-class MonthDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(MonthDashboard, self).__init__(data, time_window)
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
-
-
-class YearDashboard(Dashboard):
-    def __init__(self, data, time_window):
-        super(YearDashboard, self).__init__(data, time_window)
-        print('Making YearDashboard')
-
-    def _configure(self):
-        self.title = str(self.data.index[0])
-        self.charts = [(Charts(CumulativeKm, 111))]
-
-
 class CumulativeKm(Chart):
     """ A cummulative timeseries of job distances. """
 
@@ -294,20 +227,15 @@ class StreetCloud(Chart):
 def plz_chloropeth(data):
     """ A chloropeth map of Berlin postal codes using pick-up & drop-off frequencies. """
 
-    # Grab Berlin postal codes.
     postal_codes = data['postal_code'].dropna()
     berlin = postal_codes[(postal_codes > 10100) & (postal_codes < 14200)]
-
-    # Calculate the number of points inside each postal area.
     frequencies = berlin.groupby(postal_codes).count().apply(log)
 
-    # Load the Berlin postal code area data from file.
     records = fiona.open(SHP_FILE)
     codes = [record['properties']['PLZ99_N'] for record in records]
     areas = MultiPolygon([shape(record['geometry']) for record in records])
     plz = dict(zip(codes, areas))
 
-    # Prepare the colormap
     color_map = plt.get_cmap('Reds')
     normalize = max(frequencies)
 
@@ -322,33 +250,27 @@ def plz_chloropeth(data):
         print('Color map = %s' % color_map)
         print('Number of colors = %s' % normalize, end=LEAP)
 
-    # Create the figure
     fig = plt.figure(figsize=FIGURE_SIZE)
     ax = fig.add_subplot(111)
 
-    # Set the bounds on the axes
     minx, miny, maxx, maxy = records.bounds
     w, h = maxx - minx, maxy - miny
     ax.set_xlim(minx - 0.1 * w, maxx + 0.1 * w)
     ax.set_ylim(miny - 0.1 * h, maxy + 0.1 * h)
-    # This is dirty:
+
     ax.set_aspect(1.7)
 
-    # Create a collection of patches.
     patches = []
     for code, area in plz.items():
 
-        # We haven't everywhere in Berlin...
         if code not in list(frequencies.index.values):
             frequency = 0
         else:
             frequency = frequencies.loc[code]
 
-        # Make a collection of patches
         colour = color_map(frequency / normalize)
         patches.append(PolygonPatch(area, fc=colour, ec='#555555', alpha=1., zorder=1))
 
-    # Add the collection to the figure
     ax.add_collection(PatchCollection(patches, match_original=True))
     ax.set_xticks([])
     ax.set_yticks([])
@@ -384,7 +306,7 @@ def daily_income(data):
     plt.tight_layout()
 
 
-def pickups_n_dropoffs():
+def pickups_n_dropoffs(df):
     """ Spatial map of checkpoints (split pick-ups and drop-offs). """
 
     pickups = df[(df['city'] == 'Berlin') & (df['purpose'] == 'pickup')]
@@ -403,26 +325,85 @@ def pickups_n_dropoffs():
     plt.title('Pick-ups (black) and drop-offs (blue)')
 
 
+class Dashboard():
+    """ A dashboard is a a Matplotlib figure window with subplots. """
+
+    def __init__(self, data: DataFrame, time_window):
+        self.data = _slice_data(data, *time_window)
+        self.charts = list()
+        self.title = str()
+        self.figure = Figure()
+        self.canvas = None
+
+    def make(self):
+        self._configure()
+        self._populate()
+        self._print()
+        self._save()
+
+    def _populate(self):
+        for chart, position in self.charts:
+            chart().make(self.data, self.figure, position)
+
+    def _configure(self):
+        pass
+
+    def _print(self):
+        self.figure.show()
+        # canvas = FigureCanvas(self.figure)
+        # canvas.print_figure(self.title)
+
+    def _save(self):
+        pass
+
+
+class DayDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(DayDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+        print('Making YearDashboard')
+
+
+class MonthDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(MonthDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+
+
+class YearDashboard(Dashboard):
+    def __init__(self, data, time_window):
+        super(YearDashboard, self).__init__(data, time_window)
+
+    def _configure(self):
+        self.title = str(self.data.index[0])
+        self.charts = [(CumulativeKm, 111)]
+
+
 def visualize(time_window: tuple, option: str):
     """ Visualize data by day, month or year. """
 
     assert time_window[0] <= time_window[1], 'Cannot return to the future'
-    print('Starting data visualization...')
+
     user = User(username='m-134', password='PASSWORD', db_file='m-134-v2.sqlite')
+    data = user.db.joined
+    print('Starting data visualization...')
 
     if option == '-year':
-        dash = YearDashboard(user.db.joined, time_window)
-        dash.make()
+        YearDashboard(data, time_window).make()
     elif option == '-month':
-        dash = MonthDashboard(user.db.joined, time_window)
-        dash.make()
+        MonthDashboard(data, time_window).make()
     elif option == '-day':
-        dash = DayDashboard(user.db.joined, time_window)
-        dash.make()
+        DayDashboard(data, time_window).make()
 
 
 if __name__ == '__main__':
-    """ Build an example dashboard. """
+    """ Example """
     win = datetime(2013, 1, 1), datetime(2013, 12, 31, hour=23, minute=59)
     opt = '-year'
     visualize(win, opt)

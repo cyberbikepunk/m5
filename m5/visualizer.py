@@ -20,7 +20,6 @@ from string import punctuation, whitespace
 from scipy import misc
 from re import sub
 from datetime import datetime
-from matplotlib.backends.backend_agg import FigureCanvasAgg, FigureCanvas
 from matplotlib.figure import Figure
 
 from user import User

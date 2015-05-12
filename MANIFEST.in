@@ -1,0 +1,6 @@
+recursive-exclude sandbox *
+include README INSTALL LICENCE VERSION HISTORY
+recursive-include assets *
+include docs/Makefile
+recursive-include docs/source *
+include requirement.txt

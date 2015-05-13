@@ -1,5 +1,5 @@
 recursive-exclude sandbox *
-include README INSTALL LICENCE VERSION HISTORY
+include README.md LICENCE.txt VERSION.txt HISTORY.rst
 recursive-include assets *
 include docs/Makefile
 recursive-include docs/source *

@@ -7,7 +7,7 @@ import codecs
 
 def read(*parts):
     """ Return the contents of the file. Assume UTF-8 encoding. """
-    here = os.path.abspath(path.dirname(__file__))
+    here = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(here, *parts), "rb", "utf-8") as f:
         return f.read()
 
@@ -21,7 +21,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-# So the following is heavily commented cause I'm going up the learning curve.
+# The following is heavily commented because I'm going up the learning curve.
 # https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 from setuptools import setup, find_packages
 
@@ -31,7 +31,7 @@ setup(name='m5',
       author_email='loic@cyberpunk.bike',
       description='M5 analyses my bike messenger data.',
 
-      # This seems to be the common trick.
+      # This seems to be a common trick.
       long_description=read('README.md'),
 
       # The version counter inside VERSION.txt gets incremented
@@ -67,8 +67,8 @@ setup(name='m5',
       # --index-url https://pypi.python.org/simple/
       # -e .
       #
-      # The first line is the pip repository. The second tells
-      # requirements to read the list in the setup.py script.
+      # The first line would be the pip repository. The second would
+      # tell requirements to read the list in the setup.py script.
       install_requires=read('requirements.txt').splitlines(),
 
       # PyPI will refuse packages with unknown classifiers.

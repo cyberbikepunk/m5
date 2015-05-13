@@ -17,7 +17,7 @@ def read(*parts):
 def find_version(*file_paths):
     """ Return the 'VERSION' parameter value from inside the text file. """
     version_file = read(*file_paths)
-    version_match = re.search(r"^VERSION = ['\"]([^'\"]*)['\"]", version_file, re.M)
+    version_match = re.search(r"^VERSION=['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
@@ -33,19 +33,18 @@ setup(name='m5',
       author_email='loic@cyberpunk.bike',
       description='M5 analyses my bike messenger data.',
       long_description=read('README.md'),
-      url='http://m5.readthedocs.org/en/latest/',
+      url='https://github.com/cyberbikepunk/m5_continued',
 
       # The version counter inside VERSION.txt gets incremented
       # automatically each time I run bumpversion in the terminal.
+      # There is duplicate up-to-date version number in setup.cfg.
       version=find_version('VERSION.txt'),
 
-      # This project is not just a single file module:
-      # it's a package with multiple subpackages.
-      # We could explictely list all the python
-      # packages, but instead we let setuptools do
-      # all the the work for us. The top-level tests
-      # package will be included but won't be installed.
-      # Actually, I don't understand why it shouldn't.
+      # This project is not just a single file module but a package
+      # with multiple subpackages. We could explictely list all the
+      # python packages, but instead we let setuptools do all the the
+      # work for us. The top-level tests package will be included but
+      # not installed. Actually, why shouldn't it?
       packages=find_packages(exclude=['tests*']),
 
       # Miscellaneous files like data files that don't officially

@@ -1,30 +1,29 @@
 """ The PyPi packaging magic happens here. """
 
-# This script is heavily commented because it's my first one.
-# I more or less followed the following tutorial:
-
 import re
 import os
 import codecs
 
-from setuptools import setup, find_packages
-
 
 def read(*parts):
-    """ Return the contents of the resulting file. Assume UTF-8 encoding. """
+    """ Return the contents of the file. Assume UTF-8 encoding. """
     here = os.path.abspath(path.dirname(__file__))
     with codecs.open(os.path.join(here, *parts), "rb", "utf-8") as f:
         return f.read()
 
 
 def find_version(*file_paths):
-    """ Search for a 'VERSION' parameter inside a text file. """
+    """ Return the 'VERSION' parameter value from inside the text file. """
     version_file = read(*file_paths)
     version_match = re.search(r"^VERSION = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
+
+# So the following is heavily commented cause I'm going up the learning curve.
+# https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+from setuptools import setup, find_packages
 
 setup(name='m5',
       license='GPL3',

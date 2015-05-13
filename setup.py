@@ -4,6 +4,8 @@ import re
 import os
 import codecs
 
+from setuptools import setup, find_packages
+
 
 def read(*parts):
     """ Return the contents of the file. Assume UTF-8 encoding. """
@@ -20,26 +22,22 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-
+#
 # The following is heavily commented because I'm going up the learning curve.
 # https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-from setuptools import setup, find_packages
+#
 
 setup(name='m5',
       license='GPL3',
       author='cyberbikepunk',
       author_email='loic@cyberpunk.bike',
       description='M5 analyses my bike messenger data.',
-
-      # This seems to be a common trick.
       long_description=read('README.md'),
+      url='http://m5.readthedocs.org/en/latest/',
 
       # The version counter inside VERSION.txt gets incremented
       # automatically each time I run bumpversion in the terminal.
       version=find_version('VERSION.txt'),
-
-      # Point the package url to the online documentation.
-      url='http://m5.readthedocs.org/en/latest/',
 
       # This project is not just a single file module:
       # it's a package with multiple subpackages.

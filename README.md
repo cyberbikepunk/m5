@@ -1,2 +1,2 @@
-M5 is a bike messenger data analysis tool. It's a personal project.
+M5 analyses my bike messenger data. It's a personal project.
 

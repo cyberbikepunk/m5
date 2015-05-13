@@ -17,7 +17,7 @@ def read(*parts):
 def find_version(*file_paths):
     """ Return the 'VERSION' parameter value from inside the text file. """
     version_file = read(*file_paths)
-    version_match = re.search(r"^VERSION=['\"]([^'\"]*)['\"]", version_file, re.M)
+    version_match = re.search(r"^VERSION = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
@@ -27,11 +27,11 @@ def find_version(*file_paths):
 # https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 #
 
-setup(name='m5',
+setup(name='m5fahrrad',
       license='GPL3',
       author='cyberbikepunk',
       author_email='loic@cyberpunk.bike',
-      description='M5 analyses my bike messenger data.',
+      description='M5Fahrrad analyses my bike messenger data.',
       long_description=read('README.md'),
       url='https://github.com/cyberbikepunk/m5_continued',
 

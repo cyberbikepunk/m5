@@ -1,9 +1,14 @@
 """ Unit-test for the User module. """
 
-import os
 
+import os
+import sys
+from pprint import pprint
+from os.path import abspath
+sys.path.append(abspath('./../m5'))
+pprint(sys.path)
 from unittest import TestCase
-from m5.user import User
+from user import User
 
 
 class TestUser(TestCase):

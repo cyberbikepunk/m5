@@ -1,25 +1,25 @@
-# My own additions
-venv/
-downloads/
+# Project specific
+# ----------------
 sandbox/
-db/
-tests/temp/
-*.backup
-*.broken
-*.png
-output/
-temp/
+
+# Vagrant files
+# -------------
+.vagrant/
+Vagrantfile
 
 # Byte-compiled / optimized / DLL files
+# -------------------------------------
 __pycache__/
 *.py[cod]
 
 # C extensions
+# ------------
 *.so
 
-# Distribution / packaging
+# Distribution / packaging / coverage
+# -----------------------------------
 .Python
-env/
+venv/
 build/
 develop-eggs/
 dist/
@@ -35,19 +35,23 @@ var/
 *.egg
 
 # pycharm stuff
+# -------------
 .idea/
 
 # PyInstaller
+# -----------
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
 # Installer logs
+# --------------
 pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+# ----------------------------
 htmlcov/
 .tox/
 .coverage
@@ -56,15 +60,18 @@ nosetests.xml
 coverage.xml
 
 # Translations
+# ------------
 *.mo
 *.pot
 
-# Django stuff:
+# Django stuff
+# ------------
 *.log
 
 # Sphinx documentation
-docs/_build/
+# --------------------
+docs/
 
 # PyBuilder
+# ---------
 target/
-

@@ -1,5 +1,8 @@
 """ Connect the user to the local and remote databases. """
 
+import sys
+sys.path.append('/home/loic/code/m5/m5')
+
 from collections import namedtuple
 from getpass import getpass
 from glob import iglob

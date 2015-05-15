@@ -4,7 +4,7 @@ from os.path import join, abspath, expanduser
 from sys import modules
 
 # Option flags
-DEBUG = False
+DEBUG = True
 POP = True
 OFFLINE = True
 

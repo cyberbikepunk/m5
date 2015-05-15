@@ -9,7 +9,7 @@ from datetime import datetime
 from os import remove
 from os.path import dirname, join
 
-from m5.model import Checkin, Checkpoint, Client, Order, Base
+from model import Checkin, Checkpoint, Client, Order, Model
 
 
 class TestModel(TestCase):
@@ -20,7 +20,7 @@ class TestModel(TestCase):
         self.path = join(dirname(__file__), 'temp', 'db-sqlite')
         engine = create_engine('sqlite:///%s' % self.path, echo=False)
 
-        Base.metadata.create_all(engine)
+        Model.metadata.create_all(engine)
 
         _Session = sessionmaker(bind=engine)
         self.session = _Session()

@@ -2,6 +2,11 @@
 # ----------------
 sandbox/
 
+# Vagrant files
+# -------------
+.vagrant/
+Vagrantfile
+
 # Byte-compiled / optimized / DLL files
 # -------------------------------------
 __pycache__/
@@ -11,8 +16,8 @@ __pycache__/
 # ------------
 *.so
 
-# Distribution / packaging
-# ------------------------
+# Distribution / packaging / coverage
+# -----------------------------------
 .Python
 venv/
 build/
@@ -28,7 +33,6 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-
 
 # pycharm stuff
 # -------------

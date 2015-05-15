@@ -2,7 +2,7 @@
 
 
 from unittest import TestCase
-from m5.settings import TEMP, DOWNLOADS
+from settings import TEMP, DOWNLOADS
 
 from os import listdir, remove
 from requests import Session

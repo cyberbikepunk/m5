@@ -3,7 +3,7 @@
 import os
 
 from unittest import TestCase
-from m5.user import User
+from user import User
 
 
 class TestUser(TestCase):

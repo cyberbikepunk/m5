@@ -4,9 +4,9 @@ from os.path import join, abspath, expanduser
 from sys import modules
 
 # Option flags
-DEBUG = False
+DEBUG = True
 POP = True
-OFFLINE = True
+OFFLINE = False
 
 # Program folders
 USER_DIR = join(expanduser('~'), '.m5', )

@@ -1,5 +1,18 @@
 #!/usr/bin/env python
-""" Run the m5 package from the command line. """
+"""
+WELCOME TO M5!
+
+examples:
+  m5 fetch                        fetch today's data...
+  m5 fetch -v                     ...with the verbose mode on
+  m5 fetch --since 21-02-2012     fetch data since the 21 Feb 2012
+  m5 visualize                    visualize today's data
+  m5 inspect                      "inspect" works like "visualize"
+  m5 visualize -year 2012         visualize 2012 data
+  m5 visualize -month 03-2014     visualize data for Mar 2014
+  m5 visualize -day 04-04-2015    visualize data for 4 Mar 2014
+  m5 visualize -h                 get help for "visualize"
+"""
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
 from sys import argv
@@ -12,20 +25,6 @@ from textwrap import dedent
 from inspector import inspect
 from visualizer import visualize
 from scraper import scrape
-
-examples = \
-    """
-    examples:
-      $ m5 fetch                        fetch today's data...
-      $ m5 fetch -v                     ...with the verbose mode on
-      $ m5 fetch --since 21-02-2012     fetch all data since the 21st February 2012
-      $ m5 visualize                    visualize today's data
-      $ m5 inspect                      "inspect" works exactly like "visualize"
-      $ m5 visualize -year 2012         visualize 2012 data
-      $ m5 visualize -month 03-2014     visualize data for the month of March 2014
-      $ m5 visualize -day 04-04-2015    visualize data for the 4th March 2014
-      4 m5 visualize -h                 print the help message for the "visualize" sub-command
-    """
 
 
 def date(date_string: str) -> Date:
@@ -69,7 +68,7 @@ def build_parser():
     """ Construct the command line parser. """
 
     parser = ArgumentParser(prog='m5',
-                            epilog=dedent(examples),
+                            description=dedent(__doc__),
                             formatter_class=RawDescriptionHelpFormatter)
 
     subparsers = parser.add_subparsers()
@@ -132,3 +131,5 @@ def apply_parser(parser):
 if __name__ == '__main__':
     p = build_parser()
     apply_parser(p)
+
+print(BREAK)

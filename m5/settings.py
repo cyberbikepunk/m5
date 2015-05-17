@@ -46,7 +46,7 @@ CENTER = '^'
 LEAP = '\n\n'
 SKIP = '\n'
 STEP = ''
-BREAK = '\n' + '-'*100 + '\n'
+BREAK = '\n' + '-'*79
 
 # Matplotlib settings
 PLOT_FONTSIZE = 14

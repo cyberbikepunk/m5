@@ -2,12 +2,15 @@
 
 from settings import LEAP, DEBUG
 from user import User
-from visualizer import Visualizer
 
 from pandas import DataFrame, isnull, merge
 from numpy import nan
 from numbers import Number
 from datetime import datetime
+
+
+class Visualizer():
+    pass
 
 
 class Inspector(Visualizer):

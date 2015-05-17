@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """ Run the m5 package from the command line. """
 
-
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
 from sys import argv
 from time import strptime
@@ -69,7 +68,7 @@ class Dispatch(Action):
 def build_parser():
     """ Construct the command line parser. """
 
-    parser = ArgumentParser(prog='m 5',
+    parser = ArgumentParser(prog='m5',
                             epilog=dedent(examples),
                             formatter_class=RawDescriptionHelpFormatter)
 

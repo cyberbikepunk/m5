@@ -17,8 +17,8 @@ examples:
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
 from sys import argv
 from time import strptime
-from datetime import date as Date
-from datetime import datetime as Datetime
+from datetime import date
+from datetime import datetime
 from calendar import monthrange
 from textwrap import dedent
 
@@ -27,44 +27,44 @@ from visualizer import visualize
 from scraper import scrape
 
 
-def date(date_string: str) -> Date:
+def _date(date_string: str) -> date:
     """ Convert a date string into a date object. """
     t = strptime(date_string, '%d-%m-%Y')
-    return Date(t.tm_year, t.tm_mon, t.tm_mday)
+    return date(t.tm_year, t.tm_mon, t.tm_mday)
 
 
-def day(date_string: str) -> tuple:
+def _day(date_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given day. """
     t = strptime(date_string, '%d-%m-%Y')
-    d1 = Datetime(t.tm_year, t.tm_mon, t.tm_mday)
-    d2 = Datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=23, minute=59)
+    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday)
+    d2 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=23, minute=59)
     return d1, d2
 
 
-def month(month_string: str) -> tuple:
+def _month(month_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given month. """
     t = strptime(month_string, '%m-%Y')
     nb_days = monthrange(t.tm_year, t.tm_mon)[1]
-    d1 = Datetime(t.tm_year, t.tm_mon, t.tm_mday)
-    d2 = Datetime(t.tm_year, t.tm_mon, nb_days, hour=23, minute=59)
+    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday)
+    d2 = datetime(t.tm_year, t.tm_mon, nb_days, hour=23, minute=59)
     return d1, d2
 
 
-def year(year_string: str) -> tuple:
+def _year(year_string: str) -> tuple:
     """ Return the first a last datetime objects of a given year. """
     t = strptime(year_string, '%Y')
-    d1 = Datetime(t.tm_year, 1, 1)
-    d2 = Datetime(t.tm_year, 12, 31, hour=23, minute=59)
+    d1 = datetime(t.tm_year, 1, 1)
+    d2 = datetime(t.tm_year, 12, 31, hour=23, minute=59)
     return d1, d2
 
 
-class Dispatch(Action):
+class _Dispatch(Action):
     def __call__(self, parser, namespace, parameter=None, option_string=None):
         """ Sub-commands get dispatched to homonymous functions. """
         namespace.dispatcher(parameter, option_string)
 
 
-def build_parser():
+def _build_parser():
     """ Construct the command line parser. """
 
     parser = ArgumentParser(prog='m5',
@@ -83,33 +83,33 @@ def build_parser():
 
     fetch_parser.add_argument('-since',
                               help='fetch all your data since that date',
-                              type=date,
-                              default=Date.today(),
+                              type=_date,
+                              default=date.today(),
                               dest='date',
-                              action=Dispatch)
+                              action=_Dispatch)
 
     show_group = show_parser.add_mutually_exclusive_group()
 
     show_group.add_argument('-year',
                             help='show a year of data, e.g. 2013',
-                            type=year,
+                            type=_year,
                             default=None,
                             dest='year',
-                            action=Dispatch)
+                            action=_Dispatch)
 
     show_group.add_argument('-month',
                             help='show a month of data, e.g. 03-2013',
-                            type=month,
+                            type=_month,
                             default=None,
                             dest='month',
-                            action=Dispatch)
+                            action=_Dispatch)
 
     show_group.add_argument('-day',
                             help='show a day of data, e.g. 02-03-2013',
-                            type=day,
+                            type=_day,
                             default=None,
                             dest='day',
-                            action=Dispatch)
+                            action=_Dispatch)
 
     parser.add_argument('-v',
                         help='run the program in verbose mode',
@@ -120,7 +120,7 @@ def build_parser():
     return parser
 
 
-def apply_parser(parser):
+def _apply_parser(parser):
     """ Running the script with no arguments prints the help message. """
     if len(argv) == 1:
         parser.print_help()
@@ -129,7 +129,5 @@ def apply_parser(parser):
 
 
 if __name__ == '__main__':
-    p = build_parser()
-    apply_parser(p)
-
-print(BREAK)
+    p = _build_parser()
+    _apply_parser(p)

@@ -1,20 +1,20 @@
 #!/usr/bin/env python
-"""
-WELCOME TO M5!
+""" WELCOME TO M5!
 
-examples:
-  m5 fetch                        fetch today's data...
-  m5 fetch -v                     ...with the verbose mode on
-  m5 fetch --since 21-02-2012     fetch data since the 21 Feb 2012
-  m5 visualize                    visualize today's data
-  m5 inspect                      "inspect" works like "visualize"
-  m5 visualize -year 2012         visualize 2012 data
-  m5 visualize -month 03-2014     visualize data for Mar 2014
-  m5 visualize -day 04-04-2015    visualize data for 4 Mar 2014
-  m5 visualize -h                 get help for "visualize"
+    usage examples:
+      m5                              print the help message
+      m5 fetch                        scrape today's data
+      m5 fetch --since 21-02-2012     scrape data since 21 Feb 2012
+      m5 show                         visualize today's data
+      m5 show -year 2012              visualize 2012 data
+      m5 show -month 03-2014          visualize data for Mar 2014
+      m5 show -day 04-04-2015         visualize data for 4 Mar 2014
+      m5 show -h                      print help for 'show'
+      m5 inspect                      'inspect' works just like 'show'
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
+from pprint import pprint
 from sys import argv
 from time import strptime
 from datetime import date
@@ -23,8 +23,23 @@ from calendar import monthrange
 from textwrap import dedent
 
 from inspector import inspect
-from visualizer import visualize
-from scraper import scrape
+from visualizer import visualize as show
+from scraper import scrape as fetch
+from settings import IS_TEST
+
+
+class _Dispatch(Action):
+    def __call__(self, parser, namespace, value=None, option=None):
+        """ Dispatch a sub-command to its homonymous function, unless it's a test. """
+
+        # TODO Tests should NOT mess up the way a module works
+        # But... if this is just a test we must prevent the module
+        # from calling more code and return information instead.
+        if IS_TEST:
+            setattr(namespace, self.dest, value)
+            return
+
+        namespace.dispatcher(value, self.dest)
 
 
 def _date(date_string: str) -> date:
@@ -36,7 +51,7 @@ def _date(date_string: str) -> date:
 def _day(date_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given day. """
     t = strptime(date_string, '%d-%m-%Y')
-    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday)
+    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=0, minute=0)
     d2 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=23, minute=59)
     return d1, d2
 
@@ -45,7 +60,7 @@ def _month(month_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given month. """
     t = strptime(month_string, '%m-%Y')
     nb_days = monthrange(t.tm_year, t.tm_mon)[1]
-    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday)
+    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=0, minute=0)
     d2 = datetime(t.tm_year, t.tm_mon, nb_days, hour=23, minute=59)
     return d1, d2
 
@@ -53,15 +68,9 @@ def _month(month_string: str) -> tuple:
 def _year(year_string: str) -> tuple:
     """ Return the first a last datetime objects of a given year. """
     t = strptime(year_string, '%Y')
-    d1 = datetime(t.tm_year, 1, 1)
+    d1 = datetime(t.tm_year, 1, 1, hour=0, minute=0)
     d2 = datetime(t.tm_year, 12, 31, hour=23, minute=59)
     return d1, d2
-
-
-class _Dispatch(Action):
-    def __call__(self, parser, namespace, parameter=None, option_string=None):
-        """ Sub-commands get dispatched to homonymous functions. """
-        namespace.dispatcher(parameter, option_string)
 
 
 def _build_parser():
@@ -77,8 +86,8 @@ def _build_parser():
     fetch_parser = subparsers.add_parser('fetch')
     inspect_parser = subparsers.add_parser('inspect')
 
-    fetch_parser.set_defaults(dispatcher=scrape)
-    show_parser.set_defaults(dispatcher=visualize)
+    fetch_parser.set_defaults(dispatcher=fetch)
+    show_parser.set_defaults(dispatcher=show)
     inspect_parser.set_defaults(dispatcher=inspect)
 
     fetch_parser.add_argument('-since',
@@ -111,23 +120,22 @@ def _build_parser():
                             dest='day',
                             action=_Dispatch)
 
-    parser.add_argument('-v',
-                        help='run the program in verbose mode',
-                        action='store_const',
-                        default=False,
-                        const=True)
-
     return parser
 
 
-def _apply_parser(parser):
-    """ Running the script with no arguments prints the help message. """
+def apply_parser(args=None):
+    """ Read the command line and dispatch the program to the function whose
+        name matches the sub-command. No sub-command? Print the help message.
+    """
+
+    parser = _build_parser()
+
     if len(argv) == 1:
         parser.print_help()
         exit(1)
-    parser.parse_args()
 
+    return parser.parse_args(args=args)
 
 if __name__ == '__main__':
-    p = _build_parser()
-    _apply_parser(p)
+    parsed_args = apply_parser()
+    pprint(vars(parsed_args))

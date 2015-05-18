@@ -8,6 +8,9 @@ DEBUG = False
 POP = True
 OFFLINE = True
 
+# Unit-tests autodetect
+IS_TEST = True
+
 # Program folders
 USER_DIR = join(expanduser('~'), '.m5', )
 PACKAGE_DIR = abspath(__file__ + '/../..')

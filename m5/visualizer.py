@@ -36,21 +36,11 @@ def _set_plotting_options():
 
 def _load_plz():
     """ Load Berlin postal code boundary data from file. """
-
-    # Although we specify only one file path,
-    # it seems that geopandas assumes that
-    # the following 3 files live in the same
-    # folder: SHP.shp, SHP.dbf and SHP.shx.
+    # Although we specify only one file path, it seems that geopandas assumes that
+    # the following 3 files live in the same folder: SHP.shp, SHP.dbf and SHP.shx.
     plz = GeoDataFrame.from_file(SHP_FILE)
     plz.set_index('PLZ99', inplace=True)
-    plz.sort()
-
-    if DEBUG:
-        print(plz, end=LEAP)
-        print(plz.describe(), end=LEAP)
-        print(plz.info(), end=LEAP)
-
-    return plz
+    return plz.sort()
 
 
 # Do at import time:
@@ -399,6 +389,7 @@ def visualize(time_window: tuple, option: str):
     elif option == '-month':
         MonthDashboard(data, time_window).make()
     elif option == '-day':
+        exit(0)
         DayDashboard(data, time_window).make()
 
 

@@ -14,7 +14,6 @@
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
-from pprint import pprint
 from sys import argv
 from time import strptime
 from datetime import date
@@ -28,13 +27,13 @@ from scraper import scrape as fetch
 from settings import IS_TEST
 
 
-class _Dispatch(Action):
+class _Dispatcher(Action):
     def __call__(self, parser, namespace, value=None, option=None):
         """ Dispatch a sub-command to its homonymous function, unless it's a test. """
 
         # TODO Tests should NOT mess up the way a module works
-        # But... if this is just a test we must prevent the module
-        # from calling more code and return information instead.
+        # We've set up a test trap, however, because we want to
+        # avoid calling more code and return information instead.
         if IS_TEST:
             setattr(namespace, self.dest, value)
             return
@@ -48,29 +47,33 @@ def _date(date_string: str) -> date:
     return date(t.tm_year, t.tm_mon, t.tm_mday)
 
 
+_EARLY = dict(hour=0, minute=0)
+_LATE = dict(hour=23, minute=59)
+
+
 def _day(date_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given day. """
     t = strptime(date_string, '%d-%m-%Y')
-    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=0, minute=0)
-    d2 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=23, minute=59)
-    return d1, d2
+    t1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, *_EARLY)
+    t2 = datetime(t.tm_year, t.tm_mon, t.tm_mday, *_LATE)
+    return t1, t2
 
 
 def _month(month_string: str) -> tuple:
     """ Return the first and the last datetime objects of a given month. """
     t = strptime(month_string, '%m-%Y')
     nb_days = monthrange(t.tm_year, t.tm_mon)[1]
-    d1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, hour=0, minute=0)
-    d2 = datetime(t.tm_year, t.tm_mon, nb_days, hour=23, minute=59)
-    return d1, d2
+    t1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, *_EARLY)
+    t2 = datetime(t.tm_year, t.tm_mon, nb_days, *_LATE)
+    return t1, t2
 
 
 def _year(year_string: str) -> tuple:
-    """ Return the first a last datetime objects of a given year. """
+    """ Return the first and last datetime objects of a given year. """
     t = strptime(year_string, '%Y')
-    d1 = datetime(t.tm_year, 1, 1, hour=0, minute=0)
-    d2 = datetime(t.tm_year, 12, 31, hour=23, minute=59)
-    return d1, d2
+    t1 = datetime(t.tm_year, 1, 1, *_EARLY)
+    t2 = datetime(t.tm_year, 12, 31, *_LATE)
+    return t1, t2
 
 
 def _build_parser():
@@ -95,7 +98,7 @@ def _build_parser():
                               type=_date,
                               default=date.today(),
                               dest='date',
-                              action=_Dispatch)
+                              action=_Dispatcher)
 
     show_group = show_parser.add_mutually_exclusive_group()
 
@@ -104,26 +107,26 @@ def _build_parser():
                             type=_year,
                             default=None,
                             dest='year',
-                            action=_Dispatch)
+                            action=_Dispatcher)
 
     show_group.add_argument('-month',
                             help='show a month of data, e.g. 03-2013',
                             type=_month,
                             default=None,
                             dest='month',
-                            action=_Dispatch)
+                            action=_Dispatcher)
 
     show_group.add_argument('-day',
                             help='show a day of data, e.g. 02-03-2013',
                             type=_day,
                             default=None,
                             dest='day',
-                            action=_Dispatch)
+                            action=_Dispatcher)
 
     return parser
 
 
-def apply_parser(args=None):
+def run(args=None):
     """ Read the command line and dispatch the program to the function whose
         name matches the sub-command. No sub-command? Print the help message.
     """
@@ -136,6 +139,6 @@ def apply_parser(args=None):
 
     return parser.parse_args(args=args)
 
+
 if __name__ == '__main__':
-    parsed_args = apply_parser()
-    pprint(vars(parsed_args))
+    run()

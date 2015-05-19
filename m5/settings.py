@@ -2,19 +2,23 @@
 
 from os.path import join, abspath, expanduser
 from sys import modules
+from inspect import stack
+from string import whitespace
 
 # Option flags
 DEBUG = False
 POP = True
 OFFLINE = True
 
-# Unit-tests autodetect
-IS_TEST = True
-
 # Program folders
 USER_DIR = join(expanduser('~'), '.m5', )
-PACKAGE_DIR = abspath(__file__ + '/../..')
-ASSETS_DIR = join(PACKAGE_DIR, 'assets')
+PROJECT_DIR = abspath(__file__ + '/../..')
+ASSETS_DIR = join(PROJECT_DIR, 'assets')
+PACKAGE_DIR = join(PROJECT_DIR, 'm5')
+TESTS_DIR = join(PACKAGE_DIR, 'tests')
+
+# Auto-detect if the code is run from a test
+IS_TEST = TESTS_DIR in whitespace.join([s[1] for s in stack()])
 
 # User folders
 OUTPUT_DIR = join(USER_DIR, 'output')
@@ -56,7 +60,7 @@ PLOT_FONTSIZE = 14
 FIGURE_SIZE = (18, 12)
 FIGURE_STYLE = 'default'
 FIGURE_FONT = 'Droid Sans'
-BACKGROUND_ALPHA = 0.1
+BACKGROUND_ALPHA = 0.
 
 
 def show_settings():

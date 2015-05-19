@@ -204,7 +204,7 @@ class StreetCloud(Chart):
     def _build_mask():
         original = misc.imread(MASK_FILE)
         flattened = original.sum(axis=2)
-        # The flattened image is the reverse of what we want.
+        # The flattened heat map is the reverse of what we want.
         invert_all = vectorize(lambda x: 0 if x > 0 else 1)
         return invert_all(flattened)
 

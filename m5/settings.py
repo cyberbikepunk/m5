@@ -1,9 +1,11 @@
 """ Global settings for the m5 package. """
+from datetime import timedelta
 
 from os.path import join, abspath, expanduser
 from sys import modules
 from inspect import stack
 from string import whitespace
+from datetime import datetime, date
 
 # Option flags
 DEBUG = False
@@ -61,6 +63,16 @@ FIGURE_SIZE = (18, 12)
 FIGURE_STYLE = 'default'
 FIGURE_FONT = 'Droid Sans'
 BACKGROUND_ALPHA = 0.
+
+# Main module and tests
+EARLY = dict(hour=0, minute=0)
+LATE = dict(hour=23, minute=59)
+BLINK = timedelta(minutes=0)
+TODAY = date.today()
+SINCE = date(2012, 2, 21)
+YEAR = datetime(2012, 1, 1, **EARLY), datetime(2012, 12, 31, **LATE)
+MONTH = datetime(2012, 3, 1, **EARLY), datetime(2012, 3, 31, **LATE)
+DAY = datetime(2012, 4, 4, **EARLY), datetime(2012, 4, 4, **LATE)
 
 
 def show_settings():

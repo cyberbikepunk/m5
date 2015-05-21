@@ -384,11 +384,11 @@ def visualize(time_window: tuple, option: str):
     data = user.db.joined
     print('Starting data visualization...')
 
-    if option == '-year':
+    if option == 'year':
         YearDashboard(data, time_window).make()
-    elif option == '-month':
+    elif option == 'month':
         MonthDashboard(data, time_window).make()
-    elif option == '-day':
+    elif option == 'day':
         exit(0)
         DayDashboard(data, time_window).make()
 

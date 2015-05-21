@@ -50,8 +50,8 @@ setup(name='m5fahrrad',
       packages=find_packages(exclude=['tests*']),
 
       # Miscellaneous files like data files that don't officially
-      # belong to a python package, i.e. a directory of python
-      # files including __init__.py, need to be included 'by hand'
+      # belong to the python package (a directory of python
+      # files including __init__.py) need to be included 'by hand'
       # in the MANIFEST file. Here we tell setuptools to use it!
       include_package_data=True,
 
@@ -82,4 +82,7 @@ setup(name='m5fahrrad',
                    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
                    'Operating System :: POSIX :: Linux',
                    'Programming Language :: Python :: 3',
-                   'Topic :: Artistic Software'])
+                   'Topic :: Artistic Software'],
+
+      # Use Nosetests instead if Unittests
+      test_suite='nose.collector')

@@ -1,17 +1,26 @@
 """ Global settings for the m5 package. """
+from datetime import timedelta
 
 from os.path import join, abspath, expanduser
 from sys import modules
+from inspect import stack
+from string import whitespace
+from datetime import datetime, date
 
 # Option flags
-DEBUG = True
+DEBUG = False
 POP = True
 OFFLINE = True
 
 # Program folders
 USER_DIR = join(expanduser('~'), '.m5', )
-PACKAGE_DIR = abspath(__file__ + '/../..')
-ASSETS_DIR = join(PACKAGE_DIR, 'assets')
+PROJECT_DIR = abspath(__file__ + '/../..')
+ASSETS_DIR = join(PROJECT_DIR, 'assets')
+PACKAGE_DIR = join(PROJECT_DIR, 'm5')
+TESTS_DIR = join(PACKAGE_DIR, 'tests')
+
+# Auto-detect if the code is run from a test
+IS_TEST = TESTS_DIR in whitespace.join([s[1] for s in stack()])
 
 # User folders
 OUTPUT_DIR = join(USER_DIR, 'output')
@@ -46,14 +55,24 @@ CENTER = '^'
 LEAP = '\n\n'
 SKIP = '\n'
 STEP = ''
-BREAK = '\n' + '-'*100 + '\n'
+BREAK = '\n' + '-'*79
 
 # Matplotlib settings
 PLOT_FONTSIZE = 14
 FIGURE_SIZE = (18, 12)
 FIGURE_STYLE = 'default'
 FIGURE_FONT = 'Droid Sans'
-BACKGROUND_ALPHA = 0.1
+BACKGROUND_ALPHA = 0.
+
+# Main module and tests
+EARLY = dict(hour=0, minute=0)
+LATE = dict(hour=23, minute=59)
+BLINK = timedelta(minutes=0)
+TODAY = date.today()
+SINCE = date(2012, 2, 21)
+YEAR = datetime(2012, 1, 1, **EARLY), datetime(2012, 12, 31, **LATE)
+MONTH = datetime(2012, 3, 1, **EARLY), datetime(2012, 3, 31, **LATE)
+DAY = datetime(2012, 4, 4, **EARLY), datetime(2012, 4, 4, **LATE)
 
 
 def show_settings():

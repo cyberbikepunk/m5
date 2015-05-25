@@ -423,8 +423,8 @@ class Reader:
 
     def _scrape_job(self, soup: Stamped) -> tuple:
         """ Fragment a web page (one job) and scrape it using bs4 and re modules.
-        The method takes a BeautifulSoup object and returns job details and addresses
-        in the form of dictionaries of field name/value pairs (values are strings).
+            The method takes a BeautifulSoup object and returns job details and addresses
+            in the form of dictionaries of field name/value pairs (values are strings).
         """
 
         assert soup is not None, 'Cannot scrape nothingness'

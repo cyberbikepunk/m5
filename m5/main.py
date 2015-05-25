@@ -127,7 +127,7 @@ def parse(args: list=None):
     return parser.print_help, dispatcher, options
 
 
-def _run(args: list=None):
+def _dispatch(args: list=None):
     """ Dispatch the program to the right place or print the help message. """
 
     helper, dispatcher, options = parse(args)
@@ -139,4 +139,4 @@ def _run(args: list=None):
 
 
 if __name__ == '__main__':
-    _run()
+    _dispatch()

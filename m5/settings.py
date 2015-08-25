@@ -1,11 +1,10 @@
 """ Global settings for the m5 package. """
-from datetime import timedelta
 
 from os.path import join, abspath, expanduser
 from sys import modules
 from inspect import stack
 from string import whitespace
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # Option flags
 DEBUG = False

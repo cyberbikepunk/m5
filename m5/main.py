@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 WELCOME TO M5!
 
@@ -7,55 +8,29 @@ usage examples:
   m5 fetch                        scrape today's data
   m5 fetch --since 21-02-2012     scrape data since 21 Feb 2012
   m5 show                         visualize today's data
-  m5 show -year 2012              visualize 2012 data
-  m5 show -month 03-2014          visualize data for Mar 2014
-  m5 show -day 04-04-2015         visualize data for 4 Mar 2014
-  m5 show -h                      print help for 'show'
-  m5 inspect                      'inspect' works just like 'show'
+  m5 show --year 2012             visualize data for the year 2012
+  m5 show --month 3               visualize data for the months of March
+  m5 show --day 4                 visualize data for the 4th of each month
+  m5 show -d 4 -m 3 -y 2012       visualize data for the March 4th 2012
+  m5 show --help                  print help for the show command
+  m5 check                        check the quality of the data (works just like show)
 """
+
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from time import strptime
 from datetime import date
-from datetime import datetime
-from calendar import monthrange
 from textwrap import dedent
 
-from .inspector import inspect
-from .visualizer import visualize as show
-from .scraper import scrape as fetch
-from .settings import EARLY, LATE
+from m5.inspector import inspect as check
+from m5.visualizer import visualize as show
+from m5.scraper import scrape as fetch
 
 
-def _since(date_string: str) -> date:
+def _since(date_string):
     """ Convert a date string into a date object. """
     t = strptime(date_string, '%d-%m-%Y')
     return date(t.tm_year, t.tm_mon, t.tm_mday)
-
-
-def _day(date_string) -> (datetime, datetime):
-    """ Return the first and the last datetime objects of a given day. """
-    t = strptime(date_string, '%d-%m-%Y')
-    t1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, **EARLY)
-    t2 = datetime(t.tm_year, t.tm_mon, t.tm_mday, **LATE)
-    return t1, t2
-
-
-def _month(month_string) -> (datetime, datetime):
-    """ Return the first and the last datetime objects of a given month. """
-    t = strptime(month_string, '%m-%Y')
-    nb_days = monthrange(t.tm_year, t.tm_mon)[1]
-    t1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, **EARLY)
-    t2 = datetime(t.tm_year, t.tm_mon, nb_days, **LATE)
-    return t1, t2
-
-
-def _year(year_string) -> (datetime, datetime):
-    """ Return the first and last datetime objects of a given year. """
-    t = strptime(year_string, '%Y')
-    t1 = datetime(t.tm_year, 1, 1, **EARLY)
-    t2 = datetime(t.tm_year, 12, 31, **LATE)
-    return t1, t2
 
 
 def _build_parser():
@@ -69,13 +44,13 @@ def _build_parser():
 
     show_parser = subparsers.add_parser('show')
     fetch_parser = subparsers.add_parser('fetch')
-    inspect_parser = subparsers.add_parser('inspect')
+    inspect_parser = subparsers.add_parser('check')
 
     fetch_parser.set_defaults(dispatcher=fetch)
     show_parser.set_defaults(dispatcher=show)
-    inspect_parser.set_defaults(dispatcher=inspect)
+    inspect_parser.set_defaults(dispatcher=check)
 
-    fetch_parser.add_argument('-since',
+    fetch_parser.add_argument('-s', '-since',
                               help='fetch all your data since that date',
                               type=_since,
                               default=date.today(),
@@ -83,19 +58,19 @@ def _build_parser():
 
     show_group = show_parser.add_mutually_exclusive_group()
 
-    show_group.add_argument('-year',
-                            help='show a year of data, e.g. 2013',
-                            type=_year,
+    show_group.add_argument('-y', '-year',
+                            help='show data for that year, e.g. 2013',
+                            type=int,
                             dest='year')
 
-    show_group.add_argument('-month',
-                            help='show a month of data, e.g. 03-2013',
-                            type=_month,
+    show_group.add_argument('-m', '-month',
+                            help='show data for that month, e.g. 03-2013',
+                            type=int,
                             dest='month')
 
-    show_group.add_argument('-day',
-                            help='show a day of data, e.g. 02-03-2013',
-                            type=_day,
+    show_group.add_argument('-d', '-day',
+                            help='show data for that day, e.g. 02-03-2013',
+                            type=int,
                             dest='day')
 
     return parser
@@ -117,7 +92,7 @@ def _extract(namespace):
     return dispatcher, options
 
 
-def parse(args: list=None):
+def _parse(args: list=None):
     """ Interpret the command line. """
 
     parser = _build_parser()
@@ -127,10 +102,10 @@ def parse(args: list=None):
     return parser.print_help, dispatcher, options
 
 
-def _dispatch(args: list=None):
+def dispatch(args: list=None):
     """ Dispatch the program to the right place or print the help message. """
 
-    helper, dispatcher, options = parse(args)
+    helper, dispatcher, options = _parse(args)
 
     if dispatcher:
         dispatcher(**options)
@@ -139,4 +114,4 @@ def _dispatch(args: list=None):
 
 
 if __name__ == '__main__':
-    _dispatch()
+    dispatch()

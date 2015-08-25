@@ -8,12 +8,14 @@ usage examples:
   m5 fetch                        scrape today's data
   m5 fetch --since 21-02-2012     scrape data since 21 Feb 2012
   m5 show                         visualize today's data
-  m5 show -year 2012              visualize 2012 data
-  m5 show -month 03-2014          visualize data for Mar 2014
-  m5 show -day 04-04-2015         visualize data for 4 Mar 2014
-  m5 show -h                      print help for 'show'
-  m5 inspect                      'inspect' works just like 'show'
+  m5 show --year 2012             visualize 2012 data
+  m5 show --month 3               visualize data for the months of March
+  m5 show --day 4                 visualize data for the 4th of each month
+  m5 show -d 4 -m 3 -y 2012       visualize data for the March 4th 2012
+  m5 show --help                  print help for the show command
+  m5 inspect                      inspect works just like show
 """
+
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from time import strptime
@@ -28,13 +30,13 @@ from m5.scraper import scrape as fetch
 from m5.settings import EARLY, LATE
 
 
-def _since(date_string: str) -> date:
+def _since(date_string):
     """ Convert a date string into a date object. """
     t = strptime(date_string, '%d-%m-%Y')
     return date(t.tm_year, t.tm_mon, t.tm_mday)
 
 
-def _day(date_string) -> (datetime, datetime):
+def _day(date_string):
     """ Return the first and the last datetime objects of a given day. """
     t = strptime(date_string, '%d-%m-%Y')
     t1 = datetime(t.tm_year, t.tm_mon, t.tm_mday, **EARLY)
@@ -42,7 +44,7 @@ def _day(date_string) -> (datetime, datetime):
     return t1, t2
 
 
-def _month(month_string) -> (datetime, datetime):
+def _month(month_string):
     """ Return the first and the last datetime objects of a given month. """
     t = strptime(month_string, '%m-%Y')
     nb_days = monthrange(t.tm_year, t.tm_mon)[1]
@@ -51,7 +53,7 @@ def _month(month_string) -> (datetime, datetime):
     return t1, t2
 
 
-def _year(year_string) -> (datetime, datetime):
+def _year(year_string):
     """ Return the first and last datetime objects of a given year. """
     t = strptime(year_string, '%Y')
     t1 = datetime(t.tm_year, 1, 1, **EARLY)

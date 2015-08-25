@@ -40,6 +40,18 @@ def _build_parser():
                             description=dedent(__doc__),
                             formatter_class=RawDescriptionHelpFormatter)
 
+    parser.add_argument('-v', '--verbose',
+                              help='switch the verbose mode on',
+                              type=bool,
+                              default=False,
+                              action='store_true')
+
+    parser.add_argument('-o', '--offline',
+                              help='switch the offline mode on',
+                              type=bool,
+                              default=False,
+                              action='store_true')
+
     subparsers = parser.add_subparsers()
 
     show_parser = subparsers.add_parser('show')
@@ -56,22 +68,20 @@ def _build_parser():
                               default=date.today(),
                               dest='since')
 
-    show_group = show_parser.add_mutually_exclusive_group()
+    show_parser.add_argument('-y', '-year',
+                             help='show data for that year, e.g. 2013',
+                             type=int,
+                             dest='year')
 
-    show_group.add_argument('-y', '-year',
-                            help='show data for that year, e.g. 2013',
-                            type=int,
-                            dest='year')
+    show_parser.add_argument('-m', '-month',
+                             help='show data for that month, e.g. 03-2013',
+                             type=int,
+                             dest='month')
 
-    show_group.add_argument('-m', '-month',
-                            help='show data for that month, e.g. 03-2013',
-                            type=int,
-                            dest='month')
-
-    show_group.add_argument('-d', '-day',
-                            help='show data for that day, e.g. 02-03-2013',
-                            type=int,
-                            dest='day')
+    show_parser.add_argument('-d', '-day',
+                             help='show data for that day, e.g. 02-03-2013',
+                             type=int,
+                             dest='day')
 
     return parser
 
@@ -93,8 +103,6 @@ def _extract(namespace):
 
 
 def _parse(args: list=None):
-    """ Interpret the command line. """
-
     parser = _build_parser()
     namespace = parser.parse_args(args=args)
     dispatcher, options = _extract(namespace)

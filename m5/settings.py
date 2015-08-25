@@ -1,15 +1,9 @@
-""" Global settings for the m5 package. """
+""" Settings for the m5 package. """
+
 
 from os.path import join, abspath, expanduser
 from sys import modules
-from inspect import stack
-from string import whitespace
-from datetime import datetime, date, timedelta
 
-# Option flags
-DEBUG = False
-POP = True
-OFFLINE = True
 
 # Program folders
 USER_DIR = join(expanduser('~'), '.m5', )
@@ -18,23 +12,10 @@ ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
 TESTS_DIR = join(PACKAGE_DIR, 'tests')
 
-# Auto-detect if the code is run from a test
-IS_TEST = TESTS_DIR in whitespace.join([s[1] for s in stack()])
-
-# User folders
-OUTPUT_DIR = join(USER_DIR, 'output')
-DATABASE_DIR = join(USER_DIR, 'db')
-DOWNLOADS = join(USER_DIR, 'downloads')
-TEMP_DIR = join(USER_DIR, 'temp')
-LOG_DIR = join(USER_DIR, 'log')
-
 # Assets files
 MASK_FILE = join(ASSETS_DIR, 'mask.png')
 SHP_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
 DBF_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
-
-# Log files
-SCRAPING_WARNING_LOG = join(LOG_DIR, 'elucidate.log')
 
 # Wordcloud parameters
 WORD_BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
@@ -48,7 +29,7 @@ LOGOUT_URL = 'http://bamboo-mec.de/index.php5'
 JOB_URL = 'http://bamboo-mec.de/ll_detail.php5'
 SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
 
-# Readability
+# Formatting
 FILL = '.'
 CENTER = '^'
 LEAP = '\n\n'
@@ -56,36 +37,29 @@ SKIP = '\n'
 STEP = ''
 BREAK = '\n' + '-'*79
 
+# Readability
+LOGGED_IN = 'erfolgreich'
+REDIRECT = 302
+EXIT = {'logout': '1'}
+
 # Matplotlib settings
 PLOT_FONTSIZE = 14
 FIGURE_SIZE = (18, 12)
 FIGURE_STYLE = 'default'
 FIGURE_FONT = 'Droid Sans'
-BACKGROUND_ALPHA = 0.
-
-# Main module and tests
-EARLY = dict(hour=0, minute=0)
-LATE = dict(hour=23, minute=59)
-BLINK = timedelta(minutes=0)
-TODAY = date.today()
-SINCE = date(2012, 2, 21)
-YEAR = datetime(2012, 1, 1, **EARLY), datetime(2012, 12, 31, **LATE)
-MONTH = datetime(2012, 3, 1, **EARLY), datetime(2012, 3, 31, **LATE)
-DAY = datetime(2012, 4, 4, **EARLY), datetime(2012, 4, 4, **LATE)
+BACKGROUND_ALPHA = 0.0
 
 
 def show_settings():
-    """ Echo all. """
+    """ Echo all settings. """
 
-    print('Settings for M5 package:', end=LEAP)
+    print('Current m5 settings:', end=LEAP)
     objects = dir(modules[__name__])
-    # As far as I know, only setting parameters are uppercase.
     parameters = [x for x in objects if x.isupper()]
 
     for p in parameters:
         value = getattr(modules[__name__], p)
-        print('{item} = {value!r}'
-              .format(item=p.rjust(20, ' '), value=value))
+        print('{item} = {value!r}'.format(item=p.rjust(20, ' '), value=value))
 
 
 if __name__ == '__main__':

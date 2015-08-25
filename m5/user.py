@@ -12,9 +12,9 @@ from pandas import merge
 from os import mkdir, chmod, listdir
 from numpy import int64
 
-from settings import DEBUG, LOGIN_URL, LOGOUT_URL, DATABASE_DIR, STEP, USER_DIR, OUTPUT_DIR
-from settings import TEMP_DIR, LOG_DIR, DOWNLOADS, OFFLINE, LEAP, SKIP
-from model import Model
+from m5.settings import DEBUG, LOGIN_URL, LOGOUT_URL, DATABASE_DIR, STEP, USER_DIR, OUTPUT_DIR
+from m5.settings import TEMP_DIR, LOG_DIR, DOWNLOADS, OFFLINE, LEAP, SKIP
+from m5.model import Model
 
 Database = namedtuple('Database', ['joined', 'orders', 'clients', 'checkins', 'checkouts'])
 

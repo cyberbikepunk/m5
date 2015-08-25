@@ -22,11 +22,11 @@ from re import sub
 from datetime import datetime
 from matplotlib.figure import Figure
 
-from user import User
-from settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
-from settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
-from settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
-from settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
+from m5.user import User
+from m5.settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
+from m5.settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
+from m5.settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
+from m5.settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
 
 
 def _set_plotting_options():

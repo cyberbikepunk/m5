@@ -1,7 +1,7 @@
 """  Check the quality and consistency of the database. """
 
-from settings import LEAP, DEBUG
-from user import User
+from m5.settings import LEAP, DEBUG
+from m5.user import User
 
 from pandas import DataFrame, isnull, merge
 from numpy import nan

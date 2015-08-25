@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 WELCOME TO M5!
 
@@ -21,10 +22,10 @@ from datetime import datetime
 from calendar import monthrange
 from textwrap import dedent
 
-from .inspector import inspect
-from .visualizer import visualize as show
-from .scraper import scrape as fetch
-from .settings import EARLY, LATE
+from m5.inspector import inspect
+from m5.visualizer import visualize as show
+from m5.scraper import scrape as fetch
+from m5.settings import EARLY, LATE
 
 
 def _since(date_string: str) -> date:

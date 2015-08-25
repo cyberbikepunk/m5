@@ -3,7 +3,7 @@
 
 import numpy as np
 import pandas as pd
-import fiona
+import fiona as fn
 import matplotlib.pyplot as plt
 
 from numpy import vectorize
@@ -221,7 +221,7 @@ def plz_chloropeth(data):
     berlin = postal_codes[(postal_codes > 10100) & (postal_codes < 14200)]
     frequencies = berlin.groupby(postal_codes).count().apply(log)
 
-    records = fiona.open(SHP_FILE)
+    records = fn.open(SHP_FILE)
     codes = [record['properties']['PLZ99_N'] for record in records]
     areas = MultiPolygon([shape(record['geometry']) for record in records])
     plz = dict(zip(codes, areas))

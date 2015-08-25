@@ -375,10 +375,8 @@ class YearDashboard(Dashboard):
         self.charts = [(CumulativeKm, 111)]
 
 
-def visualize(time_window: tuple, option: str):
+def visualize(day=None, month=None, year=None):
     """ Visualize data by day, month or year. """
-
-    assert time_window[0] <= time_window[1], 'Cannot return to the future'
 
     user = User(username='m-134', password='PASSWORD', db_file='m-134-v2.sqlite')
     data = user.db.joined

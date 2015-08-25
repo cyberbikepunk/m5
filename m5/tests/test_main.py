@@ -1,7 +1,5 @@
 """ Nosetests for the command line interface. """
 
-from nose.plugins.skip import SkipTest
-
 from main import parse
 from settings import BLINK, TODAY, SINCE, YEAR, MONTH, DAY
 from inspector import inspect
@@ -23,7 +21,7 @@ class TestParser():
         self.options = dict()
         self.answer = dict()
 
-    # FIXME Work-around compensates the behaviour of the nosetest generator.
+    # TODO Work-around compensates the behaviour of the nosetests interpreter.
     # This is very ugly. I have to pass the object method and the object state
     # seperately because nosetests instantiate a new object each time around.
     # I'm cheating python by calling the _checklist() method a static method.
@@ -55,6 +53,7 @@ class TestParserWithAllowedCommands(TestParser):
                {'dispatcher': show, 'options': {'month': MONTH}},
                {'dispatcher': show, 'options': {'day': DAY}}]
 
+    # See comments in parent class
     @staticmethod
     def _checklist(self):
         return all([self.dispatcher,
@@ -77,6 +76,3 @@ class TestParserWithAllowedCommands(TestParser):
             return all([a[0]-b[0] < BLINK, a[1]-b[1] < BLINK])
         elif option is 'since':
             return a-b < BLINK
-        else:
-            print('not found')
-            return False

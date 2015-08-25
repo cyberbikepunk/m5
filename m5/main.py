@@ -21,10 +21,10 @@ from datetime import datetime
 from calendar import monthrange
 from textwrap import dedent
 
-from inspector import inspect
-from visualizer import visualize as show
-from scraper import scrape as fetch
-from settings import EARLY, LATE
+from .inspector import inspect
+from .visualizer import visualize as show
+from .scraper import scrape as fetch
+from .settings import EARLY, LATE
 
 
 def _since(date_string: str) -> date:
@@ -127,7 +127,7 @@ def parse(args: list=None):
     return parser.print_help, dispatcher, options
 
 
-def _run(args: list=None):
+def _dispatch(args: list=None):
     """ Dispatch the program to the right place or print the help message. """
 
     helper, dispatcher, options = parse(args)
@@ -139,4 +139,4 @@ def _run(args: list=None):
 
 
 if __name__ == '__main__':
-    _run()
+    _dispatch()

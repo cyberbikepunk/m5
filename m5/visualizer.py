@@ -23,15 +23,16 @@ from datetime import datetime
 from matplotlib.figure import Figure
 
 from m5.user import User
-from m5.settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
-from m5.settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
+# from m5.settings import PLOT_FONTSIZE, FIGURE_STYLE, OUTPUT_DIR
+# from m5.settings import FIGURE_SIZE, FIGURE_FONT, DEBUG, FILL
 from m5.settings import SHP_FILE, LEAP, MASK_FILE, WORD_SOURCE, WORD_BLACKLIST
 from m5.settings import MAX_WORDS, HORIZONTAL_WORDS, BACKGROUND_ALPHA
 
 
 def _set_plotting_options():
-    pd.set_option('display.mpl_style', FIGURE_STYLE)
-    plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
+#     pd.set_option('display.mpl_style', FIGURE_STYLE)
+#     plt.rc('font', family=FIGURE_FONT, size=PLOT_FONTSIZE)
+    pass
 
 
 def _load_plz():

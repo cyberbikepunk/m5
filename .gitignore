@@ -1,6 +1,7 @@
 # Project specific
 # ----------------
 sandbox/
+m5.ini
 
 # Vagrant files
 # -------------

@@ -1,7 +1,7 @@
 # Project specific
 # ----------------
 sandbox/
-settings.ini
+m5.ini
 
 # Vagrant files
 # -------------

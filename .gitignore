@@ -1,6 +1,7 @@
 # Project specific
 # ----------------
 sandbox/
+settings.ini
 
 # Vagrant files
 # -------------

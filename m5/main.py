@@ -17,20 +17,25 @@ usage examples:
 """
 
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from time import strptime
+from configargparse import ArgumentParser, RawDescriptionHelpFormatter
+from logging import basicConfig, INFO, DEBUG, debug
 from datetime import date
 from textwrap import dedent
+from timestring import Date
 
 from m5.inspector import inspect as check
 from m5.visualizer import visualize as show
 from m5.scraper import scrape as fetch
+from m5.settings import PROJECT_DIR
 
 
-def _since(date_string):
-    """ Convert a date string into a date object. """
-    t = strptime(date_string, '%d-%m-%Y')
-    return date(t.tm_year, t.tm_mon, t.tm_mday)
+def setup_logger(verbose):
+    basicConfig(level=DEBUG if verbose else INFO,
+                format='M5 '
+                       '[%(asctime)s] '
+                       '[%(module)s] '
+                       '[%(funcName)s] '
+                       '%(message)s')
 
 
 def _build_parser():
@@ -38,19 +43,30 @@ def _build_parser():
 
     parser = ArgumentParser(prog='m5',
                             description=dedent(__doc__),
-                            formatter_class=RawDescriptionHelpFormatter)
+                            formatter_class=RawDescriptionHelpFormatter,
+                            default_config_files=[PROJECT_DIR + '/' + 'settings.ini'])
+
+    parser.add_argument('-u', '--username',
+                              help='username for the company website',
+                              type=str,
+                              default=None,
+                              dest='username')
+
+    parser.add_argument('-p', '--password',
+                              help='password for the company website',
+                              type=str,
+                              default=None,
+                              dest='password')
 
     parser.add_argument('-v', '--verbose',
                               help='switch the verbose mode on',
-                              type=bool,
                               default=False,
                               action='store_true')
 
     parser.add_argument('-o', '--offline',
-                              help='switch the offline mode on',
-                              type=bool,
-                              default=False,
-                              action='store_true')
+                        help='switch the offline mode on',
+                        default=False,
+                        action='store_true')
 
     subparsers = parser.add_subparsers()
 
@@ -64,7 +80,7 @@ def _build_parser():
 
     fetch_parser.add_argument('-s', '-since',
                               help='fetch all your data since that date',
-                              type=_since,
+                              type=Date,
                               default=date.today(),
                               dest='since')
 
@@ -98,6 +114,9 @@ def _extract(namespace):
                for (key, value)
                in vars(namespace).items()
                if value and key != 'dispatcher'}
+
+    setup_logger(options.pop('verbose'))
+    debug('Oprions = %s', str(options))
 
     return dispatcher, options
 

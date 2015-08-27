@@ -6,11 +6,11 @@ from sys import modules
 
 
 # Program folders
-USER_DIR = join(expanduser('~'), '.m5', )
+ROOT_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
-TESTS_DIR = join(PACKAGE_DIR, 'tests')
+FOLDER_NAMES = {'db', 'log', 'temp', 'output', 'dowwloads'}
 
 # Assets files
 MASK_FILE = join(ASSETS_DIR, 'mask.png')

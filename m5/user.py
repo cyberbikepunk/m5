@@ -5,63 +5,48 @@ from getpass import getpass
 from requests import Session as RemoteSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from os.path import isdir
+from os.path import isdir, join
 from os import mkdir
+from logging import debug
 
-from m5.settings import USER_DIR, LOGIN_URL, LOGOUT_URL, STEP, LOGGED_IN, REDIRECT, EXIT
+from m5.settings import ROOT_DIR, LOGIN_URL, LOGOUT_URL, STEP, LOGGED_IN, REDIRECT, EXIT, FOLDER_NAMES
 from m5.model import Model
 
 
 class User:
-    def __init__(self, username=None, password=None,
-                 offline=False, verbose=False):
-
+    def __init__(self, username=None, password=None, offline=False, verbose=False):
         self.username = username
         self.password = password
-
         self.offline = offline
-        self.vernose = verbose
-
-        self.user_dir = USER_DIR
-        self.db_dir = USER_DIR + '/db'
-        self.log_dir = USER_DIR + '/log'
-        self.temp_dir = USER_DIR + '/temp'
-        self.output_dir = USER_DIR + '/output'
-        self.downloads_dir = USER_DIR + '/downloads'
-
-        self.sqlite_uri = 'sqlite:///' + self.db_dir + '/' + username + '.sqlite'
+        self.verbose = verbose
+        self.folders = {}
+        self.sqlite_uri = ''
         self.engine = None
         self.model = None
-
         self.local_session = None
         self.remote_session = None
 
     def initialize(self):
+        self._check_install()
+        self._connect_to_db()
         if not self.offline:
             self.remote_session = RemoteSession()
             self._authenticate(self.username, self.password)
 
-        self._check_install()
-        self._connect_to_db()
-
     def _connect_to_db(self):
-        self.engine = create_engine(self.sqlite_uri, echo=DEBUG)
+        self.db = 'sqlite:///' + self.folders['db'] + '/' + self.username + '.db'
+        self.engine = create_engine(self.sqlite_uri, echo=self.verbose)
         self.model = Model.metadata.create_all(self.engine)
         self.local_session = sessionmaker(bind=self.engine)()
+        debug('Switched on database: %s', self.db)
 
     def _check_install(self):
-        folders = (self.user_dir,
-                   self.output_dir,
-                   self.db_dir,
-                   self.downloads_dir,
-                   self.temp_dir,
-                   self.log_dir)
-
-        for folder in folders:
-            if not isdir(folder):
-                mkdir(folder)
-
-        print('Created all user folders.')
+        for folder_name in FOLDER_NAMES:
+            folder_path = join(ROOT_DIR, self.username, folder_name)
+            self.folders[folder_name] = folder_path
+            if not isdir(folder_path):
+                mkdir(folder_path)
+                debug('Created folder: %s', folder_path)
 
     def _authenticate(self, username=None, password=None):
         """ Make recursive login attempts to the website. """

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" The command line API module for the M5 package. """
+""" The command line API for the M5 package. """
 
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -75,4 +75,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     setup_logger(args.verbose)
     info('Arguments = %s', args)
-    #scrape(**vars(args))
+    scrape(**vars(args))

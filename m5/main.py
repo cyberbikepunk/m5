@@ -4,20 +4,14 @@
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from logging import basicConfig, INFO, DEBUG, info
-from datetime import date
+from datetime import date, timedelta
 from textwrap import dedent
 from time import strptime
 
-from m5.scraper import scrape
-
-
-def setup_logger(verbose):
-    basicConfig(level=DEBUG if verbose else INFO,
-                format='M5 '
-                       '[%(asctime)s] '
-                       '[%(module)s] '
-                       '[%(funcName)s] '
-                       '%(message)s')
+from m5.user import User
+from m5.spider import Downloader
+from m5.pipeline import Packager
+from m5.scraper import Reader
 
 
 def build_parser():
@@ -60,6 +54,15 @@ def build_parser():
     return p
 
 
+def setup_logger(verbose):
+    basicConfig(level=DEBUG if verbose else INFO,
+                format='M5 '
+                       '[%(asctime)s] '
+                       '[%(module)s] '
+                       '[%(funcName)s] '
+                       '%(message)s')
+
+
 def since(date_string):
     t = strptime(date_string, '%d-%m-%Y')
     day = date(t.tm_year, month=t.tm_mon, day=t.tm_mday)
@@ -68,6 +71,43 @@ def since(date_string):
         raise ValueError
 
     return day
+
+
+def factory(**options):
+    u = User(**options)
+    d = Downloader(u.remote_session)
+    s = Reader()
+    p = Packager()
+    a = Archiver(u.local_session)
+    return u, d, s, p, a
+
+
+def scrape(**options):
+    """
+    Scrape user data from the company website, process it
+    as best as we can and store it inside the local database.
+    """
+
+    info('Starting the data scraping process.')
+
+    start_date = options.pop('since')
+    period = date.today() - start_date
+    days = range(period.days)
+
+    u, d, s, p, a = factory(**options)
+    u.initialize()
+
+    for day in days:
+        date_ = start_date + timedelta(days=day)
+        webpage = d.download(date_)
+
+        if webpage:
+            items = s.scrape(webpage)
+            tables = p.package(items)
+            a.archive(tables)
+
+        info('Processed {n}/{N} ({percent}%).'.
+             format(n=day, N=len(days), percent=int((day+1)/len(days)*100)))
 
 
 if __name__ == '__main__':

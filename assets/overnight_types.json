@@ -1,0 +1,11 @@
+[
+  ["Stadtkurier", "city_tour"],
+  ["Stadt Stopp(s)", "extra_stops"],
+  ["OV Ex Nat PU", "overnight"],
+  ["ON Ex Nat Del.", "overnight"],
+  ["OV EcoNat PU", "overnight"],
+  ["OV Ex Int PU", "overnight"],
+  ["ON Int Exp Del", "overnight"],
+  ["Empfangsbest\\u00c3\\u00a4t.", "fax_confirm"],
+  ["Wartezeit min.", "waiting_time"]
+]

@@ -69,7 +69,7 @@ class TestDownloader(TestCase):
         self.day = date(2014, random_month, random_day)
 
         print('Testing file download for %s.' % str(self.day))
-        soups = m.download(self.day)
+        soups = m.download_one_day(self.day)
 
         if not soups:
             # No jobs on that day... try again

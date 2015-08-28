@@ -1,123 +1,114 @@
-from os import path
+""" The spider crawls the company website and downloads webpages showing user data. """
+
+
+from os.path import join
 from os.path import isfile
-from datetime import date, timedelta
-from requests import Session as RemoteSession
+from datetime import date
 from bs4 import BeautifulSoup
 from re import findall
+from collections import namedtuple
+from logging import info
+
+from m5.settings import JOB_QUERY_URL, SUMMARY_URL, JOB_FILENAME
 
 
-from m5.settings import DEBUG, DOWNLOADS, SCRAPING_WARNING_LOG, JOB_URL, BREAK, SUMMARY_URL, OFFLINE
+Stamped = namedtuple('Stamped', ['stamp', 'data'])
+Stamp = namedtuple('Stamp', ['user', 'date', 'uuid'])
 
 
-class Downloader():
-    """ The Downloader class fetches html files from the remote server. """
-
-    def __init__(self, remote_session: RemoteSession, overwrite: bool=None):
-        assert OFFLINE is False, 'Turn the OFFLINE flag off (in the settings module).'
-        self._overwrite = overwrite
-        self._remote_session = remote_session
+class Spider(object):
+    def __init__(self, username=None, session=None, offline=None, downloads=None):
+        self._username = username
+        self._downloads = downloads
+        self._offline = offline
+        self._session = session
         self._stamp = None
 
-    def bulk_download(self, start_date: date):
-        delta = date.today() - start_date
-        for d in range(delta.days):
-            self.download(start_date + timedelta(days=d))
-
-    def download(self, day: date) -> list:
-        """ Download the web-page for each job on that day. Save it and and return a
-        list of beautiful soup objects. Serve from cache whenever it's possible.
+    def download_one_day(self, day):
+        """
+        Download the webpages for that day. Save them to file and and return
+        a list of beautiful soup objects. Do not download things twice: serve
+        webpages from cache if they are available.
         """
 
         assert isinstance(day, date), 'Argument must be a date object'
         assert day <= date.today(), 'Cannot return to the future.'
 
-        # Resets all object properties
-        self._stamp = Stamp(day, 'NO_JOBS')
+        self._stamp = Stamp(self._username, day, 'NO_JOBS')
 
-        if self._is_hopeless:
+        if self._has_no_jobs:
             return None
 
-        uuids = self._scrape_uuids(day)
+        uuids = self._scrape_job_uuids(day)
         soups = list()
 
         if not uuids:
             soups = None
-            if DEBUG:
-                print('No jobs to download on {day}.'.format(day=str(day)))
+            info('No jobs to download on %s', day)
         else:
             for i, uuid in enumerate(uuids):
-                self._stamp = Stamp(day, uuid)
+                self._stamp.uuid = uuid
 
-                if self._is_cached and not self._overwrite:
+                if self._job_is_cached:
                     soup = self._load_job()
                     verb = 'Loaded'
-                else:
-                    soup = self._get_job()
+                elif not self._offline:
+                    soup = self._get_one_job()
                     self._save_job(soup)
                     verb = 'Downloaded'
+                else:
+                    soup = None
+                    verb = 'Skipped'
 
-                if DEBUG:
-                    print('{verb} {n}/{N}. {url}'.
-                          format(verb=verb, n=i+1, N=len(uuids), url=self._job_url))
+                info('%s %s/%s: %s', verb, i+1, len(uuids), self._job_url)
 
-                soups.append(Stamped(self._stamp, soup))
+                if soup:
+                    soups.append(Stamped(self._stamp, soup))
 
         return soups
 
-    def _scrape_uuids(self, day: date) -> set:
-        """ Return uuid request parameters for each job by scraping the summary page. """
+    def _scrape_job_uuids(self, day):
+        """
+        Scrape the uuid query parameter for all jobs
+        on a given day by scraping the summary webpage.
+        The so called uuids are actually 7 digit numbers.
+        """
 
-        url = SUMMARY_URL
-        payload = {'status': 'delivered', 'datum': day.strftime('%d.%m.%Y')}
-        response = self._remote_session.get(url, params=payload)
-
-        # The so called 'uuids' are actually 7 digit numbers.
         pattern = 'uuid=(\d{7})'
+        payload = {'status': 'delivered', 'datum': day.strftime('%d.%m.%Y')}
+        response = self._session.get(SUMMARY_URL, params=payload)
         jobs = findall(pattern, response.text)
+
         return set(jobs)
 
-    def _get_job(self) -> BeautifulSoup:
-        """ Fetch the web-page for that day and return a beautiful soup. """
-
-        url = JOB_URL
-        payload = {'status': 'delivered',
-                   'uuid': self._stamp.uuid,
-                   'datum': self._stamp.date.strftime('%d.%m.%Y')}
-
-        response = self._remote_session.get(url, params=payload)
-        return BeautifulSoup(response.text)
+    def _get_one_job(self):
+        return BeautifulSoup(self._session.get(self._job_url).text)
 
     @property
-    def _is_hopeless(self):
-        """ True if we already know that the day contains no jobs. """
-        # We've put an empty file stamped 'NO_JOBS' inside the downloads directory.
-        return self._is_cached
+    def _job_filepath(self):
+        return join(self._downloads, JOB_FILENAME.format(date=self._stamp.date.strftime('%Y-%m-%d'),
+                                                         uuid=self._stamp.uuid))
 
     @property
-    def _filepath(self) -> str:
-        """ Where a job's html file is saved. """
-        filename = '%s-uuid-%s.html' % (self._stamp.date.strftime('%Y-%m-%d'), self._stamp.uuid)
-        return path.join(DOWNLOADS, filename)
+    def _job_url(self):
+        return JOB_QUERY_URL.format(uuid=self._stamp.uuid,
+                                    date=self._stamp.date.strftime('%d.%m.%Y'))
 
     @property
-    def _job_url(self) -> bool:
-        """ Return the job url for a given day and uuid. """
-        return 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'\
-            .format(uuid=self._stamp.uuid, date=self._stamp.date.strftime('%d.%m.%Y'))
-
-    @property
-    def _is_cached(self) -> bool:
-        """ True if the html file is found locally. """
-        return True if isfile(self._filepath) else False
+    def _job_is_cached(self):
+        return True if isfile(self._job_filepath) else False
 
     def _save_job(self, soup):
-        """ Prettify the soup and save it to file. """
-        with open(self._filepath, 'w+') as f:
+        with open(self._job_filepath, 'w+') as f:
             f.write(soup.prettify())
 
-    def _load_job(self) -> BeautifulSoup:
-        """ Load an html file and return a beautiful soup. """
-        with open(self._filepath, 'r') as f:
+    def _load_job(self):
+        with open(self._job_filepath, 'r') as f:
             html = f.read()
         return BeautifulSoup(html)
+
+    # If we have already tried to download data for that day
+    # and found there was nothing, there will be an empty file
+    # yyyy-mm-dd-uuid-NO_JOBS.html in the downloads folder.
+    _has_no_jobs = _job_is_cached
 

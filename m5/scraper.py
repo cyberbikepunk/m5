@@ -4,12 +4,12 @@
 from contextlib import redirect_stdout
 from os.path import join
 from re import match
-from collections import namedtuple
 from json import loads
 from logging import debug
 
 from m5.settings import TAGS_FILE, BLUEPRINT_FILE, OVERNIGHTS_FILE
-from m5.settings import BREAK, JOB_URL_QUERY_FORMAT, OUTPUT_DIR, REPORT_MESSAGE
+from m5.settings import BREAK, JOB_QUERY_URL, OUTPUT_DIR, FAILURE_REPORT
+from m5.spider import Stamp, Stamped
 
 
 # Notes on the scraping strategy:
@@ -24,10 +24,6 @@ from m5.settings import BREAK, JOB_URL_QUERY_FORMAT, OUTPUT_DIR, REPORT_MESSAGE
 # we use regex extensively and return to the same place
 # several times if necessary. The goal is to end up with
 # a decent set of data.
-
-
-Stamped = namedtuple('Stamped', ['stamp', 'data'])
-Stamp = namedtuple('Stamp', ['date', 'uuid', 'user'])
 
 
 with open(OVERNIGHTS_FILE) as f:
@@ -56,13 +52,13 @@ def scrape_one_day(soups):
         fields = Stamped(soup.stamp, (job, addresses))
         jobs.append(fields)
 
-        debug('(%s/%s) Scraped: %s', len(soups), i+1, job_url_query)
+        debug('(%s/%s) Scraped: %s', len(soups), i+1, job_query_url)
 
     return jobs
 
 
-def job_url_query(soup):
-    JOB_URL_QUERY_FORMAT.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
+def job_query_url(soup):
+    JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
 
 
 def _scrape_one_job(soup):
@@ -156,11 +152,11 @@ def _report_failure(stamp, field_name, blueprint, fragment, tag):
     the scraping went wrong and the reason why it went wrong.
     """
 
-    report_filepath = join(OUTPUT_DIR, stamp.user, job_url_query(stamp))
+    report_filepath = join(OUTPUT_DIR, stamp.user, job_query_url(stamp))
 
     with open(report_filepath, 'a') as rf:
         with redirect_stdout(rf):
-            print(REPORT_MESSAGE.format(date=stamp.date,
+            print(FAILURE_REPORT.format(date=stamp.date,
                                         uuid=stamp.uuid,
                                         field=field_name,
                                         nb=blueprint['line_nb'],

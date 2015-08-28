@@ -26,12 +26,12 @@ class User:
         self.sqlite_uri = None
         self.engine = None
         self.model = None
-        self.local_session = None
-        self.remote_session = None
+        self.db_session = None
+        self.web_session = None
 
     def initialize(self):
         if not self.offline:
-            self.remote_session = RemoteSession()
+            self.web_session = RemoteSession()
             self._authenticate(self.username, self.password)
 
         self._check_install()
@@ -42,7 +42,7 @@ class User:
 
         self.engine = create_engine(self.sqlite_uri, echo=self.verbose)
         self.model = Model.metadata.create_all(self.engine)
-        self.local_session = sessionmaker(bind=self.engine)()
+        self.db_session = sessionmaker(bind=self.engine)()
 
         debug('Switched on database: %s', self.db)
 
@@ -62,7 +62,7 @@ class User:
             self.password = getpass('Enter password: ')
 
         credentials = {'username': self.username, 'password': self.password}
-        response = self.remote_session.post(LOGIN_URL, credentials)
+        response = self.web_session.post(LOGIN_URL, credentials)
 
         if LOGGED_IN not in response.text:
             self._authenticate(None, None)
@@ -71,11 +71,11 @@ class User:
 
     def logout(self):
         if not self.offline:
-            response = self.remote_session.get(LOGOUT_URL, params=EXIT)
+            response = self.web_session.get(LOGOUT_URL, params=EXIT)
 
             if response.history[0].status_code == REDIRECT:
                 info('Logged out from the remote server.')
-            self.remote_session.close()
+            self.web_session.close()
 
         exit(0)
 

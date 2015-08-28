@@ -75,10 +75,10 @@ def since(date_string):
 
 def factory(**options):
     u = User(**options)
-    d = Downloader(u.remote_session)
+    d = Downloader(u.web_session)
     s = Reader()
     p = Packager()
-    a = Archiver(u.local_session)
+    a = Archiver(u.db_session)
     return u, d, s, p, a
 
 
@@ -99,7 +99,7 @@ def scrape(**options):
 
     for day in days:
         date_ = start_date + timedelta(days=day)
-        webpage = d.download(date_)
+        webpage = d.download_one_day(date_)
 
         if webpage:
             items = s.scrape(webpage)

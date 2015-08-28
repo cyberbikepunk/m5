@@ -1,0 +1,7 @@
+{
+  "client": { "name": "h4", "attrs": null},
+  "prices": { "name": "tbody", "attrs": null},
+  "address": {"name": "div", "attrs": {"data-collapsed": "true"}},
+  "itinerary": {"name": "p", "attrs": null},
+  "header": {"name": "h2", "attrs": null}
+}

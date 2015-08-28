@@ -6,16 +6,19 @@ from sys import modules
 
 
 # Program folders
-ROOT_DIR = join(expanduser('~'), '.m5', )
+OUTPUT_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
-FOLDER_NAMES = {'db', 'log', 'temp', 'output', 'dowwloads'}
+FOLDER_NAMES = {'db', 'log', 'charts', 'dowwloads'}
 
 # Assets files
 MASK_FILE = join(ASSETS_DIR, 'mask.png')
 SHP_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
 DBF_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
+BLUEPRINT_FILE = join(ASSETS_DIR, 'scraping_blueprints.json')
+TAGS_FILE = join(ASSETS_DIR, 'webpage_tags.json')
+OVERNIGHTS_FILE = join(ASSETS_DIR, 'overnight_types.json')
 
 # Wordcloud parameters
 WORD_BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
@@ -28,6 +31,10 @@ LOGIN_URL = 'http://bamboo-mec.de/ll.php5'
 LOGOUT_URL = 'http://bamboo-mec.de/index.php5'
 JOB_URL = 'http://bamboo-mec.de/ll_detail.php5'
 SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
+
+# LONG STRINGS
+JOB_URL_QUERY_FORMAT = 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'
+REPORT_MESSAGE = '{date}-{uuid}: Failed to scrape {field} on line {nb} inside {tag}.'
 
 # Formatting
 FILL = '.'

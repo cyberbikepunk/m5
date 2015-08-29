@@ -1,28 +1,133 @@
 """ The pipeline module processes raw data from the scraper and stores it inside the database. """
 
 
+from logging import warning
 from geopy import Nominatim
 from datetime import datetime
 from time import strptime
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.session import Session as LocalSession
 
-
-from m5.settings import DEBUG, DOWNLOADS, SCRAPING_WARNING_LOG, JOB_URL, BREAK, SUMMARY_URL, OFFLINE
 from m5.model import Checkin, Checkpoint, Client, Order
 
 
-def process():
-    p = Pipeline()
+def unserialize(name, value):
+    return 
 
+
+def geocode(address):
+    return address
+
+
+def process(items, session):
+    """
+    Push the raw data through the processing pipeline.
+    Fields get cleaned-up and addresses get geocoded.
+    """
+
+    for item in items:
+        p = Pipeline(item, session)
+
+        for field_key, field_value in p.job.items():
+            unserialize(field_key, field_value)
+
+        for address in p.addresses:
+            for field_key, field_value in address.items():
+                unserialize(field_key, field_value)
+            geocode(address)
+
+        p.package()
+        p.archive()
 
 
 class Pipeline(object):
-    def __init__(self):
+    def __init__(self, item, session):
+        self.item = item
+        self.session = session
+
+        self.day = item.stamp.day
+        self.uuid = item.stamp.uuid
+        self.job = item.data.job
+        self.addresses = item.data.addresses
+
+        self.clients = []
+        self.orders = []
+        self.checkpoints = []
+        self.checkins = []
+
+    def package(self):
         pass
 
-    for item in items:
+    def archive(self):
+        for table in self.tables:
+            for row in table:
+                try:
+                    self.session.merge(row)
+                    self.session.commit()
+                except IntegrityError:
+                    self.session.rollback()
+                    warning('Item already exists: %s', row)
+                else:
+                    raise DatabaseError('Something happened with the database')
 
+    @property
+    def tables(self):
+        return self.clients, self.orders, self.checkins, self.checkpoints
+
+
+def _unserialise(type_cast: type, raw_value: str):
+    """ Dynamically type-cast raw strings returned by the
+    scraper, with a twist: empty and None return None.
+    """
+
+    # The point is that the database will refuse to add a row
+    # if a non-nullable column gets the value None. That keeps the
+    # database clean. The other variants of this function do the same.
+    if raw_value in (None, ''):
+        return raw_value
+    else:
+        return type_cast(raw_value)
+
+
+def _unserialise_purpose(raw_value: str):
+    """ This is a dirty fix """
+    if raw_value == 'Abholung':
+        return 'pickup'
+    elif raw_value == 'Zustellung':
+        return 'dropoff'
+    else:
+        return None
+
+
+def _unserialise_timestamp(day, raw_time: str):
+    """ This is a dirty fix """
+    if raw_time in ('', None):
+        return None
+    else:
+        t = strptime(raw_time, '%H:%M')
+        return datetime(day.year,
+                        day.month,
+                        day.day,
+                        hour=t.tm_hour,
+                        minute=t.tm_min)
+
+
+def _unserialise_type(raw_value: str):
+    """ This is a dirty fix """
+    if raw_value == 'OV':
+        return 'overnight'
+    elif raw_value is 'Ladehilfe':
+        return 'help'
+    elif raw_value == 'Stadtkurier':
+        return 'city_tour'
+    else:
+        return None
+
+def _unserialise_float(raw_price: str):
+    """ This is a dirty fix """
+    if raw_price in (None, ''):
+        return None
+    else:
+        return float(raw_price.replace(',', '.'))
 
 
 def package(serial_items):

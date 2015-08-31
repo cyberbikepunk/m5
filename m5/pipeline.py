@@ -1,7 +1,8 @@
 """ The pipeline module processes raw data from the scraper and stores it inside the database. """
 
 
-from logging import warning
+from collections import namedtuple
+from logging import warning, debug
 from geopy import Nominatim
 from datetime import datetime
 from time import strptime
@@ -10,100 +11,49 @@ from sqlalchemy.exc import IntegrityError
 from m5.model import Checkin, Checkpoint, Client, Order
 
 
-def unserialize(name, value):
-    return 
+Tables = namedtuple('Tables', ['users',
+                               'clients',
+                               'orders',
+                               'checkins',
+                               'checkpoints'])
 
 
-def geocode(address):
-    return address
+def boolean(value):
+    if value:
+        return bool(value)
 
 
-def process(items, session):
-    """
-    Push the raw data through the processing pipeline.
-    Fields get cleaned-up and addresses get geocoded.
-    """
-
-    for item in items:
-        p = Pipeline(item, session)
-
-        for field_key, field_value in p.job.items():
-            unserialize(field_key, field_value)
-
-        for address in p.addresses:
-            for field_key, field_value in address.items():
-                unserialize(field_key, field_value)
-            geocode(address)
-
-        p.package()
-        p.archive()
+def decimal(value):
+    if value:
+        return float(value.replace(',', '.'))
 
 
-class Pipeline(object):
-    def __init__(self, item, session):
-        self.item = item
-        self.session = session
-
-        self.day = item.stamp.day
-        self.uuid = item.stamp.uuid
-        self.job = item.data.job
-        self.addresses = item.data.addresses
-
-        self.clients = []
-        self.orders = []
-        self.checkpoints = []
-        self.checkins = []
-
-    def package(self):
-        pass
-
-    def archive(self):
-        for table in self.tables:
-            for row in table:
-                try:
-                    self.session.merge(row)
-                    self.session.commit()
-                except IntegrityError:
-                    self.session.rollback()
-                    warning('Item already exists: %s', row)
-                else:
-                    raise DatabaseError('Something happened with the database')
-
-    @property
-    def tables(self):
-        return self.clients, self.orders, self.checkins, self.checkpoints
+def number(value):
+    if value:
+        return int(value)
 
 
-def _unserialise(type_cast: type, raw_value: str):
-    """ Dynamically type-cast raw strings returned by the
-    scraper, with a twist: empty and None return None.
-    """
-
-    # The point is that the database will refuse to add a row
-    # if a non-nullable column gets the value None. That keeps the
-    # database clean. The other variants of this function do the same.
-    if raw_value in (None, ''):
-        return raw_value
-    else:
-        return type_cast(raw_value)
+def text(value):
+    if value:
+        return str(value)
 
 
-def _unserialise_purpose(raw_value: str):
-    """ This is a dirty fix """
-    if raw_value == 'Abholung':
-        return 'pickup'
-    elif raw_value == 'Zustellung':
-        return 'dropoff'
-    else:
-        return None
+def purpose(value):
+    if value:
+        return {'Abholung': 'purpose',
+                'Zustellung': 'dropoff'}[value]
 
 
-def _unserialise_timestamp(day, raw_time: str):
-    """ This is a dirty fix """
-    if raw_time in ('', None):
-        return None
-    else:
-        t = strptime(raw_time, '%H:%M')
+def type_(value):
+    if value:
+        return {'OV': 'overnight',
+                'Ladehilfe': 'service',
+                'Stadtkurier': 'city_tour'}[value]
+
+
+def timestamp(day, time):
+    if day and time:
+        t = strptime(time, '%H:%M')
         return datetime(day.year,
                         day.month,
                         day.day,
@@ -111,221 +61,130 @@ def _unserialise_timestamp(day, raw_time: str):
                         minute=t.tm_min)
 
 
-def _unserialise_type(raw_value: str):
-    """ This is a dirty fix """
-    if raw_value == 'OV':
-        return 'overnight'
-    elif raw_value is 'Ladehilfe':
-        return 'help'
-    elif raw_value == 'Stadtkurier':
-        return 'city_tour'
-    else:
-        return None
-
-def _unserialise_float(raw_price: str):
-    """ This is a dirty fix """
-    if raw_price in (None, ''):
-        return None
-    else:
-        return float(raw_price.replace(',', '.'))
-
-
-def package(serial_items):
+def archive(tables, session):
     """
-    In goes raw data (strings) as returned by the scraper, out comes
-    type-casted data, packaged as tables digestable by the database.
-    """
-
-    assert serial_items is not None, 'Cannot package nothing'
-
-    clients = list()
-    orders = list()
-    checkpoints = list()
-    checkins = list()
-
-    for serial_item in serial_items:
-
-        day = serial_item[0][0]
-        uuid = serial_item[0][1]
-        job_details = serial_item[1][0]
-        addresses = serial_item[1][1]
-
-        client = Client(**{'client_id': _unserialise(int, job_details['client_id']),
-                           'name': _unserialise(str, job_details['client_name'])})
-        order = Order(**{'order_id': _unserialise(int, job_details['order_id']),
-                         'client_id': _unserialise(int, job_details['client_id']),
-                         'uuid': int(uuid),
-                         'date': day,
-                         'distance': _unserialise_float(job_details['km']),
-                         'cash': _unserialise(bool, job_details['cash']),
-                         'city_tour': _unserialise_float(job_details['city_tour']),
-                         'extra_stops': _unserialise_float(job_details['extra_stops']),
-                         'overnight': _unserialise_float(job_details['overnight']),
-                         'fax_confirm': _unserialise_float(job_details['fax_confirm']),
-                         'waiting_time': _unserialise_float(job_details['waiting_time']),
-                         'type': _unserialise_type(job_details['type'])})
-
-        clients.append(client)
-        orders.append(order)
-
-        for address in addresses:
-            geocoded = _geocode(address)
-
-            checkpoint = Checkpoint(**{'checkpoint_id': geocoded['osm_id'],
-                                       'display_name': geocoded['display_name'],
-                                       'lat': geocoded['lat'],
-                                       'lon': geocoded['lon'],
-                                       'street': _unserialise(str, address['address']),
-                                       'city': _unserialise(str, address['city']),
-                                       'postal_code': _unserialise(int, address['postal_code']),
-                                       'company': _unserialise(str, address['company'])})
-            checkin = Checkin(**{'checkin_id': _hash_timestamp(day, address['timestamp']),
-                                 'checkpoint_id': geocoded['osm_id'],
-                                 'order_id': _unserialise(int, job_details['order_id']),
-                                 'timestamp': _unserialise_timestamp(day, address['timestamp']),
-                                 'purpose': _unserialise_purpose(address['purpose']),
-                                 'after_': _unserialise_timestamp(day, address['after']),
-                                 'until': _unserialise_timestamp(day, address['until'])})
-
-            checkpoints.append(checkpoint)
-            checkins.append(checkin)
-
-        print('Packaged {day}-uuid-{uuid}.'.format(day=str(day), uuid=uuid))
-
-    # Does order matters when I commit?
-    return Tables(clients, orders, checkpoints, checkins)
-
-
-def _geocode(raw_address: dict) -> dict:
-    """ Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
-    The returned osm_id is used as the primary key in the checkpoint table. So,
-    if we can't geocode an address, it won't later make it into the database.
-    """
-
-    g = Nominatim()
-
-    # Geo-coding must not default to Germany
-    json_address = {'postalcode': raw_address['postal_code'],
-                    'street': raw_address['address'],
-                    'city': raw_address['city'],
-                    'country': 'Germany'}
-
-    nothing = {'osm_id': None,
-               'lat': None,
-               'lon': None,
-               'display_name': None}
-
-    if not all(json_address.values()):
-        if DEBUG:
-            print('Nominatim skipped {street} due to missing field(s).'
-                  .format(street=raw_address['address']))
-        return nothing
-    else:
-        try:
-            response = g.geocode(json_address)
-        except:
-            # Here we have to catch a ssl socket.timeout error
-            # that is not raised as a python exception.
-            print('Nominatim returned an error for {street}.'
-                  .format(street=raw_address['address']))
-            geocoded = nothing
-        else:
-            if response is None:
-                geocoded = nothing
-                verb = 'failed to match'
-            else:
-                geocoded = response.raw
-                verb = 'matched'
-            if DEBUG:
-                print('Nominatim {verb} {street}.'
-                      .format(verb=verb, street=raw_address['address']))
-    return geocoded
-
-
-def _unserialise(type_cast: type, raw_value: str):
-    """ Dynamically type-cast raw strings returned by the
-    scraper, with a twist: empty and None return None.
-    """
-
-    # The point is that the database will refuse to add a row
-    # if a non-nullable column gets the value None. That keeps the
-    # database clean. The other variants of this function do the same.
-    if raw_value in (None, ''):
-        return raw_value
-    else:
-        return type_cast(raw_value)
-
-
-def _unserialise_purpose(raw_value: str):
-    """ This is a dirty fix """
-    if raw_value == 'Abholung':
-        return 'pickup'
-    elif raw_value == 'Zustellung':
-        return 'dropoff'
-    else:
-        return None
-
-
-def _unserialise_timestamp(day, raw_time: str):
-    """ This is a dirty fix """
-    if raw_time in ('', None):
-        return None
-    else:
-        t = strptime(raw_time, '%H:%M')
-        return datetime(day.year,
-                        day.month,
-                        day.day,
-                        hour=t.tm_hour,
-                        minute=t.tm_min)
-
-
-def _unserialise_type(raw_value: str):
-    """ This is a dirty fix """
-    if raw_value == 'OV':
-        return 'overnight'
-    elif raw_value is 'Ladehilfe':
-        return 'help'
-    elif raw_value == 'Stadtkurier':
-        return 'city_tour'
-    else:
-        return None
-
-
-def _hash_timestamp(day, raw_time: str):
-    """ This is a dirty fix """
-    if raw_time in (None, ''):
-        return None
-    else:
-        t = strptime(raw_time, '%H:%M')
-        d = datetime(day.year,
-                     day.month,
-                     day.day,
-                     hour=t.tm_hour,
-                     minute=t.tm_min)
-        return d.__hash__()
-
-
-def _unserialise_float(raw_price: str):
-    """ This is a dirty fix """
-    if raw_price in (None, ''):
-        return None
-    else:
-        return float(raw_price.replace(',', '.'))
-
-
-def archive( tables):
-    """
-    Take objects produced by the packager and
-    commits them into the database. The strategy is primitive: if a row
-    already exists, we raise an IntegrityError and rollback the commit.
+    Take table objects from the packager and commit them to the database.
+    Rollback if a row already exists or a non nullable value is missing.
     """
 
     for table in tables:
         for row in table:
+            session.merge(row)
             try:
-                _local_session.merge(row)
-                _local_session.commit()
+                session.commit()
             except IntegrityError:
-                _local_session.rollback()
-                print('Database Intergrity ERROR: {table}'.format(table=str(row)))
+                session.rollback()
+                warning('Skipped %s', row)
 
+
+def package(jobs):
+    """
+    In goes raw data from the scraper module.
+    Out comes tabular data for the database.
+    """
+
+    assert jobs is not None, 'Cannot package nothingness'
+
+    clients = []
+    orders = []
+    checkpoints = []
+    checkins = []
+
+    for job in jobs:
+
+        client = Client(
+            client_id=number(job.info['client_id']),
+            name=text(job.info['client_name'])
+        )
+
+        order = Order(
+            order_id=number(job.info['order_id']),
+            client_id=number(job.info['client_id']),
+            distance=decimal(job.info['km']),
+            cash=boolean(job.info['cash']),
+            city_tour=decimal(job.info['city_tour']),
+            extra_stops=decimal(job.info['extra_stops']),
+            overnight=decimal(job.info['overnight']),
+            fax_confirm=decimal(job.info['fax_confirm']),
+            waiting_time=decimal(job.info['waiting_time']),
+            type=type_(job.info['type']),
+            uuid=number(job.stamp.uuid),
+            date=job.stamp.date,
+            user=job.stamp.user
+        )
+
+        clients.append(client)
+        orders.append(order)
+
+        for address in job.addresses:
+            geocoded = geocode(address)
+
+            checkpoint = Checkpoint(
+                checkpoint_id=geocoded['osm_id'],
+                display_name=geocoded['display_name'],
+                lat=geocoded['lat'],
+                lon=geocoded['lon'],
+                street=text(address['address']),
+                city=text(address['city']),
+                postal_code=number(address['postal_code']),
+                company=text(address['company'])
+            )
+
+            checkin = Checkin(
+                checkin_id=timestamp(job.stamp.day, address['timestamp']),
+                checkpoint_id=geocoded['osm_id'],
+                order_id=number(job.info['order_id']),
+                purpose=purpose(address['purpose']),
+                after_=timestamp(job.stamp.date, address['after']),
+                until=timestamp(job.stamp.day, address['until'])
+            )
+
+            checkpoints.append(checkpoint)
+            checkins.append(checkin)
+
+        debug('Packaged %s', job.stamp.day)
+
+    return Tables(clients, orders, checkpoints, checkins)
+
+
+def geocode(address):
+    """
+    Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
+    The osm_id returned by OpenStreetMap is used as the primary key for the
+    checkpoint table. If the service fails to geocode an address, it won't
+    make it into the database.
+    """
+
+    g = Nominatim()
+
+    payload = {'postalcode': address['postal_code'],
+               'street': address['address'],
+               'city': address['city'],
+               'country': address['country']}
+
+    empty = {key: None for key in ('osm_id',
+                                   'lat',
+                                   'lon',
+                                   'display_name')}
+
+    for key, value in payload.items():
+        if not value:
+            warning('Cannot geocode %s without %s', address['address'], key)
+            return empty
+
+    # noinspection PyBroadException
+    # We have to catch a socket timeout.
+    try:
+        response = g.geocode(payload)
+    except:
+        warning('Nominatim could not geocode %s', address['address'])
+        return empty
+
+    if response is None:
+        geocoded = empty
+        warning('Nominatim failed to match %s', address['address'])
+    else:
+        geocoded = response.raw
+        debug('Nominatim matched %s', address['address'])
+
+    return geocoded

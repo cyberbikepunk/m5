@@ -1,55 +1,63 @@
 """ This module defines our local database model. """
 
+
 from sqlalchemy import Column, ForeignKey, DateTime
-from sqlalchemy.types import Integer, Float, String, Boolean, Enum
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
+from sqlalchemy.orm import relationship, backref, synonym
 from sqlalchemy.ext.declarative import declarative_base
+
 
 Model = declarative_base()
 
-#       Clients
-#           ^
-#           |
-#       Orders   Checkpoints
-#           ^      ^
-#           |      |
-#           Check-ins
+
+# =============================
+#       Database model
+# =============================
 #
-#              One
-#               ^
-#               |
-#            Many to
-#    (foreign key + back-ref)
-
-
-def to_string(obj):
-    """ Common type casting to string. """
-    strings = list()
-    keys = [k for k in obj.__dict__.keys() if k[0] is not '_']
-    for key in keys:
-        strings.append('{key}={value}'.format(key=key, value=obj.__dict__[key]))
-    return '<' + obj.__class__.__name__ + ' (' + ', '.join(strings) + ')>'
+#    Clients
+#       |
+#       ^
+#    Orders Checkpoints User
+#       |       |        |
+#       ^       ^        ^
+#           Checkins
+#
+# =============================
 
 
 class Client(Model):
-    __tablename__ = 'client'
+    __tablename__ = 'clients'
 
     client_id = Column(Integer, primary_key=True, autoincrement=False)
-    name = Column(String)
+    name = Column(UnicodeText)
 
     def __str__(self):
-        return to_string(self)
+        return 'Client = ' + self.name
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
+
+
+class User(Model):
+    __tablename__ = 'users'
+
+    user_id = Column(UnicodeText, primary_key=True, autoincrement=False)
+
+    def __str__(self):
+        return 'User = ' + self.user_id
+
+    __repr__ = __str__
+
+    @synonym('user_id')
+    def username(self):
+        return self.user_id
 
 
 class Order(Model):
-    __tablename__ = 'order'
+    __tablename__ = 'orders'
 
     order_id = Column(Integer, primary_key=True, autoincrement=False)
-    client_id = Column(Integer, ForeignKey('client.client_id'), nullable=False)
-    type = Column(Enum('city_tour', 'overnight', 'help'))
+    client_id = Column(Integer, ForeignKey('clients.client_id'), nullable=False)
+    type = Column(Enum('city_tour', 'overnight', 'service'))
     city_tour = Column(Float)
     overnight = Column(Float)
     waiting_time = Column(Float)
@@ -60,50 +68,49 @@ class Order(Model):
     date = Column(DateTime)
     uuid = Column(Integer)
 
-    client = relationship('Client', backref=backref('order'))
+    clients = relationship('Client', backref=backref('orders'))
 
     def __str__(self):
-        return to_string(self)
+        return 'Order = ' + self.order_id
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
 
 
 class Checkin(Model):
-    __tablename__ = 'checkin'
+    __tablename__ = 'checkins'
 
     checkin_id = Column(Integer, primary_key=True, autoincrement=False)
-    checkpoint_id = Column(Integer, ForeignKey('checkpoint.checkpoint_id'), nullable=False)
-    order_id = Column(Integer, ForeignKey('order.order_id'), nullable=False)
+    checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
+    order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
+    user_id = Column(UnicodeText, ForeignKey('users.user_id'), nullable=False)
     timestamp = Column(DateTime, nullable=False)
     purpose = Column(Enum('pickup', 'dropoff'))
     after_ = Column(DateTime)
     until = Column(DateTime)
 
-    checkpoint = relationship('Checkpoint', backref=backref('checkin'))
-    order = relationship('Order', backref=backref('checkin'))
+    checkpoints = relationship('Checkpoint', backref=backref('checkins'))
+    orders = relationship('Order', backref=backref('checkins'))
+    users = relationship('User', backref=backref('users'))
 
     def __str__(self):
-        return to_string(self)
+        return 'Checkin = ' + str(self.timestamp)
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
 
 
 class Checkpoint(Model):
-    __tablename__ = 'checkpoint'
+    __tablename__ = 'checkpoints'
 
     checkpoint_id = Column(Integer, primary_key=True, autoincrement=False)
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
-    city = Column(String, default='Berlin')
-    display_name = Column(String)
+    city = Column(UnicodeText)
+    display_name = Column(UnicodeText)
     postal_code = Column(Integer)
-    street = Column(String)
-    company = Column(String)
+    street = Column(UnicodeText)
+    company = Column(UnicodeText)
 
     def __str__(self):
-        return to_string(self)
+        return 'Checkpoint = ' + self.display_name
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__

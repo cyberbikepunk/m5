@@ -16,6 +16,13 @@ class UserError(Exception):
     pass
 
 
+def initialize(**kwargs):
+    user = User(**kwargs)
+    user.authenticate()
+    user.start_db()
+    return user
+
+
 class User:
     def __init__(self, username=None, password=None, offline=False, verbose=False):
         self.username = username
@@ -34,7 +41,7 @@ class User:
         self.db_session = None
         self.web_session = None
 
-    def initialize(self):
+    def authenticate(self):
         if self.offline:
             self._local_authenticate()
         else:
@@ -42,10 +49,8 @@ class User:
             self._remote_authenticate()
             self._check_install()
 
-        self._connect_to_db()
-
-    def _connect_to_db(self):
-        self.db_uri = 'sqlite://' + DATABASE_DIR + '/sqlite.db'
+    def start_db(self):
+        self.sqlite_uri = 'sqlite://' + DATABASE_DIR + '/sqlite.db'
         self.engine = create_engine(self.sqlite_uri, echo=self.verbose)
         self.model = Model.metadata.create_all(self.engine)
         self.db_session = sessionmaker(bind=self.engine)()

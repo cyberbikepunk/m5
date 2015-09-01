@@ -24,7 +24,7 @@ from m5.settings import BREAK, JOB_QUERY_URL, LOG_DIR, FAILURE_REPORT
 # a decent set of data.
 
 
-Stamped = namedtuple('Stamped', ['stamp', 'data'])
+Stamped = namedtuple('Stamped', ['stamp', 'info', 'adresses'])
 Stamp = namedtuple('Stamp', ['date', 'uuid', 'user'])
 
 
@@ -93,7 +93,7 @@ def scrape_job(job):
 
     for section in sections:
         fragment = order.find_next(name=TAGS[section]['name'])
-        fields = _scrape_one_fragment(BLUEPRINTS[section], fragment, job.stamp, section)
+        fields = _scrape_fragment(BLUEPRINTS[section], fragment, job.stamp, section)
         info.update(fields)
 
     # Step 2: scrape the price table
@@ -107,7 +107,7 @@ def scrape_job(job):
     fragments = order.find_all(name=TAGS['address']['name'], attrs=TAGS['address']['attrs'])
 
     for fragment in fragments:
-        address = _scrape_one_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
+        address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
         addresses.append(address)
 
     return Stamped(job.stamp, (info, addresses))
@@ -117,7 +117,7 @@ def _job_url_query(soup):
     JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
 
 
-def _scrape_one_fragment(blueprints, soup_fragment, stamp, tag):
+def _scrape_fragment(blueprints, soup_fragment, stamp, tag):
     """
     Scrape a very small fragment of the webpage following the relevant instructions.
     Save a report inside the log directory if a non-nullable field cannot be found.

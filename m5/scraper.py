@@ -5,11 +5,9 @@ from contextlib import redirect_stdout
 from os.path import join
 from re import match
 from collections import namedtuple
-from json import loads
 from logging import debug
 
-from m5.settings import TAGS_FILE, BLUEPRINT_FILE, OVERNIGHTS_FILE
-from m5.settings import BREAK, JOB_QUERY_URL, OUTPUT_DIR, FAILURE_REPORT
+from m5.settings import BREAK, JOB_QUERY_URL, LOG_DIR, FAILURE_REPORT
 
 
 # Notes on the scraping strategy:
@@ -30,51 +28,64 @@ Stamped = namedtuple('Stamped', ['stamp', 'data'])
 Stamp = namedtuple('Stamp', ['date', 'uuid', 'user'])
 
 
-with open(OVERNIGHTS_FILE) as f:
-    OVERNIGHTS = loads(f.read())
+BLUEPRINTS = {
+    'itinerary': {
+        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'nullable': True}
+    },
+    'header': {
+        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'nullable': True},
+        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'nullable': False},
+        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'nullable': True}
+    },
+    'client': {
+        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'nullable': False},
+        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'nullable': False}
+    },
+    'address': {
+        'company': {'line_nb': 1, 'pattern': r'(.*)', 'nullable': False},
+        'address': {'line_nb': 2, 'pattern': r'(.*)', 'nullable': False},
+        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'nullable': False},
+        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'nullable': False},
+        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s(\d{2}:\d{2})', 'nullable': True},
+        'purpose': {'line_nb': 0, 'pattern': r'(Abholung|Zustellung)', 'nullable': False},
+        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s(\d{2}:\d{2})', 'nullable': False},
+        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True}
+    }
+}
 
-with open(TAGS_FILE) as f:
-    TAGS = loads(f.read())
 
-with open(BLUEPRINT_FILE) as f:
-    BLUEPRINTS = loads(f.read())
+TAGS = {
+    'header': {'name': 'h2', 'attrs': None},
+    'client': {'name': 'h4', 'attrs': None},
+    'itinerary': {'name': 'p', 'attrs': None},
+    'prices': {'name': 'tbody', 'attrs': None},
+    'address': {'name': 'div', 'attrs': {'data-collapsed': 'true'}}
+}
 
 
-def scrape_one_day(soups):
+OVERNIGHTS = [
+    ('Stadtkurier', 'city_tour'),
+    ('Stadt Stopp(s)', 'extra_stops'),
+    ('OV Ex Nat PU', 'overnight'),
+    ('ON Ex Nat Del.', 'overnight'),
+    ('OV EcoNat PU', 'overnight'),
+    ('OV Ex Int PU', 'overnight'),
+    ('ON Int Exp Del', 'overnight'),
+    ('EmpfangsbestÃ¤t.', 'fax_confirm'),
+    ('Wartezeit min.', 'waiting_time')
+]
+
+
+def scrape_job(job):
     """
-    In go webpages (typically all the jobs for one day), out comes data.
-    The unit of data is a stamped tuple. Each tuple holds a dictionary with
-    job details (ID, price etc...) and a list of addresses. All fields are
-    stored as strings.
+    In goes a webpage, out comes data. The unit of data is a stamped tuple.
+    Each tuple holds a dictionary with job info (ID, price etc...) plus a
+    list of addresses. All fields are stored as strings.
     """
 
-    assert soups is not None, 'Cannot scrape nothing.'
-    jobs = list()
-
-    for i, soup in enumerate(soups):
-        job, addresses = _scrape_one_job(soup)
-        fields = Stamped(soup.stamp, (job, addresses))
-        jobs.append(fields)
-
-        debug('(%s/%s) Scraped: %s', len(soups), i+1, job_url_query)
-
-    return jobs
-
-
-def job_url_query(soup):
-    JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
-
-
-def _scrape_one_job(soup):
-    """
-    Fragment the webpage into small digestable pieces
-    and send each one of them off to the regex butcher.
-    """
-
-    order = soup.data.find(id='order_detail')
-
+    order = job.data.find(id='order_detail')
     addresses = list()
-    job = dict()
+    info = dict()
 
     # Step 1: scrape all sections except prices
     # -----------------------------------------
@@ -82,24 +93,28 @@ def _scrape_one_job(soup):
 
     for section in sections:
         fragment = order.find_next(name=TAGS[section]['name'])
-        fields = _scrape_one_fragment(BLUEPRINTS[section], fragment, soup.stamp, section)
-        job.update(fields)
+        fields = _scrape_one_fragment(BLUEPRINTS[section], fragment, job.stamp, section)
+        info.update(fields)
 
     # Step 2: scrape the price table
     # ------------------------------
     fragment = order.find(TAGS['prices']['name'])
     prices = _scrape_prices(fragment)
-    job.update(prices)
+    info.update(prices)
 
     # Step 3: scrape an arbitrary number of addresses
     # -----------------------------------------------
     fragments = order.find_all(name=TAGS['address']['name'], attrs=TAGS['address']['attrs'])
 
     for fragment in fragments:
-        address = _scrape_one_fragment(BLUEPRINTS['address'], fragment, soup.stamp, 'address')
+        address = _scrape_one_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
         addresses.append(address)
 
-    return job, addresses
+    return Stamped(job.stamp, (info, addresses))
+
+
+def _job_url_query(soup):
+    JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
 
 
 def _scrape_one_fragment(blueprints, soup_fragment, stamp, tag):
@@ -156,7 +171,8 @@ def _report_failure(stamp, field_name, blueprint, fragment, tag):
     the scraping went wrong and the reason why it went wrong.
     """
 
-    report_filepath = join(OUTPUT_DIR, stamp.user, job_url_query(stamp))
+    report_filepath = join(LOG_DIR, _job_url_query(stamp))
+    debug('Saving scraping failure report in %s', report_filepath)
 
     with open(report_filepath, 'a') as rf:
         with redirect_stdout(rf):

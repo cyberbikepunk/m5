@@ -10,7 +10,9 @@ OUTPUT_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
-FOLDER_NAMES = {'db', 'log', 'charts', 'dowwloads'}
+DATABASE_DIR = join(OUTPUT_DIR, 'db')
+LOG_DIR = join(OUTPUT_DIR, 'log')
+FOLDER_NAMES = {'log', 'charts', 'dowwloads'}
 
 # Assets files
 MASK_FILE = join(ASSETS_DIR, 'mask.png')

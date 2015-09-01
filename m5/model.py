@@ -6,23 +6,25 @@ from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
 from sqlalchemy.orm import relationship, backref, synonym
 from sqlalchemy.ext.declarative import declarative_base
 
+from m5.settings import JOB_QUERY_URL, JOB_FILENAME
+
 
 Model = declarative_base()
 
 
-# =============================
+# ============================
 #       Database model
-# =============================
+# ============================
 #
-#    Clients
-#       |
-#       ^
-#    Orders Checkpoints User
-#       |       |        |
-#       ^       ^        ^
+#   Clients  Users
+#      |      |
+#      ^      ^
+#       Orders   Checkpoints
+#          |        |
+#          ^        ^
 #           Checkins
 #
-# =============================
+# ============================
 
 
 class Client(Model):
@@ -48,7 +50,7 @@ class User(Model):
     __repr__ = __str__
 
     @synonym('user_id')
-    def username(self):
+    def name(self):
         return self.user_id
 
 
@@ -57,6 +59,7 @@ class Order(Model):
 
     order_id = Column(Integer, primary_key=True, autoincrement=False)
     client_id = Column(Integer, ForeignKey('clients.client_id'), nullable=False)
+
     type = Column(Enum('city_tour', 'overnight', 'service'))
     city_tour = Column(Float)
     overnight = Column(Float)
@@ -69,11 +72,24 @@ class Order(Model):
     uuid = Column(Integer)
 
     clients = relationship('Client', backref=backref('orders'))
+    users = relationship('User', backref=backref('users'))
 
     def __str__(self):
         return 'Order = ' + self.order_id
 
     __repr__ = __str__
+
+    @synonym('order_id')
+    def id(self):
+        return self.order_rid
+
+    @synonym
+    def url(self):
+        return JOB_QUERY_URL.format(uuid=self.uuid, date=self.date.strftime('%d.%m.%Y'))
+
+    @synonym
+    def file(self):
+        return JOB_FILENAME.format(date=self.strftime('%d-%m.-%Y'), uuid=self.uuid)
 
 
 class Checkin(Model):
@@ -90,12 +106,15 @@ class Checkin(Model):
 
     checkpoints = relationship('Checkpoint', backref=backref('checkins'))
     orders = relationship('Order', backref=backref('checkins'))
-    users = relationship('User', backref=backref('users'))
 
     def __str__(self):
         return 'Checkin = ' + str(self.timestamp)
 
     __repr__ = __str__
+
+    @synonym('checkin_id')
+    def id(self):
+        return self.checkin_rid
 
 
 class Checkpoint(Model):
@@ -114,3 +133,7 @@ class Checkpoint(Model):
         return 'Checkpoint = ' + self.display_name
 
     __repr__ = __str__
+
+    @synonym('checkpoint_id')
+    def id(self):
+        return self.checkpoint_rid

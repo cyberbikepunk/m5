@@ -1,14 +1,11 @@
-"""
-This module declares the database and specifies the scraping
-instructions. In the following diagram, the hat characters
-represent many-to-one relationships.
+""" This module declares the following database:
 
            Clients  Users
               |      |
-              ^      ^
+             ^^     ^^
                Orders   Checkpoints
                   |        |
-                  ^        ^
+                 ^^       ^^
                    Checkins
 
 """
@@ -16,18 +13,13 @@ represent many-to-one relationships.
 
 from sqlalchemy import Column, ForeignKey, DateTime
 from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
-from sqlalchemy.orm import relationship, backref, synonym
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.ext.declarative import declarative_base, synonym_for
 
-from m5.settings import JOB_QUERY_URL, JOB_FILENAME
+from m5.settings import JOB_QUERY_URL, JOB_FILENAME, FILE_DATE_FORMAT, URL_DATE_FORMAT
 
 
 Model = declarative_base()
-
-
-##########################
-#  Database declaration  #
-##########################
 
 
 class Client(Model):
@@ -37,7 +29,7 @@ class Client(Model):
     name = Column(UnicodeText)
 
     def __str__(self):
-        return 'Client = ' + self.name
+        return 'Client (%s)', self.name
 
     __repr__ = __str__
 
@@ -48,11 +40,12 @@ class User(Model):
     user_id = Column(UnicodeText, primary_key=True, autoincrement=False)
 
     def __str__(self):
-        return 'User = ' + self.user_id
+        return 'User (%s)', self.user_id
 
     __repr__ = __str__
 
-    @synonym('user_id')
+    @synonym_for('user_id')
+    @property
     def name(self):
         return self.user_id
 
@@ -74,25 +67,34 @@ class Order(Model):
     date = Column(DateTime)
     uuid = Column(Integer)
 
-    clients = relationship('Client', backref=backref('orders'))
-    users = relationship('User', backref=backref('users'))
+    client = relationship('Client', backref=backref('orders'))
+    user = relationship('User', backref=backref('users'))
 
     def __str__(self):
-        return 'Order = ' + self.order_id
+        return 'Order (%s n°%s for %0.2f€)' % (self.type, self.id, self.price)
 
     __repr__ = __str__
 
-    @synonym('order_id')
-    def id(self):
-        return self.order_rid
-
-    @synonym
+    @property
     def url(self):
-        return JOB_QUERY_URL.format(uuid=self.uuid, date=self.date.strftime('%d.%m.%Y'))
+        return JOB_QUERY_URL.format(uuid=self.uuid, date=self.date.strftime(URL_DATE_FORMAT))
 
-    @synonym
+    @property
     def file(self):
-        return JOB_FILENAME.format(date=self.strftime('%d-%m.-%Y'), uuid=self.uuid)
+        return JOB_FILENAME.format(date=self.strftime(FILE_DATE_FORMAT), uuid=self.uuid)
+
+    @synonym_for('order_id')
+    @property
+    def id(self):
+        return self.order_id
+
+    @property
+    def price(self):
+        return sum([self.city_tour,
+                    self.overnight,
+                    self.waiting_time,
+                    self.fax_confirm,
+                    self.extra_stops])
 
 
 class Checkin(Model):
@@ -107,18 +109,18 @@ class Checkin(Model):
     after_ = Column(DateTime)
     until = Column(DateTime)
 
-    checkpoints = relationship('Checkpoint', backref=backref('checkins'))
-
-    orders = relationship('Order', backref=backref('checkins'))
+    checkpoint = relationship('Checkpoint', backref=backref('checkins'))
+    order = relationship('Order', backref=backref('checkins'))
 
     def __str__(self):
-        return 'Checkin = ' + str(self.timestamp)
+        return 'Checkin (%s on %s)' % (self.checkpoint_id, self.timestamp)
 
     __repr__ = __str__
 
-    @synonym('checkin_id')
+    @synonym_for('checkin_id')
+    @property
     def id(self):
-        return self.checkin_rid
+        return self.checkin_id
 
 
 class Checkpoint(Model):
@@ -135,64 +137,11 @@ class Checkpoint(Model):
     country = Column(UnicodeText)
 
     def __str__(self):
-        return 'Checkpoint = ' + self.display_name
+        return 'Checkpoint (%s)' % self.display_name
 
     __repr__ = __str__
 
-    @synonym('checkpoint_id')
+    @synonym_for('checkpoint_id')
+    @property
     def id(self):
-        return self.checkpoint_rid
-
-
-###########################
-#  Scraping instructions  #
-###########################
-
-
-BLUEPRINTS = {
-    'itinerary': {
-        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'nullable': True}
-    },
-    'header': {
-        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'nullable': True},
-        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'nullable': False},
-        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'nullable': True}
-    },
-    'client': {
-        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'nullable': False},
-        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'nullable': False}
-    },
-    'address': {
-        'company': {'line_nb': 1, 'pattern': r'(.*)', 'nullable': False},
-        'address': {'line_nb': 2, 'pattern': r'(.*)', 'nullable': False},
-        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'nullable': False},
-        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'nullable': False},
-        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s(\d{2}:\d{2})', 'nullable': True},
-        'purpose': {'line_nb': 0, 'pattern': r'(Abholung|Zustellung)', 'nullable': False},
-        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s(\d{2}:\d{2})', 'nullable': False},
-        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True}
-    }
-}
-
-
-TAGS = {
-    'header': {'name': 'h2', 'attrs': None},
-    'client': {'name': 'h4', 'attrs': None},
-    'itinerary': {'name': 'p', 'attrs': None},
-    'prices': {'name': 'tbody', 'attrs': None},
-    'address': {'name': 'div', 'attrs': {'data-collapsed': 'true'}}
-}
-
-
-OVERNIGHTS = [
-    ('Stadtkurier', 'city_tour'),
-    ('Stadt Stopp(s)', 'extra_stops'),
-    ('OV Ex Nat PU', 'overnight'),
-    ('ON Ex Nat Del.', 'overnight'),
-    ('OV EcoNat PU', 'overnight'),
-    ('OV Ex Int PU', 'overnight'),
-    ('ON Int Exp Del', 'overnight'),
-    ('EmpfangsbestÃ¤t.', 'fax_confirm'),
-    ('Wartezeit min.', 'waiting_time')
-]
-
+        return self.checkpoint_id

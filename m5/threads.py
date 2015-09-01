@@ -1,19 +1,40 @@
 """ This modules orchestrates the data migration from the company server to the local database. """
 
 
+from logging import info
+from datetime import timedelta
 
-def scrape_one_day(soups):
+from m5.user import initialize
+from m5.scraper import scrape_job
+from m5.pipeline import geocode, package, archive
+from m5.spider import download_one_day
 
-    assert soups is not None, 'Cannot scrape nothing.'
-    jobs = list()
 
-    for i, soup in enumerate(soups):
-        job, addresses = scrape_job(soup)
-        fields = Stamped(soup.stamp, (job, addresses))
-        jobs.append(fields)
+def run(**options):
+    """
+    Pull the user data from the company website, scrape it
+    as best as we can and store it inside the local database.
+    """
 
-        debug('(%s/%s) Scraped: %s', len(soups), i+1, _job_url_query)
+    info('Starting the data scraping process.')
 
-    return jobs
+    start_date = options.pop('begin')
+    stop_date = options.pop('end')
+    period = stop_date - start_date
 
+    user = initialize(**options)
+
+    for day in range(period.days):
+        date = start_date + timedelta(days=day)
+        webpages = download_one_day(date, user.web_session)
+
+        for webpage in webpages:
+            job = scrape_job(webpage)
+
+            geolocations = []
+            for address in job.addresses:
+                geolocations.append(geocode(address))
+
+            tables = package(job, geolocations)
+            archive(tables, user.db_session)
 

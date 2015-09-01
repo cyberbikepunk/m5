@@ -69,7 +69,7 @@ def archive(tables, session):
                 warning('%s. Skipped %s', e, row)
 
 
-def package(job, geolocation):
+def package(job, geolocations):
     """
     In goes raw data from the scraper module.
     Out comes tabular data for the database.
@@ -101,7 +101,7 @@ def package(job, geolocation):
     checkpoints = []
     checkins = []
 
-    for address in job.addresses:
+    for address, geolocation in zip(job.addresses, geolocations):
 
         checkpoint = Checkpoint(
             checkpoint_id=geolocation['osm_id'],

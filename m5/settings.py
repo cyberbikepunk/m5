@@ -32,10 +32,12 @@ LOGOUT_URL = 'http://bamboo-mec.de/index.php5'
 JOB_URL = 'http://bamboo-mec.de/ll_detail.php5'
 SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
 
-# Long strings
+# String constants
 JOB_QUERY_URL = 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'
 FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} on line {nb} inside {tag}.'
 JOB_FILENAME = '{date}-uuid-{uuid}.html'
+FILE_DATE_FORMAT = '%d-%m-%Y'
+URL_DATE_FORMAT = '%d.%m.%Y'
 
 # Formatting
 FILL = '.'

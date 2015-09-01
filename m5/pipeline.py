@@ -1,7 +1,6 @@
 """ The pipeline module processes raw data from the scraper and stores it inside the database. """
 
 
-from collections import namedtuple
 from logging import warning, debug
 from geopy import Nominatim
 from datetime import datetime
@@ -9,13 +8,6 @@ from time import strptime
 from sqlalchemy.exc import IntegrityError
 
 from m5.model import Checkin, Checkpoint, Client, Order
-
-
-Tables = namedtuple('Tables', ['users',
-                               'clients',
-                               'orders',
-                               'checkins',
-                               'checkpoints'])
 
 
 def boolean(value):
@@ -72,85 +64,77 @@ def archive(tables, session):
             session.merge(row)
             try:
                 session.commit()
-            except IntegrityError:
+            except IntegrityError as e:
                 session.rollback()
-                warning('Skipped %s', row)
+                warning('%s. Skipped %s', e, row)
 
 
-def package(jobs):
+def package(job, geolocation):
     """
     In goes raw data from the scraper module.
     Out comes tabular data for the database.
     """
 
-    assert jobs is not None, 'Cannot package nothingness'
+    assert job is not None, 'Cannot package nothingness'
 
-    clients = []
-    orders = []
+    client = Client(
+        client_id=number(job.info['client_id']),
+        name=text(job.info['client_name'])
+    )
+
+    order = Order(
+        order_id=number(job.info['order_id']),
+        client_id=number(job.info['client_id']),
+        distance=decimal(job.info['km']),
+        cash=boolean(job.info['cash']),
+        city_tour=decimal(job.info['city_tour']),
+        extra_stops=decimal(job.info['extra_stops']),
+        overnight=decimal(job.info['overnight']),
+        fax_confirm=decimal(job.info['fax_confirm']),
+        waiting_time=decimal(job.info['waiting_time']),
+        type=type_(job.info['type']),
+        uuid=number(job.stamp.uuid),
+        date=job.stamp.date,
+        user=job.stamp.user
+    )
+
     checkpoints = []
     checkins = []
 
-    for job in jobs:
+    for address in job.addresses:
 
-        client = Client(
-            client_id=number(job.info['client_id']),
-            name=text(job.info['client_name'])
+        checkpoint = Checkpoint(
+            checkpoint_id=geolocation['osm_id'],
+            display_name=geolocation['display_name'],
+            lat=geolocation['lat'],
+            lon=geolocation['lon'],
+            street=text(address['address']),
+            city=text(address['city']),
+            postal_code=number(address['postal_code']),
+            company=text(address['company'])
         )
 
-        order = Order(
+        checkin = Checkin(
+            checkin_id=timestamp(job.stamp.day, address['timestamp']),
+            checkpoint_id=geolocation['osm_id'],
             order_id=number(job.info['order_id']),
-            client_id=number(job.info['client_id']),
-            distance=decimal(job.info['km']),
-            cash=boolean(job.info['cash']),
-            city_tour=decimal(job.info['city_tour']),
-            extra_stops=decimal(job.info['extra_stops']),
-            overnight=decimal(job.info['overnight']),
-            fax_confirm=decimal(job.info['fax_confirm']),
-            waiting_time=decimal(job.info['waiting_time']),
-            type=type_(job.info['type']),
-            uuid=number(job.stamp.uuid),
-            date=job.stamp.date,
-            user=job.stamp.user
+            purpose=purpose(address['purpose']),
+            after_=timestamp(job.stamp.date, address['after']),
+            until=timestamp(job.stamp.day, address['until'])
         )
 
-        clients.append(client)
-        orders.append(order)
+        checkpoints.append(checkpoint)
+        checkins.append(checkin)
 
-        for address in job.addresses:
-            geocoded = geocode(address)
+    debug('Packaged %s', job.stamp.day)
 
-            checkpoint = Checkpoint(
-                checkpoint_id=geocoded['osm_id'],
-                display_name=geocoded['display_name'],
-                lat=geocoded['lat'],
-                lon=geocoded['lon'],
-                street=text(address['address']),
-                city=text(address['city']),
-                postal_code=number(address['postal_code']),
-                company=text(address['company'])
-            )
-
-            checkin = Checkin(
-                checkin_id=timestamp(job.stamp.day, address['timestamp']),
-                checkpoint_id=geocoded['osm_id'],
-                order_id=number(job.info['order_id']),
-                purpose=purpose(address['purpose']),
-                after_=timestamp(job.stamp.date, address['after']),
-                until=timestamp(job.stamp.day, address['until'])
-            )
-
-            checkpoints.append(checkpoint)
-            checkins.append(checkin)
-
-        debug('Packaged %s', job.stamp.day)
-
-    return Tables(clients, orders, checkpoints, checkins)
+    return client, order, checkpoints, checkins
 
 
 def geocode(address):
     """
     Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
-    The osm_id returned by OpenStreetMap is used as the primary key for the
+    We use the osm_id returned by OpenStreetMap as the primary key for the
     checkpoint table. If the service fails to geocode an address, it won't
     make it into the database.
     """
@@ -173,18 +157,18 @@ def geocode(address):
             return empty
 
     # noinspection PyBroadException
-    # We have to catch a socket timeout.
+    # -> we have to catch a socket timeout.
     try:
         response = g.geocode(payload)
     except:
-        warning('Nominatim could not geocode %s', address['address'])
+        warning('Nominatim probably timed-out %s', address['address'])
         return empty
 
     if response is None:
-        geocoded = empty
+        geolocation = empty
         warning('Nominatim failed to match %s', address['address'])
     else:
-        geocoded = response.raw
-        debug('Nominatim matched %s', address['address'])
+        geolocation = response.raw
+        debug('Nominatim succesfully matched %s', address['address'])
 
-    return geocoded
+    return geolocation

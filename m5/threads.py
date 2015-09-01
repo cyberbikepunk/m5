@@ -10,13 +10,10 @@ from m5.pipeline import geocode, package, archive
 from m5.spider import download_one_day
 
 
-def run(**options):
-    """
-    Pull the user data from the company website, scrape it
-    as best as we can and store it inside the local database.
-    """
+def migrate(**options):
+    """ Migrate user data from the company website to the local database. """
 
-    info('Starting the data scraping process.')
+    info('Starting migration process')
 
     start_date = options.pop('begin')
     stop_date = options.pop('end')
@@ -38,3 +35,5 @@ def run(**options):
             tables = package(job, geolocations)
             archive(tables, user.db_session)
 
+    info('Finished the migration process.')
+    user.quit()

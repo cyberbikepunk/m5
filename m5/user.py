@@ -9,7 +9,7 @@ from os.path import isdir, join
 from os import mkdir
 from logging import debug, info
 
-from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT, FOLDER_NAMES
+from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT, FOLDER_NAMES, DATABASE_DIR
 from m5.model import Model
 
 
@@ -38,13 +38,12 @@ class User:
         self._connect_to_db()
 
     def _connect_to_db(self):
-        self.db = 'sqlite:///' + self.folders['db'] + '/' + self.username + '.db'
-
+        self.db_uri = 'sqlite://' + DATABASE_DIR + '/sqlite.db'
         self.engine = create_engine(self.sqlite_uri, echo=self.verbose)
         self.model = Model.metadata.create_all(self.engine)
         self.db_session = sessionmaker(bind=self.engine)()
 
-        debug('Switched on database: %s', self.db)
+        debug('Switched on %s', self.db_uri)
 
     def _check_install(self):
         for folder_name in FOLDER_NAMES:

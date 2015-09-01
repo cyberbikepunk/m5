@@ -55,7 +55,7 @@ class User:
         self.model = Model.metadata.create_all(self.engine)
         self.db_session = sessionmaker(bind=self.engine)()
 
-        debug('Switched on %s', self.db_uri)
+        debug('Switched on %s', self.sqlite_uri)
 
     def _check_install(self):
         mkdir(self.downloads)

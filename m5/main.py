@@ -8,7 +8,7 @@ from datetime import date
 from textwrap import dedent
 from time import strptime
 
-from m5.threads import run
+from m5.threads import migrate
 
 
 def build_parser():
@@ -81,4 +81,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     setup_logger(args.verbose)
     info('Arguments = %s', args)
-    run(**vars(args))
+    migrate(**vars(args))

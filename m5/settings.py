@@ -76,4 +76,3 @@ def show_settings():
 
 if __name__ == '__main__':
     show_settings()
-

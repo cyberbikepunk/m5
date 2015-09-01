@@ -1,4 +1,17 @@
-""" This module defines our local database model. """
+"""
+This module declares the database and specifies the scraping
+instructions. In the following diagram, the hat characters
+represent many-to-one relationships.
+
+           Clients  Users
+              |      |
+              ^      ^
+               Orders   Checkpoints
+                  |        |
+                  ^        ^
+                   Checkins
+
+"""
 
 
 from sqlalchemy import Column, ForeignKey, DateTime
@@ -12,19 +25,9 @@ from m5.settings import JOB_QUERY_URL, JOB_FILENAME
 Model = declarative_base()
 
 
-# ============================
-#       Database model
-# ============================
-#
-#   Clients  Users
-#      |      |
-#      ^      ^
-#       Orders   Checkpoints
-#          |        |
-#          ^        ^
-#           Checkins
-#
-# ============================
+##########################
+#  Database declaration  #
+##########################
 
 
 class Client(Model):
@@ -105,6 +108,7 @@ class Checkin(Model):
     until = Column(DateTime)
 
     checkpoints = relationship('Checkpoint', backref=backref('checkins'))
+
     orders = relationship('Order', backref=backref('checkins'))
 
     def __str__(self):
@@ -128,6 +132,7 @@ class Checkpoint(Model):
     postal_code = Column(Integer)
     street = Column(UnicodeText)
     company = Column(UnicodeText)
+    country = Column(UnicodeText)
 
     def __str__(self):
         return 'Checkpoint = ' + self.display_name
@@ -137,3 +142,57 @@ class Checkpoint(Model):
     @synonym('checkpoint_id')
     def id(self):
         return self.checkpoint_rid
+
+
+###########################
+#  Scraping instructions  #
+###########################
+
+
+BLUEPRINTS = {
+    'itinerary': {
+        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'nullable': True}
+    },
+    'header': {
+        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'nullable': True},
+        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'nullable': False},
+        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'nullable': True}
+    },
+    'client': {
+        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'nullable': False},
+        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'nullable': False}
+    },
+    'address': {
+        'company': {'line_nb': 1, 'pattern': r'(.*)', 'nullable': False},
+        'address': {'line_nb': 2, 'pattern': r'(.*)', 'nullable': False},
+        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'nullable': False},
+        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'nullable': False},
+        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s(\d{2}:\d{2})', 'nullable': True},
+        'purpose': {'line_nb': 0, 'pattern': r'(Abholung|Zustellung)', 'nullable': False},
+        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s(\d{2}:\d{2})', 'nullable': False},
+        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True}
+    }
+}
+
+
+TAGS = {
+    'header': {'name': 'h2', 'attrs': None},
+    'client': {'name': 'h4', 'attrs': None},
+    'itinerary': {'name': 'p', 'attrs': None},
+    'prices': {'name': 'tbody', 'attrs': None},
+    'address': {'name': 'div', 'attrs': {'data-collapsed': 'true'}}
+}
+
+
+OVERNIGHTS = [
+    ('Stadtkurier', 'city_tour'),
+    ('Stadt Stopp(s)', 'extra_stops'),
+    ('OV Ex Nat PU', 'overnight'),
+    ('ON Ex Nat Del.', 'overnight'),
+    ('OV EcoNat PU', 'overnight'),
+    ('OV Ex Int PU', 'overnight'),
+    ('ON Int Exp Del', 'overnight'),
+    ('EmpfangsbestÃ¤t.', 'fax_confirm'),
+    ('Wartezeit min.', 'waiting_time')
+]
+

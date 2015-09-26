@@ -49,17 +49,15 @@ class User:
 
     def authenticate(self):
         if self.offline:
-            self._check_directories()
-
+            if not all(self._folders):
+                raise UserException('Missing directories')
         else:
-            response = self._post_credentials()
-
-            if LOGGED_IN in response.text:
-                self._make_directories()
+            if LOGGED_IN in self._login().text:
+                self._install()
             else:
-                raise UserException('User authentication failed')
+                raise UserException('Authentication failed')
 
-            info('Remote authenticated')
+        info('User authenticated')
 
     def start_db(self):
         self.db_uri = 'sqlite:///' + self.user_dir + '/database.sqlite'
@@ -69,38 +67,30 @@ class User:
 
         info('Switched on database')
 
-    def _check_directories(self):
-        if not isdir(self.download_dir) or not isdir(self.output_dir):
-            raise UserException('No existing directories')
+    @property
+    def _folders(self):
+        return [self.download_dir,
+                self.output_dir,
+                self.user_dir]
 
-    def _make_directories(self):
-        if not isdir(self.user_dir):
-            makedirs(self.user_dir)
-        if not isdir(self.download_dir):
-            makedirs(self.download_dir)
-        if not isdir(self.output_dir):
-            makedirs(self.output_dir)
+    def _install(self):
+        for folder in self._folders:
+            if not isdir(folder):
+                makedirs(folder)
 
         info('Created user folders')
 
-    def _post_credentials(self):
+    def _login(self):
         return self.web_session.post(LOGIN_URL, data={'username': self.username,
                                                       'password': self.password})
 
     def quit(self):
         if not self.offline:
             response = self.web_session.get(LOGOUT_URL, params=EXIT)
-
             if response.history[0].status_code == REDIRECT:
                 self.web_session.close()
-        info('Goodbye!')
 
-    def __repr__(self):
-        return '<User: %s' + self.username + '>'
+        info('Goodbye!')
 
     def __str__(self):
         return self.username
-
-
-if __name__ == '__main__':
-    initialize(username='m-134', password='PASSWORD', offline=True)

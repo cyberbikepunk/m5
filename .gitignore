@@ -1,5 +1,6 @@
 # Project specific
 # ----------------
+instance/
 sandbox/
 m5.ini
 

@@ -34,22 +34,6 @@ class Client(Model):
     __repr__ = __str__
 
 
-class User(Model):
-    __tablename__ = 'users'
-
-    user_id = Column(UnicodeText, primary_key=True, autoincrement=False)
-
-    def __str__(self):
-        return 'User (%s)', self.user_id
-
-    __repr__ = __str__
-
-    @synonym_for('user_id')
-    @property
-    def name(self):
-        return self.user_id
-
-
 class Order(Model):
     __tablename__ = 'orders'
 
@@ -68,7 +52,6 @@ class Order(Model):
     uuid = Column(Integer)
 
     client = relationship('Client', backref=backref('orders'))
-    user = relationship('User', backref=backref('users'))
 
     def __str__(self):
         return 'Order (%s n°%s for %0.2f€)' % (self.type, self.id, self.price)
@@ -103,7 +86,6 @@ class Checkin(Model):
     checkin_id = Column(Integer, primary_key=True, autoincrement=False)
     checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    user_id = Column(UnicodeText, ForeignKey('users.user_id'), nullable=False)
     timestamp = Column(DateTime, nullable=False)
     purpose = Column(Enum('pickup', 'dropoff'))
     after_ = Column(DateTime)

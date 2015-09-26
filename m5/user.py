@@ -8,7 +8,7 @@ from os.path import isdir, join
 from os import makedirs
 from logging import info
 
-from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT, DATABASE_DIR
+from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT
 from m5.model import Model
 
 
@@ -36,11 +36,11 @@ class User:
         self.offline = offline
         self.verbose = verbose
 
-        self.downloads = join(OUTPUT_DIR, username, 'downloads')
-        self.output = join(OUTPUT_DIR, username, 'output')
-        self.log = join(OUTPUT_DIR, 'log')
+        self.user_dir = join(OUTPUT_DIR, username)
+        self.download_dir = join(OUTPUT_DIR, username, 'downloads')
+        self.output_dir = join(OUTPUT_DIR, username, 'output')
 
-        self.sqlite_uri = None
+        self.db_uri = None
         self.engine = None
         self.model = None
 
@@ -62,24 +62,24 @@ class User:
             info('Remote authenticated')
 
     def start_db(self):
-        self.sqlite_uri = 'sqlite://' + DATABASE_DIR + '/sqlite.db'
-        self.engine = create_engine(self.sqlite_uri, echo=self.verbose)
+        self.db_uri = 'sqlite:///' + self.user_dir + '/database.sqlite'
+        self.engine = create_engine(self.db_uri, echo=self.verbose)
         self.model = Model.metadata.create_all(self.engine)
         self.db_session = sessionmaker(bind=self.engine)()
 
         info('Switched on database')
 
     def _check_directories(self):
-        if not isdir(self.downloads) or not isdir(self.output):
+        if not isdir(self.download_dir) or not isdir(self.output_dir):
             raise UserException('No existing directories')
 
     def _make_directories(self):
-        if not isdir(self.log):
-            makedirs(self.log)
-        if not isdir(self.downloads):
-            makedirs(self.downloads)
-        if not isdir(self.output):
-            makedirs(self.output)
+        if not isdir(self.user_dir):
+            makedirs(self.user_dir)
+        if not isdir(self.download_dir):
+            makedirs(self.download_dir)
+        if not isdir(self.output_dir):
+            makedirs(self.output_dir)
 
         info('Created user folders')
 
@@ -93,7 +93,6 @@ class User:
 
             if response.history[0].status_code == REDIRECT:
                 self.web_session.close()
-
         info('Goodbye!')
 
     def __repr__(self):
@@ -104,5 +103,4 @@ class User:
 
 
 if __name__ == '__main__':
-    u = User(username='m-134', password='PASSWORD', offline=True)
-    u.authenticate()
+    initialize(username='m-134', password='PASSWORD', offline=True)

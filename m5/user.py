@@ -5,7 +5,7 @@ from requests import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from os.path import isdir, join
-from os import mkdir
+from os import makedirs
 from logging import info
 
 from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT, DATABASE_DIR
@@ -38,24 +38,26 @@ class User:
 
         self.downloads = join(OUTPUT_DIR, username, 'downloads')
         self.output = join(OUTPUT_DIR, username, 'output')
+        self.log = join(OUTPUT_DIR, 'log')
 
         self.sqlite_uri = None
         self.engine = None
         self.model = None
 
         self.db_session = None
-        self.web_session = None
+        self.web_session = Session()
 
     def authenticate(self):
         if self.offline:
             self._check_directories()
 
         else:
-            response = self._login()
+            response = self._post_credentials()
+
             if LOGGED_IN in response.text:
                 self._make_directories()
             else:
-                raise UserException('Wrong website credentials')
+                raise UserException('User authentication failed')
 
             info('Remote authenticated')
 
@@ -72,18 +74,18 @@ class User:
             raise UserException('No existing directories')
 
     def _make_directories(self):
-        mkdir(self.downloads)
-        mkdir(self.output)
+        if not isdir(self.log):
+            makedirs(self.log)
+        if not isdir(self.downloads):
+            makedirs(self.downloads)
+        if not isdir(self.output):
+            makedirs(self.output)
 
         info('Created user folders')
 
-    def _login(self):
-        self.web_session = Session()
-
-        credentials = {'username': self.username,
-                       'password': self.password}
-
-        return self.web_session.post(LOGIN_URL, credentials)
+    def _post_credentials(self):
+        return self.web_session.post(LOGIN_URL, data={'username': self.username,
+                                                      'password': self.password})
 
     def quit(self):
         if not self.offline:
@@ -93,3 +95,14 @@ class User:
                 self.web_session.close()
 
         info('Goodbye!')
+
+    def __repr__(self):
+        return '<User: %s' + self.username + '>'
+
+    def __str__(self):
+        return self.username
+
+
+if __name__ == '__main__':
+    u = User(username='m-134', password='PASSWORD', offline=True)
+    u.authenticate()

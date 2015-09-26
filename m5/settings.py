@@ -10,9 +10,9 @@ OUTPUT_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
+INSTANCE_DIR = join(PROJECT_DIR, 'instance')
 DATABASE_DIR = join(OUTPUT_DIR, 'db')
 LOG_DIR = join(OUTPUT_DIR, 'log')
-FOLDER_NAMES = {'log', 'charts', 'dowwloads'}
 
 # Assets files
 MASK_FILE = join(ASSETS_DIR, 'mask.png')
@@ -40,6 +40,7 @@ FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} on line {nb} inside {t
 JOB_FILENAME = '{date}-uuid-{uuid}.html'
 FILE_DATE_FORMAT = '%d-%m-%Y'
 URL_DATE_FORMAT = '%d.%m.%Y'
+LOG_FORMAT = '[%(asctime)s] [%(module)s] %(message)s'
 
 # Formatting
 FILL = '.'

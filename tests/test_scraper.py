@@ -1,21 +1,22 @@
 """ Test the scraper module. """
 
 
-from time import strptime
 from datetime import date
 from bs4 import BeautifulSoup
 from os.path import join
+from pytest import mark
 
-from m5.scraper import scrape_job
+from m5.scraper import scrape_from_soup
 from m5.settings import ASSETS_DIR
-from m5.spider import Stamp, Stamped
+from m5.spider import Stamp, Stamped, RawData
 
 
-webpages = {
-    '2014-02-12-uuid-2041699.html': {
-        'info': {
+overnight = Stamped(
+    Stamp('assets', date(2014, 2, 12), '2041699'),
+    RawData(
+        {
             'cash': None,
-            'city_tour': None,
+            'city_tour': '12,00',
             'client_id': '59017',
             'client_name': 'Norsk European Wholesale Ltd.',
             'extra_stops': None,
@@ -24,9 +25,9 @@ webpages = {
             'order_id': '1402120029',
             'overnight': None,
             'type': 'OV',
-            'waiting_time': None,
+            'waiting_time': '36,00',
         },
-        'addresses': [
+        [
             {
                 'address': 'Luetzowstrasse 107',
                 'after': '07:00',
@@ -48,42 +49,68 @@ webpages = {
                 'until': '12:00',
             },
         ]
-    }
-}
+    )
+)
 
 
-def read_stamp(filename):
-    uuid = filename[-12:-5]
-    t = strptime(filename[0:9], '%Y-%m-%d')
-    day = date(year=t.tm_year, month=t.tm_mon, day=t.tm_mday)
+ladehilfe = Stamped(
+    Stamp('assets', date(2013, 3, 7), '1124990'),
+    RawData(
+        {
+            'cash': None,
+            'city_tour': None,
+            'client_id': '49315',
+            'client_name': 'Zalando GmbH',
+            'extra_stops': None,
+            'fax_confirm': None,
+            'km': None,
+            'order_id': '1303070990',
+            'overnight': None,
+            'type': 'Ladehilfe',
+            'waiting_time': None,
+        },
+        [
+            {
+                'address': 'Prenzlauer Allee 33',
+                'after': '16:15',
+                'city': 'Berlin',
+                'company': 'Loft Werner Franz',
+                'postal_code': '10405',
+                'purpose': 'Abholung',
+                'timestamp': '16:59',
+                'until': None,
+            },
+            {
+                'address': 'Prenzlauer Allee 33',
+                'after': None,
+                'city': 'Berlin',
+                'company': 'Loft Werner Franz',
+                'postal_code': '10405',
+                'purpose': 'Zustellung',
+                'timestamp': '18:45',
+                'until': None,
+            },
+        ]
+    )
+)
 
-    return uuid, day
+
+tests_examples = [
+    ('2014-02-12-uuid-2041699.html', overnight),
+    ('2013-03-07-uuid-1124990.html', ladehilfe)
+]
 
 
-def test_scraper():
+@mark.parametrize('filename, expected', tests_examples)
+def test_eval(filename, expected):
 
-    filename = '2014-02-12-uuid-2041699.html'
     filepath = join(ASSETS_DIR, filename)
-
     with open(filepath, 'r') as f:
         html = f.read()
 
     soup = BeautifulSoup(html)
-    uuid, day = read_stamp(filename)
+    job = Stamped(expected.stamp, soup)
+    result = scrape_from_soup(job)
 
-    stamp = Stamp('mickey', day, uuid)
-    job = Stamped(stamp, soup)
-
-    scraped = scrape_job(job)
-
-    info = webpages['2014-02-12-uuid-2041699.html']['info']
-    addresses = webpages['2014-02-12-uuid-2041699.html']['addresses']
-
-    assert scraped.data.info == info
-    for expected, calculated in zip(addresses, scraped.data.addresses):
-        assert expected == calculated
-
-
-if __name__ == '__main__':
-    test_scraper()
-
+    assert result.data.info == expected.data.info
+    assert result.data.addresses == expected.data.addresses

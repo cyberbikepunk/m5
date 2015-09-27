@@ -4,10 +4,10 @@
 from contextlib import redirect_stdout
 from os.path import join
 from re import match
-from collections import namedtuple
 from logging import debug
 
-from m5.settings import BREAK, JOB_QUERY_URL, USER_BASE_DIR, FAILURE_REPORT
+from m5.spider import Stamped, RawData
+from m5.settings import BREAK, JOB_QUERY_URL, USER_BASE_DIR, FAILURE_REPORT, JOB_FILENAME
 
 
 # Notes on the scraping strategy:
@@ -22,10 +22,6 @@ from m5.settings import BREAK, JOB_QUERY_URL, USER_BASE_DIR, FAILURE_REPORT
 # we use regex extensively and return to the same place
 # several times if necessary. The goal is to end up with
 # a decent set of data.
-
-
-Stamped = namedtuple('Stamped', ['stamp', 'info', 'adresses'])
-Stamp = namedtuple('Stamp', ['date', 'uuid', 'user'])
 
 
 BLUEPRINTS = {
@@ -110,11 +106,15 @@ def scrape_job(job):
         address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
         addresses.append(address)
 
-    return Stamped(job.stamp, (info, addresses))
+    return Stamped(job.stamp, RawData(info, addresses))
 
 
-def _job_url_query(soup):
-    JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
+def _job_url_query(stamp):
+    return JOB_QUERY_URL.format(uuid=stamp.uuid, date=stamp.date.strftime('%d.%m.%Y'))
+
+
+def _report_filepath(stamp):
+    return join(USER_BASE_DIR, JOB_FILENAME.format(uuid=stamp.uuid, date=stamp.date.strftime('%d-%m-%Y')))
 
 
 def _scrape_fragment(blueprints, soup_fragment, stamp, tag):
@@ -171,17 +171,16 @@ def _report_failure(stamp, field_name, blueprint, fragment, tag):
     the scraping went wrong and the reason why it went wrong.
     """
 
-    report_filepath = join(USER_BASE_DIR, _job_url_query(stamp))
-    debug('Saving scraping failure report in %s', report_filepath)
+    filepath = _report_filepath(stamp)
+    debug('Saving scraping failure report in %s', filepath)
 
-    with open(report_filepath, 'a') as rf:
+    with open(filepath, 'a') as rf:
         with redirect_stdout(rf):
             print(FAILURE_REPORT.format(date=stamp.date,
                                         uuid=stamp.uuid,
                                         field=field_name,
                                         nb=blueprint['line_nb'],
                                         tag=tag))
-
             if len(fragment):
                 for line_nb, line_content in enumerate(fragment):
                     print(str(line_nb) + ': ' + line_content)

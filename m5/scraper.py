@@ -7,7 +7,7 @@ from re import match
 from collections import namedtuple
 from logging import debug
 
-from m5.settings import BREAK, JOB_QUERY_URL, LOG_DIR, FAILURE_REPORT
+from m5.settings import BREAK, JOB_QUERY_URL, OUTPUT_DIR, FAILURE_REPORT
 
 
 # Notes on the scraping strategy:
@@ -171,7 +171,7 @@ def _report_failure(stamp, field_name, blueprint, fragment, tag):
     the scraping went wrong and the reason why it went wrong.
     """
 
-    report_filepath = join(LOG_DIR, _job_url_query(stamp))
+    report_filepath = join(OUTPUT_DIR, _job_url_query(stamp))
     debug('Saving scraping failure report in %s', report_filepath)
 
     with open(report_filepath, 'a') as rf:

@@ -72,7 +72,7 @@ OVERNIGHTS = [
 ]
 
 
-def scrape_job(job):
+def scrape_from_soup(job):
     """
     In goes a webpage, out comes data. The unit of data is a stamped tuple.
     Each tuple holds a dictionary with job info (ID, price etc...) plus a
@@ -107,14 +107,6 @@ def scrape_job(job):
         addresses.append(address)
 
     return Stamped(job.stamp, RawData(info, addresses))
-
-
-def _job_url_query(stamp):
-    return JOB_QUERY_URL.format(uuid=stamp.uuid, date=stamp.date.strftime('%d.%m.%Y'))
-
-
-def _report_filepath(stamp):
-    return join(USER_BASE_DIR, JOB_FILENAME.format(uuid=stamp.uuid, date=stamp.date.strftime('%d-%m-%Y')))
 
 
 def _scrape_fragment(blueprints, soup_fragment, stamp, tag):
@@ -190,5 +182,10 @@ def _report_failure(stamp, field_name, blueprint, fragment, tag):
             print(BREAK)
 
 
-if __name__ == '__main__':
-    pass
+def _job_url_query(stamp):
+    return JOB_QUERY_URL.format(uuid=stamp.uuid, date=stamp.date.strftime('%d.%m.%Y'))
+
+
+def _report_filepath(stamp):
+    return join(USER_BASE_DIR, JOB_FILENAME.format(uuid=stamp.uuid, date=stamp.date.strftime('%d-%m-%Y')))
+

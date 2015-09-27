@@ -59,19 +59,6 @@ TAGS = {
 }
 
 
-OVERNIGHTS = [
-    ('Stadtkurier', 'city_tour'),
-    ('Stadt Stopp(s)', 'extra_stops'),
-    ('OV Ex Nat PU', 'overnight'),
-    ('ON Ex Nat Del.', 'overnight'),
-    ('OV EcoNat PU', 'overnight'),
-    ('OV Ex Int PU', 'overnight'),
-    ('ON Int Exp Del', 'overnight'),
-    ('EmpfangsbestÃ¤t.', 'fax_confirm'),
-    ('Wartezeit min.', 'waiting_time')
-]
-
-
 def scrape_from_soup(job):
     """
     In goes a webpage, out comes data. The unit of data is a stamped tuple.
@@ -135,24 +122,48 @@ def _scrape_fragment(blueprints, soup_fragment, stamp, tag):
     return collected
 
 
+OVERNIGHTS = {
+    'city_tour': {
+        'Stadtkurier'
+    },
+    'extra_stops': {
+        'Stadt Stopp(s)'
+    },
+    'overnight': {
+        'OV Ex Nat PU',
+        'ON Ex Nat Del.',
+        'OV EcoNat PU',
+        'OV Ex Int PU',
+        'ON Int Exp Del'
+    },
+    'fax_confirm': {
+        'EmpfangsbestÃ¤t.',
+        'Empfangsbestät.'
+    },
+    'waiting_time': {
+        'Wartezeit min.',
+        'Ladezeit in min',
+        'Ladehilfe'
+    }
+}
+
+
 def _scrape_prices(soup_fragment):
     """
     Scrape the price information at the bottom of the webpage. This
-    section is treated seperately because it's in the form of a table.
+    section is treated seperately because it's in the form of a table,
+    with lots of different price items.
     """
 
     cells = list(soup_fragment.stripped_strings)
-    price_table = dict(zip(cells[::2], cells[1::2]))
+    raw_price_table = dict(zip(cells[::2], cells[1::2]))
 
-    for old, new in OVERNIGHTS:
-        if old in price_table:
-            price_table[new] = price_table.pop(old)
-        else:
-            price_table[new] = None
+    price_table = {k: [] for k in OVERNIGHTS.keys()}
 
-    if price_table['waiting_time'] is not None:
-        # We want the price of the waiting time not the time itself.
-        price_table['waiting_time'] = price_table['waiting_time'][7::]
+    for scraped_item, raw_price in raw_price_table.items():
+        for db_key, registered_items in _OVERNIGHTS.items():
+            if scraped_item in registered_items:
+                price_table[db_key].append(raw_price)
 
     return price_table
 

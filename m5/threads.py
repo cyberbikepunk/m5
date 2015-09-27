@@ -5,7 +5,7 @@ from logging import info
 from datetime import timedelta
 
 from m5.user import initialize
-from m5.scraper import scrape_job
+from m5.scraper import scrape_from_soup
 from m5.pipeline import geocode, package, archive
 from m5.spider import download_one_day
 
@@ -26,7 +26,7 @@ def migrate(**options):
         webpages = download_one_day(date, user.web_session)
 
         for webpage in webpages:
-            job = scrape_job(webpage)
+            job = scrape_from_soup(webpage)
 
             geolocations = []
             for address in job.addresses:

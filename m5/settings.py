@@ -11,16 +11,13 @@ PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
 INSTANCE_DIR = join(PROJECT_DIR, 'instance')
-DATABASE_DIR = join(OUTPUT_DIR, 'db')
-LOG_DIR = join(OUTPUT_DIR, 'log')
+DUMMY_DIR = '/tmp/m5'
 
 # Assets files
-MASK_FILE = join(ASSETS_DIR, 'mask.png')
-SHP_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
-DBF_FILE = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
-BLUEPRINT_FILE = join(ASSETS_DIR, 'scraping_blueprints.json')
-TAGS_FILE = join(ASSETS_DIR, 'webpage_tags.json')
-OVERNIGHTS_FILE = join(ASSETS_DIR, 'overnight_types.json')
+MASK_FILEPATH = join(ASSETS_DIR, 'mask.png')
+SHP_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
+DBF_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
+DB_FILENAME = 'test.sqlite'
 
 # Wordcloud parameters
 WORD_BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}

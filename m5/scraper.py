@@ -161,7 +161,7 @@ def _scrape_prices(soup_fragment):
     price_table = {k: [] for k in OVERNIGHTS.keys()}
 
     for scraped_item, raw_price in raw_price_table.items():
-        for db_key, registered_items in _OVERNIGHTS.items():
+        for db_key, registered_items in OVERNIGHTS.items():
             if scraped_item in registered_items:
                 price_table[db_key].append(raw_price)
 
@@ -199,4 +199,3 @@ def _job_url_query(stamp):
 
 def _report_filepath(stamp):
     return join(USER_BASE_DIR, JOB_FILENAME.format(uuid=stamp.uuid, date=stamp.date.strftime('%d-%m-%Y')))
-

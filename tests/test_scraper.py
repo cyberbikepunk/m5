@@ -16,16 +16,16 @@ overnight = Stamped(
     RawData(
         {
             'cash': None,
-            'city_tour': '12,00',
+            'city_tour': [],
             'client_id': '59017',
             'client_name': 'Norsk European Wholesale Ltd.',
-            'extra_stops': None,
-            'fax_confirm': None,
+            'extra_stops': [],
+            'fax_confirm': [],
             'km': None,
             'order_id': '1402120029',
-            'overnight': None,
+            'overnight': ['4,20'],
             'type': 'OV',
-            'waiting_time': '36,00',
+            'waiting_time': [],
         },
         [
             {
@@ -58,16 +58,16 @@ ladehilfe = Stamped(
     RawData(
         {
             'cash': None,
-            'city_tour': None,
+            'city_tour': [],
             'client_id': '49315',
             'client_name': 'Zalando GmbH',
-            'extra_stops': None,
-            'fax_confirm': None,
+            'extra_stops': [],
+            'fax_confirm': [],
             'km': None,
             'order_id': '1303070990',
-            'overnight': None,
+            'overnight': [],
             'type': 'Ladehilfe',
-            'waiting_time': None,
+            'waiting_time': ['(90,00) 36,00', '12,00'],
         },
         [
             {
@@ -95,9 +95,52 @@ ladehilfe = Stamped(
 )
 
 
+bar = Stamped(
+    Stamp('assets', date(2013, 3, 7), '1124990'),
+    RawData(
+        {
+            'cash': 'BAR',
+            'city_tour': ['9,30'],
+            'client_id': '66092',
+            'client_name': 'Johannes Barthelmes',
+            'extra_stops': [],
+            'fax_confirm': [],
+            'km': '4,294',
+            'order_id': '1303070239',
+            'overnight': [],
+            'type': 'Stadtkurier',
+            'waiting_time': [],
+        },
+        [
+            {
+                'address': 'Willibald-Alexis-Straße 22',
+                'after': '10:37',
+                'city': 'Berlin',
+                'company': 'Johannes Barthelmes Serenebar',
+                'postal_code': '10965',
+                'purpose': 'Abholung',
+                'timestamp': '11:05',
+                'until': '11:30',
+            },
+            {
+                'address': 'Nollendorfplatz 5',
+                'after': None,
+                'city': 'Berlin',
+                'company': 'SB Tiede',
+                'postal_code': '10777',
+                'purpose': 'Zustellung',
+                'timestamp': '11:27',
+                'until': None,
+            },
+        ]
+    )
+)
+
+
 tests_examples = [
     ('2014-02-12-uuid-2041699.html', overnight),
-    ('2013-03-07-uuid-1124990.html', ladehilfe)
+    ('2013-03-07-uuid-1124990.html', ladehilfe),
+    ('2013-03-07-uuid-1123772.html', bar)
 ]
 
 

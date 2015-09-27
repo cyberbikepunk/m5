@@ -15,6 +15,7 @@ from m5.settings import JOB_QUERY_URL, SUMMARY_URL, JOB_FILENAME
 
 Stamped = namedtuple('Stamped', ['stamp', 'data'])
 Stamp = namedtuple('Stamp', ['user', 'date', 'uuid'])
+RawData = namedtuple('Data', ['info', 'addresses'])
 
 
 def download_one_day(day, user):

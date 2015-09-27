@@ -1,51 +1,82 @@
 """ A very basic test suite for the user module. """
 
 
-from unittest import TestCase
-from os.path import join
-from m5.settings import INSTANCE_DIR
-from m5.user import User
-from m5.main import build_parser
+from unittest import TestCase, skipIf
+from os.path import join, isdir
+from shutil import rmtree, copyfile
+from sqlalchemy.engine import Engine
+from m5.settings import DUMMY_DIR, ASSETS_DIR, DB_FILENAME
+from m5.user import User, UserError
+from os import getenv
 
 
-class TestUser(TestCase):
-    options = dict()
+credentials = {'username': getenv('BAMBOO_USERNAME'), 'password': getenv('BAMBOO_PASSWORD')}
+MESSAGE = 'Please export BAMBOO_USERNAME and BAMBOO_PASSWORD in your environment'
+missing_credentials = not all(credentials.values())
 
-    def test_returning_user_with_online_mode_off(self):
-        self._test_user('offline_off.ini')
 
-    def test_returning_user_with_online_mode_on(self):
-        self._test_user('offline_off.ini')
+@skipIf(missing_credentials, MESSAGE)
+class TestUserOnline(TestCase):
 
-    def test_new_user_with_online_mode_off(self):
-        self._test_user('offline_off.ini', new=True)
+    def setUp(self):
+        self._initialize_dummy_user(**credentials)
 
-    def test_new_user_with_online_mode_on(self):
-        self._test_user('offline_on.ini', new=True)
+    def tearDown(self):
+        rmtree(DUMMY_DIR)
+        self.user.quit()
 
-    def _get_options(self, test_init_file):
-        args_from_file = ['@' + join(INSTANCE_DIR, test_init_file)]
-        args = build_parser().parse_args(args_from_file)
+    def test_user_is_created(self):
+        self.assertIsInstance(self.user, User)
 
-        options = vars(args)
+    def test_user_has_db_engine(self):
+        self.assertIsInstance(self.user.engine, Engine)
 
-        del options['begin']
-        del options['end']
+    def test_user_has_folders(self):
+        self.assertTrue(all(list(map(isdir, self.user.folders))))
 
-        return options
-
-    def _test_user(self, test_init_file, new=False):
-        options = self._get_options(test_init_file)
+    def _initialize_dummy_user(self, create=True, **options):
         self.user = User(**options)
+        self._set_dummy_folders()
 
-        if new:
-            self.user.download_dir = '/tmp/downloads'
-            self.user.output_dir = '/tmp/output'
+        if create:
+            self._create_dummy_install()
 
         self.user.authenticate()
         self.user.start_db()
 
-        self.assertIsInstance(self.user, User)
+    def _set_dummy_folders(self):
+        self.user.output_dir = join(DUMMY_DIR, 'output')
+        self.user.output_dir = join(DUMMY_DIR, 'downloads')
+        self.user.user_dir = DUMMY_DIR
 
-    def tearDown(self):
-        self.user.quit()
+    def _create_dummy_install(self):
+        self.user.install()
+
+        assets_db_filepath = join(ASSETS_DIR, DB_FILENAME)
+        dummy_db_filepath = join(self.user.user_dir, DB_FILENAME)
+        copyfile(assets_db_filepath, dummy_db_filepath)
+
+
+@skipIf(missing_credentials, MESSAGE)
+class TestUserOffline(TestUserOnline):
+    def setUp(self):
+        self._initialize_dummy_user(offline=True, **credentials)
+
+
+@skipIf(missing_credentials, MESSAGE)
+class TestNewUserOnline(TestUserOnline):
+    def setUp(self):
+        self._initialize_dummy_user(create=False, **credentials)
+
+
+class TestBadCredentials(TestCase):
+    def setUp(self):
+        self.user = User(username='wrong', password='credentials')
+
+    def test_user_is_created(self):
+        self.assertRaises(UserError)
+
+
+class TestNewUserOffline(TestBadCredentials):
+    def setUp(self):
+        self.user = User(offline=True, username='new', password='user')

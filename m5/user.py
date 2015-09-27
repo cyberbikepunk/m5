@@ -12,7 +12,7 @@ from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, 
 from m5.model import Model
 
 
-class UserException(Exception):
+class UserError(Exception):
     pass
 
 
@@ -49,13 +49,14 @@ class User:
 
     def authenticate(self):
         if self.offline:
-            if not all(self._folders):
-                raise UserException('Missing directories')
+            if not all(self.folders):
+                raise UserError('Missing directories')
         else:
-            if LOGGED_IN in self._login().text:
-                self._install()
+            response = self._login()
+            if LOGGED_IN in response.text:
+                self.install()
             else:
-                raise UserException('Authentication failed')
+                raise UserError('Authentication failed')
 
         info('User authenticated')
 
@@ -68,13 +69,13 @@ class User:
         info('Switched on database')
 
     @property
-    def _folders(self):
+    def folders(self):
         return [self.download_dir,
                 self.output_dir,
                 self.user_dir]
 
-    def _install(self):
-        for folder in self._folders:
+    def install(self):
+        for folder in self.folders:
             if not isdir(folder):
                 makedirs(folder)
 

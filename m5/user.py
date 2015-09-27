@@ -8,7 +8,7 @@ from os.path import isdir, join
 from os import makedirs
 from logging import info
 
-from m5.settings import OUTPUT_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT
+from m5.settings import USER_BASE_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT
 from m5.model import Model
 
 
@@ -36,9 +36,9 @@ class User:
         self.offline = offline
         self.verbose = verbose
 
-        self.user_dir = join(OUTPUT_DIR, username)
-        self.download_dir = join(OUTPUT_DIR, username, 'downloads')
-        self.output_dir = join(OUTPUT_DIR, username, 'output')
+        self.user_dir = join(USER_BASE_DIR, username)
+        self.download_dir = join(USER_BASE_DIR, username, 'downloads')
+        self.output_dir = join(USER_BASE_DIR, username, 'output')
 
         self.db_uri = None
         self.engine = None

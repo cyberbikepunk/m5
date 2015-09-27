@@ -6,7 +6,7 @@ from sys import modules
 
 
 # Program folders
-OUTPUT_DIR = join(expanduser('~'), '.m5', )
+USER_BASE_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')

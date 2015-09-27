@@ -11,11 +11,11 @@ from os import getenv
 
 
 credentials = {'username': getenv('BAMBOO_USERNAME'), 'password': getenv('BAMBOO_PASSWORD')}
-MESSAGE = 'Please export BAMBOO_USERNAME and BAMBOO_PASSWORD in your environment'
-missing_credentials = not all(credentials.values())
+WARNING = 'Please export BAMBOO_USERNAME and BAMBOO_PASSWORD in your environment'
+no_credentials = not all(credentials.values())
 
 
-@skipIf(missing_credentials, MESSAGE)
+@skipIf(no_credentials, WARNING)
 class TestUserOnline(TestCase):
 
     def setUp(self):
@@ -57,19 +57,19 @@ class TestUserOnline(TestCase):
         copyfile(assets_db_filepath, dummy_db_filepath)
 
 
-@skipIf(missing_credentials, MESSAGE)
+@skipIf(no_credentials, WARNING)
 class TestUserOffline(TestUserOnline):
     def setUp(self):
         self._initialize_dummy_user(offline=True, **credentials)
 
 
-@skipIf(missing_credentials, MESSAGE)
+@skipIf(no_credentials, WARNING)
 class TestNewUserOnline(TestUserOnline):
     def setUp(self):
         self._initialize_dummy_user(create=False, **credentials)
 
 
-class TestBadCredentials(TestCase):
+class TestWrongCredentials(TestCase):
     def setUp(self):
         self.user = User(username='wrong', password='credentials')
 
@@ -77,6 +77,6 @@ class TestBadCredentials(TestCase):
         self.assertRaises(UserError)
 
 
-class TestNewUserOffline(TestBadCredentials):
+class TestNewUserOffline(TestWrongCredentials):
     def setUp(self):
         self.user = User(offline=True, username='new', password='user')

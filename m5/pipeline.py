@@ -15,7 +15,11 @@ def boolean(value):
         return bool(value)
 
 
-def decimal(value):
+def price(value):
+    return value
+
+
+def distance(value):
     if value:
         return float(value.replace(',', '.'))
 
@@ -85,13 +89,13 @@ def package(job, geolocations):
     order = Order(
         order_id=number(job.info['order_id']),
         client_id=number(job.info['client_id']),
-        distance=decimal(job.info['km']),
+        distance=distance(job.info['km']),
         cash=boolean(job.info['cash']),
-        city_tour=decimal(job.info['city_tour']),
-        extra_stops=decimal(job.info['extra_stops']),
-        overnight=decimal(job.info['overnight']),
-        fax_confirm=decimal(job.info['fax_confirm']),
-        waiting_time=decimal(job.info['waiting_time']),
+        city_tour=price(job.info['city_tour']),
+        extra_stops=price(job.info['extra_stops']),
+        overnight=price(job.info['overnight']),
+        fax_confirm=price(job.info['fax_confirm']),
+        waiting_time=price(job.info['waiting_time']),
         type=type_(job.info['type']),
         uuid=number(job.stamp.uuid),
         date=job.stamp.date,

@@ -1,6 +1,7 @@
 """ Settings for the m5 package. """
 
 
+from os import getenv
 from os.path import join, abspath, expanduser
 from sys import modules
 
@@ -11,13 +12,13 @@ PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
 INSTANCE_DIR = join(PROJECT_DIR, 'instance')
-DUMMY_DIR = '/tmp/m5'
+MOCK_DIRNAME = 'mock_user'
 
 # Assets files
 MASK_FILEPATH = join(ASSETS_DIR, 'mask.png')
 SHP_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
 DBF_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
-DB_FILENAME = 'test.sqlite'
+
 
 # Wordcloud parameters
 WORD_BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
@@ -33,7 +34,7 @@ SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
 
 # String constants
 JOB_QUERY_URL = 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'
-FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} on line {nb} inside {tag}.'
+FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} inside {tag}.'
 JOB_FILENAME = '{date}-uuid-{uuid}.html'
 FILE_DATE_FORMAT = '%d-%m-%Y'
 URL_DATE_FORMAT = '%d.%m.%Y'
@@ -45,12 +46,13 @@ CENTER = '^'
 LEAP = '\n\n'
 SKIP = '\n'
 STEP = ''
-BREAK = '\n' + '-'*79
+SEPERATOR = '\n' + '-'*79
 
 # Readability
 LOGGED_IN = 'erfolgreich'
 REDIRECT = 302
 EXIT = {'logout': '1'}
+UUID = slice(-12, -5)
 
 # Matplotlib settings
 PLOT_FONTSIZE = 14
@@ -58,6 +60,11 @@ FIGURE_SIZE = (18, 12)
 FIGURE_STYLE = 'default'
 FIGURE_FONT = 'Droid Sans'
 BACKGROUND_ALPHA = 0.0
+
+# Environment variables
+USERNAME = getenv('BAMBOO_USERNAME')
+PASSWORD = getenv('BAMBOO_PASSWORD')
+CREDENTIALS_WARNING = 'Please export BAMBOO_USERNAME and BAMBOO_PASSWORD'
 
 
 def show_settings():

@@ -2,81 +2,41 @@
 
 
 from unittest import TestCase, skipIf
-from os.path import join, isdir
-from shutil import rmtree, copyfile
+from os.path import isdir
 from sqlalchemy.engine import Engine
-from m5.settings import DUMMY_DIR, ASSETS_DIR, DB_FILENAME
-from m5.user import User, UserError
-from os import getenv
+
+from m5.settings import CREDENTIALS_WARNING as WARN, USERNAME, PASSWORD
+from m5.user import User, UserError, initialize, Ghost
 
 
-credentials = {'username': getenv('BAMBOO_USERNAME'), 'password': getenv('BAMBOO_PASSWORD')}
-WARNING = 'Please export BAMBOO_USERNAME and BAMBOO_PASSWORD in your environment'
-no_credentials = not all(credentials.values())
+class TestUser(TestCase):
+    @skipIf(not USERNAME or not PASSWORD, WARN)
+    def test_returning_user_online(self):
+        self.user = Ghost(username=USERNAME, password=PASSWORD).bootstrap()
+        self.user = initialize(user=self.user)
+        self._assert_ok()
 
+    def test_returning_user_offline(self):
+        self.user = Ghost(offline=True).bootstrap()
+        self.user = initialize(self.user)
+        self._assert_ok()
 
-@skipIf(no_credentials, WARNING)
-class TestUserOnline(TestCase):
+    @skipIf(not USERNAME or not PASSWORD, WARN)
+    def test_new_user_online(self):
+        self.user = Ghost(username=USERNAME, password=PASSWORD)
+        self.user = initialize(user=self.user)
+        self._assert_ok()
 
-    def setUp(self):
-        self._initialize_dummy_user(**credentials)
-
-    def tearDown(self):
-        rmtree(DUMMY_DIR)
-        self.user.quit()
-
-    def test_user_is_created(self):
+    def _assert_ok(self):
         self.assertIsInstance(self.user, User)
-
-    def test_user_has_db_engine(self):
+        self.assertTrue(all(list(map(isdir, self.user.folders))))
         self.assertIsInstance(self.user.engine, Engine)
 
-    def test_user_has_folders(self):
-        self.assertTrue(all(list(map(isdir, self.user.folders))))
+    def tearDown(self):
+        self.user.clear()
+        self.user.logout()
 
-    def _initialize_dummy_user(self, create=True, **options):
-        self.user = User(**options)
-        self._set_dummy_folders()
+    def test_new_user_offline(self):
+        self.user = Ghost(offline=True, username='new', password='user')
+        self.assertRaises(UserError, initialize, user=self.user)
 
-        if create:
-            self._create_dummy_install()
-
-        self.user.authenticate()
-        self.user.start_db()
-
-    def _set_dummy_folders(self):
-        self.user.output_dir = join(DUMMY_DIR, 'output')
-        self.user.output_dir = join(DUMMY_DIR, 'downloads')
-        self.user.user_dir = DUMMY_DIR
-
-    def _create_dummy_install(self):
-        self.user.install()
-
-        assets_db_filepath = join(ASSETS_DIR, DB_FILENAME)
-        dummy_db_filepath = join(self.user.user_dir, DB_FILENAME)
-        copyfile(assets_db_filepath, dummy_db_filepath)
-
-
-@skipIf(no_credentials, WARNING)
-class TestUserOffline(TestUserOnline):
-    def setUp(self):
-        self._initialize_dummy_user(offline=True, **credentials)
-
-
-@skipIf(no_credentials, WARNING)
-class TestNewUserOnline(TestUserOnline):
-    def setUp(self):
-        self._initialize_dummy_user(create=False, **credentials)
-
-
-class TestWrongCredentials(TestCase):
-    def setUp(self):
-        self.user = User(username='wrong', password='credentials')
-
-    def test_user_is_created(self):
-        self.assertRaises(UserError)
-
-
-class TestNewUserOffline(TestWrongCredentials):
-    def setUp(self):
-        self.user = User(offline=True, username='new', password='user')

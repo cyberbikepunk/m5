@@ -5,9 +5,9 @@ from logging import info
 from datetime import timedelta
 
 from m5.user import initialize
-from m5.scraper import scrape_from_soup
+from m5.scraper import scrape
 from m5.pipeline import geocode, package, archive
-from m5.spider import download_one_day
+from m5.spider import fetch_one_day
 
 
 def migrate(**options):
@@ -23,10 +23,10 @@ def migrate(**options):
 
     for day in range(period.days):
         date = start_date + timedelta(days=day)
-        webpages = download_one_day(date, user.web_session)
+        webpages = fetch_one_day(date, user.web_session)
 
         for webpage in webpages:
-            job = scrape_from_soup(webpage)
+            job = scrape(webpage)
 
             geolocations = []
             for address in job.addresses:
@@ -35,5 +35,5 @@ def migrate(**options):
             tables = package(job, geolocations)
             archive(tables, user.db_session)
 
-    info('Finished the migration process.')
+    info('Finished the migration process')
     user.quit()

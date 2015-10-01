@@ -121,7 +121,6 @@ class Ghost(User):
     def __init__(self, **kwargs):
         super(Ghost, self).__init__(**kwargs)
         self._configure(MOCK_DIRNAME)
-        self.mock_dir = join(ASSETS_DIR, MOCK_DIRNAME)
 
     def clear(self):
         try:
@@ -137,7 +136,7 @@ class Ghost(User):
 
     def bootstrap(self):
         try:
-            copytree(self.mock_dir, self.userdir)
+            copytree(join(ASSETS_DIR, MOCK_DIRNAME), self.userdir)
         except FileExistsError:
             pass
         return self

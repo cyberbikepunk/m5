@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from os.path import join
 from pytest import mark
 
-from m5.scraper import scrape_from_soup
+from m5.scraper import scrape
 from m5.settings import ASSETS_DIR
 from m5.spider import Stamp, Stamped, RawData
 
@@ -53,7 +53,7 @@ overnight = Stamped(
 )
 
 
-ladehilfe = Stamped(
+loading_service = Stamped(
     Stamp('assets', date(2013, 3, 7), '1124990'),
     RawData(
         {
@@ -67,7 +67,7 @@ ladehilfe = Stamped(
             'order_id': '1303070990',
             'overnight': [],
             'type': 'Ladehilfe',
-            'waiting_time': ['(90,00) 36,00', '12,00'],
+            'waiting_time': ['12,00', '(90,00) 36,00'],
         },
         [
             {
@@ -95,7 +95,7 @@ ladehilfe = Stamped(
 )
 
 
-bar = Stamped(
+cash_tour = Stamped(
     Stamp('assets', date(2013, 3, 7), '1124990'),
     RawData(
         {
@@ -139,8 +139,8 @@ bar = Stamped(
 
 tests_examples = [
     ('2014-02-12-uuid-2041699.html', overnight),
-    ('2013-03-07-uuid-1124990.html', ladehilfe),
-    ('2013-03-07-uuid-1123772.html', bar)
+    ('2013-03-07-uuid-1124990.html', loading_service),
+    ('2013-03-07-uuid-1123772.html', cash_tour)
 ]
 
 
@@ -153,7 +153,8 @@ def test_eval(filename, expected):
 
     soup = BeautifulSoup(html)
     job = Stamped(expected.stamp, soup)
-    result = scrape_from_soup(job)
+
+    result = scrape(job)
 
     assert result.data.info == expected.data.info
     assert result.data.addresses == expected.data.addresses

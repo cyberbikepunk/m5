@@ -2,27 +2,25 @@
 
 
 from os.path import join
-from os.path import isfile
 from datetime import date
 from bs4 import BeautifulSoup
 from re import findall
 from collections import namedtuple
-from logging import debug
+from logging import info
 from glob import glob
 
-from m5.settings import JOB_QUERY_URL, SUMMARY_URL, JOB_FILENAME
+from m5.settings import JOB_QUERY_URL, SUMMARY_URL, JOB_FILENAME, UUID
+
+Stamped = namedtuple('Stamped', ('stamp', 'data'))
+Stamp = namedtuple('Stamp', ('user', 'date', 'uuid'))
+RawData = namedtuple('Data', ('info', 'addresses'))
 
 
-Stamped = namedtuple('Stamped', ['stamp', 'data'])
-Stamp = namedtuple('Stamp', ['user', 'date', 'uuid'])
-RawData = namedtuple('Data', ['info', 'addresses'])
-
-
-def download_one_day(day, user):
+def fetch_one_day(day, user):
     """
     Download the user webpages for that day, save them to file and return
-    a list of beautiful soup objects. Do not download things twice: serve
-    webpages from cache where possible.
+    a generator of beautiful soup objects. Do not download things twice:
+    serve webpages from cache where possible.
     """
 
     assert isinstance(day, date), 'Argument must be a date object'
@@ -30,105 +28,75 @@ def download_one_day(day, user):
 
     s = Spider(day, user)
 
-    if s.has_no_jobs:
-        return None
+    uuids = s.get_job_uuids_from_cache()
 
-    uuids = s.get_job_uuids()
+    if not uuids and not user.offline:
+        uuids = s.scrape_job_uuids()
 
     if not uuids:
-        soups = None
-        debug('Skipped %s', day)
+        info('No jobs found %s on %s',
+             lambda: 'offline' if user.offline else 'online', s.date_string)
+        return
 
-    else:
-        soups = list()
+    for uuid in uuids:
+        stamp = Stamp(user, day, uuid)
 
-        for s.uuid in uuids:
-            if s.job_is_cached:
-                soup = s.load_job()
-                debug('Loaded %s', s.job_url)
-            else:
-                soup = s.download_job()
-                s.save_job(soup)
-                debug('Downloaded %s', s.job_url)
+        if user.offline:
+            soup = s.load_job(uuid)
+            info('Loaded from cache %s ', s.job_url(uuid))
+        else:
+            soup = s.download_job(uuid)
+            s.save_job(soup, uuid)
+            info('Downloaded and cached %s', s.job_url(uuid))
 
-            soups.append(Stamped(s.stamp, soup))
-
-    return soups
+        yield Stamped(stamp, soup)
 
 
 class Spider(object):
     def __init__(self, day, user):
-        self._downloads = user.downloads
-        self._session = user.session
-        self._user = user.username
+        self._archive = user.archive
+        self._session = user.web
         self._date = day
-        self.uuid = None
 
-    def get_job_uuids(self):
-        uuids = self._fish_job_uuids()
+    def __repr__(self):
+        return '<Spider: %s to %s>' % (self._date, self._archive)
 
-        if uuids is None and self._session:
-            self._scrape_job_uuids()
-
-        return uuids
-
-    def _fish_job_uuids(self):
-        pattern = self._date_string + '-uuid-*.html'
-        filepaths = glob(join(self._downloads, pattern))
+    def get_job_uuids_from_cache(self):
+        pattern = self.date_string + '-uuid-**.html'
+        filepaths = glob(join(self._archive, pattern))
 
         if filepaths:
-            return [filepath[-12:-5] for filepath in filepaths]
+            return [filepath[UUID] for filepath in filepaths]
 
-    def _scrape_job_uuids(self):
+    def scrape_job_uuids(self):
+        pattern = 'uuid=(\d{7})'
         payload = {'status': 'delivered', 'datum': self._date.strftime('%d.%m.%Y')}
         response = self._session.get(SUMMARY_URL, params=payload)
-
-        pattern = 'uuid=(\d{7})'
         jobs = findall(pattern, response.text)
 
         if jobs:
             return set(jobs)
 
-    def download_job(self):
-        return BeautifulSoup(self._session.get(self.job_url).text)
+    def download_job(self, uuid):
+        response = self._session.get(self.job_url(uuid))
+        content = response.content.decode('utf-8').encode()
+        return BeautifulSoup(content)
 
     @property
-    def stamp(self):
-        return Stamp(self._user, self._date, self.uuid)
+    def date_string(self):
+        return self._date.strftime('%Y-%m-%d')
 
-    @property
-    def _date_string(self):
-        return self._date.strftime('%d-%m-%Y')
+    def job_url(self, uuid):
+        return JOB_QUERY_URL.format(uuid=uuid, date=self._date.strftime('%d.%m.%Y'))
 
-    @property
-    def job_url(self):
-        return JOB_QUERY_URL.format(uuid=self.uuid, date=self._date.strftime('%d.%m.%Y'))
+    def _job_filepath(self, uuid):
+        return join(self._archive, JOB_FILENAME.format(date=self.date_string, uuid=uuid))
 
-    @property
-    def _job_filepath(self):
-        return join(self._downloads, JOB_FILENAME.format(date=self._date_string, uuid=self.uuid))
-
-    @property
-    def _no_jobs_filepath(self):
-        return join(self._downloads, JOB_FILENAME.format(date=self._date_string, uuid='NO_JOBS'))
-
-    @property
-    def job_is_cached(self):
-        if isfile(self._job_filepath):
-            return True
-
-    def save_job(self, soup):
-        with open(self._job_filepath, 'w+') as f:
+    def save_job(self, soup, uuid):
+        with open(self._job_filepath(uuid), 'w+') as f:
             f.write(soup.prettify())
 
-    def load_job(self):
-        with open(self._job_filepath, 'r') as f:
+    def load_job(self, uuid):
+        with open(self._job_filepath(uuid), 'r') as f:
             html = f.read()
         return BeautifulSoup(html)
-
-    def has_no_jobs(self):
-        # If we have already tried to download data for that day
-        # and found there was nothing, there will be an empty file
-        # yyyy-mm-dd-uuid-NO_JOBS.html in the downloads folder.
-        if isfile(self._no_jobs_filepath):
-            return True

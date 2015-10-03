@@ -11,7 +11,6 @@ from time import strptime
 from logging import info
 from datetime import timedelta
 
-from m5.user import initialize
 from m5.scraper import scrape
 from m5.pipeline import process, archive
 from m5.spider import download
@@ -19,8 +18,7 @@ from m5.settings import LOGGING_FORMAT
 
 
 def setup_logger(verbose):
-    basicConfig(level=DEBUG if verbose else INFO,
-                format=LOGGING_FORMAT)
+    basicConfig(level=DEBUG if verbose else INFO, format=LOGGING_FORMAT)
 
 
 def migrate(**options):

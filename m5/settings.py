@@ -35,7 +35,7 @@ SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
 # String constants
 LOGGING_FORMAT = '[M5] [%(asctime)s] [%(levelname)s] [%(module)s] [%(funcName)s] %(message)s'
 JOB_QUERY_URL = 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'
-FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} inside {tag}.'
+FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field}.'
 JOB_FILENAME = '{date}-uuid-{uuid}.html'
 FILE_DATE_FORMAT = '%d-%m-%Y'
 URL_DATE_FORMAT = '%d.%m.%Y'

@@ -162,7 +162,7 @@ def _report_failure(stamp, field, fragment):
         for line_nb, line_content in enumerate(fragment):
             debug(str(line_nb) + ': ' + line_content)
     else:
-        debug('No content inside %s', tag)
+        debug('No content inside the fragment')
 
     debug(SEPERATOR)
 

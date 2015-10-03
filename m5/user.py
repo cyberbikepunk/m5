@@ -84,8 +84,7 @@ class User:
         info('User authenticated')
 
     def start_db(self):
-        self.engine = create_engine(self.db_uri, echo=self.verbose)
-        m = Model
+        self.engine = create_engine(self.db_uri)
         Model.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine)()
 

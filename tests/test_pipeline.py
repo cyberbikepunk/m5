@@ -4,7 +4,7 @@
 from pytest import mark, fixture
 from datetime import date, datetime
 
-from m5.user import Ghost, initialize
+from m5.user import Ghost
 from m5.model import Client, Order, Checkpoint, Checkin
 from m5.pipeline import process, geocode, archive
 from tests.test_scraper import OVERNIGHT_SCRAPED
@@ -119,8 +119,7 @@ def test_geocoder(expected_address, raw_address):
 
 @fixture(scope='function')
 def ghost(request):
-    user = Ghost(offline=True).bootstrap().flush()
-    user = initialize(user=user)
+    user = Ghost(offline=True).bootstrap().flush().initialize()
     request.addfinalizer(lambda: user.clear())
 
     return user

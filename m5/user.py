@@ -2,6 +2,7 @@
 
 
 from glob import glob
+from itertools import chain
 from requests import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,29 +12,13 @@ from logging import info
 from shutil import rmtree, copytree
 
 
-from m5.settings import USER_BASE_DIR, LOGIN_URL, LOGOUT_URL, LOGGED_IN, REDIRECT, EXIT, ASSETS_DIR, MOCK_DIRNAME
+from m5.settings import LOGGED_IN, REDIRECT, EXIT, ASSETS_DIR, MOCK_DIRNAME
+from m5.settings import USER_BASE_DIR, LOGIN_URL, LOGOUT_URL, USERNAME, PASSWORD
 from m5.model import Model
 
 
 class UserError(Exception):
     pass
-
-
-def initialize(user=None, **kwargs):
-    user = user or User(**kwargs)
-
-    try:
-        if user.offline:
-            user.check_installation()
-        else:
-            user.authenticate()
-            user.soft_install()
-    except UserError:
-        raise
-
-    user.start_db()
-
-    return user
 
 
 class User:
@@ -43,8 +28,8 @@ class User:
                  offline=False,
                  verbose=False):
 
-        self.username = username
-        self.password = password
+        self.username = username or USERNAME
+        self.password = password or PASSWORD
 
         self.userdir = ''
         self.archive = ''
@@ -63,10 +48,26 @@ class User:
         if username:
             self._configure(username)
 
+    def initialize(self):
+        try:
+            if self.offline:
+                self.check_installation()
+            else:
+                self.authenticate()
+                self.soft_install()
+        except UserError:
+            raise
+
+        self.start_db()
+
+        info('User initialization done')
+        return self
+
     def _configure(self, dirname):
         self.userdir = join(USER_BASE_DIR, dirname)
         self.archive = join(USER_BASE_DIR, dirname, 'archive')
         self.plots = join(USER_BASE_DIR, dirname, 'plots')
+
         self.db_uri = 'sqlite:///' + self.userdir + '/' + dirname + '.sqlite'
 
     def check_installation(self):
@@ -131,9 +132,11 @@ class Ghost(User):
         return self
 
     def flush(self):
-        for file in glob(join(self.archive, '*.html')):
-            remove(file)
-        for file in glob(join(self.userdir, '*.sqlite')):
+        files = [join(self.archive, '*.html'),
+                 join(self.plots, '*.png'),
+                 join(self.userdir, '*.sqlite')]
+
+        for file in chain(*list(map(glob, files))):
             remove(file)
         return self
 

@@ -6,25 +6,22 @@ from os.path import isdir
 from sqlalchemy.engine import Engine
 
 from m5.settings import CREDENTIALS_WARNING as WARN, USERNAME, PASSWORD
-from m5.user import User, UserError, initialize, Ghost
+from m5.user import User, UserError, Ghost
 
 
 class TestUser(TestCase):
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_returning_user_online(self):
-        self.user = Ghost(username=USERNAME, password=PASSWORD).bootstrap()
-        self.user = initialize(user=self.user)
+        self.user = Ghost().bootstrap().initialize()
         self._assert_ok()
 
     def test_returning_user_offline(self):
-        self.user = Ghost(offline=True).bootstrap()
-        self.user = initialize(self.user)
+        self.user = Ghost(offline=True).bootstrap().initialize()
         self._assert_ok()
 
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_new_user_online(self):
-        self.user = Ghost(username=USERNAME, password=PASSWORD)
-        self.user = initialize(user=self.user)
+        self.user = Ghost().initialize()
         self._assert_ok()
 
     def _assert_ok(self):
@@ -38,5 +35,5 @@ class TestUser(TestCase):
 
     def test_new_user_offline(self):
         self.user = Ghost(offline=True, username='new', password='user')
-        self.assertRaises(UserError, initialize, user=self.user)
+        self.assertRaises(UserError, lambda: self.user.initialize())
 

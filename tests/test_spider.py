@@ -7,7 +7,7 @@ from datetime import date
 from bs4 import BeautifulSoup
 
 from m5.spider import download
-from m5.user import initialize, Ghost
+from m5.user import Ghost
 from m5.settings import USERNAME, PASSWORD, CREDENTIALS_WARNING as WARN
 
 
@@ -20,17 +20,16 @@ class TestSpider(TestCase):
         self.user.logout()
 
     def test_load_one_day_from_cache(self):
-        self.user = Ghost(offline=True).bootstrap()
+        self.user = Ghost(offline=True).bootstrap().initialize()
         self._check()
 
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_download_one_day(self):
-        self.user = Ghost(username=USERNAME, password=PASSWORD).bootstrap().flush()
+        self.user = Ghost().bootstrap().flush().initialize()
         self._check()
 
     def _check(self):
-        self.user = initialize(user=self.user)
-        self.soups = download(self.day, self.user)
+        self.soups = download(self.day, self.user.initialize())
 
         expected_files = [
             join(self.user.archive, '2014-12-23-uuid-2984702.html'),

@@ -6,7 +6,7 @@ from os.path import join, isfile
 from datetime import date
 from bs4 import BeautifulSoup
 
-from m5.spider import fetch_one_day
+from m5.spider import download
 from m5.user import initialize, Ghost
 from m5.settings import USERNAME, PASSWORD, CREDENTIALS_WARNING as WARN
 
@@ -30,7 +30,7 @@ class TestSpider(TestCase):
 
     def _check(self):
         self.user = initialize(user=self.user)
-        self.soups = fetch_one_day(self.day, self.user)
+        self.soups = download(self.day, self.user)
 
         expected_files = [
             join(self.user.archive, '2014-12-23-uuid-2984702.html'),

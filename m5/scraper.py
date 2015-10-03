@@ -59,25 +59,25 @@ def scrape(job):
 
     for tag in tags:
         fragment = order.find_next(name=HTML[tag]['name'])
-        fields = _scrape_fragment(BLUEPRINTS[tag], fragment, job.stamp, tag)
+        fields = _scrape_fragment(BLUEPRINTS[tag], fragment, job.stamp)
         info.update(fields)
 
     # Step 2: scrape the price table
     fragment = order.find(HTML['prices']['name'])
-    prices = _scrape_prices(fragment, job.stamp, HTML['prices'])
+    prices = _scrape_prices(fragment, job.stamp)
     info.update(prices)
 
     # Step 3: scrape an arbitrary number of addresses
     fragments = order.find_all(name=HTML['address']['name'], attrs=HTML['address']['attrs'])
 
     for fragment in fragments:
-        address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
+        address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp)
         addresses.append(address)
 
     return Stamped(job.stamp, RawData(info, addresses))
 
 
-def _scrape_fragment(blueprints, fragment, stamp, tag):
+def _scrape_fragment(blueprints, fragment, stamp):
     # Fields are ambiguously inserted in the markup.
     # Fields may or may not be there.
     # Fields may be bundled together inside a single tag.
@@ -93,14 +93,14 @@ def _scrape_fragment(blueprints, fragment, stamp, tag):
             matched = match(bp['pattern'], contents[bp['line_nb']])
         except IndexError:
             collected[field] = None
-            _report_failure(stamp, field, contents, tag)
+            _report_failure(stamp, field, contents)
         else:
             if matched:
                 collected[field] = matched.group(1)
             else:
                 collected[field] = None
                 if not bp['nullable']:
-                    _report_failure(stamp, field, contents, tag)
+                    _report_failure(stamp, field, contents)
 
     return collected
 
@@ -132,7 +132,7 @@ PRICE_CATEGORIES = {
 }
 
 
-def _scrape_prices(fragment, stamp, tag):
+def _scrape_prices(fragment, stamp):
     # This section is treated separately because it's
     # a table containing multiple price categories.
 
@@ -147,12 +147,12 @@ def _scrape_prices(fragment, stamp, tag):
                 price_table[category].append(raw_price)
                 break
         else:
-            _report_failure(stamp, 'prices', fragment, tag)
+            _report_failure(stamp, 'prices', fragment)
 
     return price_table
 
 
-def _report_failure(stamp, field, fragment, tag):
+def _report_failure(stamp, field, fragment):
     debug(SEPERATOR)
 
     debug(FAILURE_REPORT.format(date=stamp.date,

@@ -28,7 +28,7 @@ BLUEPRINTS = {
         'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s(\d{2}:\d{2})', 'nullable': True},
         'purpose': {'line_nb': 0, 'pattern': r'(Abholung|Zustellung)', 'nullable': False},
         'timestamp': {'line_nb': -2, 'pattern': r'ST:\s(\d{2}:\d{2})', 'nullable': False},
-        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True}
+        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True},
     }
 }
 
@@ -107,7 +107,8 @@ def _scrape_fragment(blueprints, fragment, stamp, tag):
 
 PRICE_CATEGORIES = {
     'city_tour': {
-        'Stadtkurier'
+        'Stadtkurier',
+        'Fehlanfarht'
     },
     'extra_stops': {
         'Stadt Stopp(s)'
@@ -123,7 +124,7 @@ PRICE_CATEGORIES = {
         'EmpfangsbestÃ¤t.',
         'Empfangsbestät.'
     },
-    'waiting_time': {
+    'service': {
         'Wartezeit min.',
         'Ladezeit in min',
         'Ladehilfe'

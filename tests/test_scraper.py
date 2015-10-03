@@ -11,8 +11,8 @@ from m5.settings import ASSETS_DIR
 from m5.spider import Stamp, Stamped, RawData
 
 
-overnight = Stamped(
-    Stamp('assets', date(2014, 2, 12), '2041699'),
+OVERNIGHT_SCRAPED = Stamped(
+    Stamp('pytest', date(2014, 2, 12), '2041699'),
     RawData(
         {
             'cash': None,
@@ -25,7 +25,7 @@ overnight = Stamped(
             'order_id': '1402120029',
             'overnight': ['4,20'],
             'type': 'OV',
-            'waiting_time': [],
+            'service': [],
         },
         [
             {
@@ -53,7 +53,7 @@ overnight = Stamped(
 )
 
 
-loading_service = Stamped(
+SERVICE = Stamped(
     Stamp('assets', date(2013, 3, 7), '1124990'),
     RawData(
         {
@@ -67,7 +67,7 @@ loading_service = Stamped(
             'order_id': '1303070990',
             'overnight': [],
             'type': 'Ladehilfe',
-            'waiting_time': ['12,00', '(90,00) 36,00'],
+            'service': ['12,00', '(90,00) 36,00'],
         },
         [
             {
@@ -95,7 +95,7 @@ loading_service = Stamped(
 )
 
 
-cash_tour = Stamped(
+CASH = Stamped(
     Stamp('assets', date(2013, 3, 7), '1124990'),
     RawData(
         {
@@ -109,7 +109,7 @@ cash_tour = Stamped(
             'order_id': '1303070239',
             'overnight': [],
             'type': 'Stadtkurier',
-            'waiting_time': [],
+            'service': [],
         },
         [
             {
@@ -137,15 +137,16 @@ cash_tour = Stamped(
 )
 
 
-tests_examples = [
-    ('2014-02-12-uuid-2041699.html', overnight),
-    ('2013-03-07-uuid-1124990.html', loading_service),
-    ('2013-03-07-uuid-1123772.html', cash_tour)
+SCRAPED = [
+    ('2014-02-12-uuid-2041699.html', OVERNIGHT_SCRAPED),
+    ('2013-03-07-uuid-1124990.html', SERVICE),
+    ('2013-03-07-uuid-1123772.html', CASH)
 ]
 
 
-@mark.parametrize('filename, expected', tests_examples)
-def test_eval(filename, expected):
+@mark.run(order=0)
+@mark.parametrize('filename, expected', SCRAPED)
+def test_scraper(filename, expected):
 
     filepath = join(ASSETS_DIR, filename)
     with open(filepath, 'r') as f:

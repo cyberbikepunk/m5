@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from m5.user import initialize
 from m5.scraper import scrape
-from m5.pipeline import geocode, package, archive
+from m5.pipeline import _call_geocoder, process, archive
 from m5.spider import fetch_one_day
 
 
@@ -23,17 +23,12 @@ def migrate(**options):
 
     for day in range(period.days):
         date = start_date + timedelta(days=day)
-        webpages = fetch_one_day(date, user.web_session)
+        webpages = fetch_one_day(date, user.web)
 
         for webpage in webpages:
             job = scrape(webpage)
-
-            geolocations = []
-            for address in job.addresses:
-                geolocations.append(geocode(address))
-
-            tables = package(job, geolocations)
-            archive(tables, user.db_session)
+            tables = process(job)
+            archive(user.db_session, tables)
 
     info('Finished the migration process')
     user.quit()

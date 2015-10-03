@@ -2,24 +2,37 @@
 
 
 from logging import warning, debug
-from geopy import Nominatim
 from datetime import datetime
 from time import strptime
-from sqlalchemy.exc import IntegrityError
+from collections import Iterable
+from geopy import GoogleV3
+from geopy.exc import GeopyError, GeocoderQuotaExceeded
+from re import match
+from sqlalchemy.orm.exc import FlushError
 
 from m5.model import Checkin, Checkpoint, Client, Order
 
 
 def boolean(value):
-    if value:
-        return bool(value)
+    return True if value else False
 
 
-def price(value):
-    return value
+def price(raw_subprices):
+    pattern = '(\d+,\d{2})$'
+    subprices = []
+
+    for raw_subprice in raw_subprices:
+        matched = match(pattern, raw_subprice)
+        if matched:
+            subprice = matched.group(0).replace(',', '.')
+            subprices.append(float(subprice))
+        else:
+            warning('Failed to convert %s into a price', raw_subprice)
+
+    return sum(subprices)
 
 
-def distance(value):
+def decimal(value):
     if value:
         return float(value.replace(',', '.'))
 
@@ -36,7 +49,7 @@ def text(value):
 
 def purpose(value):
     if value:
-        return {'Abholung': 'purpose',
+        return {'Abholung': 'pickup',
                 'Zustellung': 'dropoff'}[value]
 
 
@@ -57,46 +70,98 @@ def timestamp(day, time):
                         minute=t.tm_min)
 
 
-def archive(tables, session):
+def archive(db, tables_bundle):
     """
-    Take table objects from the packager and commit them to the database.
+    Take table objects from the processor and commit them to the database.
     Rollback if a row already exists or a non nullable value is missing.
     """
 
+    def flatten(tree):
+        for node in tree:
+            if isinstance(node, Iterable):
+                for subnode in flatten(node):
+                    yield subnode
+            else:
+                yield node
+
+    tables = list(flatten(tables_bundle))
+
     for table in tables:
-        for row in table:
-            session.merge(row)
-            try:
-                session.commit()
-            except IntegrityError as e:
-                session.rollback()
-                warning('%s. Skipped %s', e, row)
+        db.merge(table)
+
+    try:
+        db.commit()
+        debug('Soft inserted % tables', len(tables))
+    except FlushError as e:
+        db.rollback()
+        warning('%s ! Rollback', e)
+        raise
 
 
-def package(job, geolocations):
+def geocode(address):
+    # Google is free up to 2500 requests per day, then 0.50€ per 1000. We don't use
+    # Nominatim because it doesn't like bulk requests. Other services cost money.
+    service = GoogleV3()
+
+    query = '{address}, {city} {postal_code}'.format(**address)
+    point = None
+
+    try:
+        point = service.geocode(query)
+
+        if point:
+            debug('Google geocoded %s', query)
+        else:
+            warning('Google did not recognize %s', query)
+
+    except GeocoderQuotaExceeded:
+        raise
+
+    except GeopyError as e:
+        warning('%s ! Error while geocoding %s', e, address)
+
+    finally:
+        ac = 'address_components'
+
+        address['place_id'] = point.raw['place_id'] if point else None
+        address['address'] = point.address if point else query
+        address['lat'] = point.point.latitude if point else None
+        address['lon'] = point.point.longitude if point else None
+        address['city'] = point.raw[ac][4]['long_name'] if point else address['city']
+        address['postal_code'] = point.raw[ac][7]['long_name'] if point else address['postal_code']
+        address['country'] = point.raw[ac][6]['long_name'] if point else None
+        address['country_code'] = point.raw[ac][6]['short_name'] if point else None
+        address['street_name'] = point.raw[ac][1]['long_name'] if point else None
+        address['street_number'] = point.raw[ac][0]['long_name'] if point else None
+        address['as_scraped'] = query
+
+        return address
+
+
+def process(job):
     """
     In goes raw data from the scraper module.
-    Out comes tabular data for the database.
+    Out comes table data for the SQLAlchemy API.
     """
 
     assert job is not None, 'Cannot package nothingness'
 
     client = Client(
-        client_id=number(job.info['client_id']),
-        name=text(job.info['client_name'])
+        client_id=number(job.data.info['client_id']),
+        name=text(job.data.info['client_name'])
     )
 
     order = Order(
-        order_id=number(job.info['order_id']),
-        client_id=number(job.info['client_id']),
-        distance=distance(job.info['km']),
-        cash=boolean(job.info['cash']),
-        city_tour=price(job.info['city_tour']),
-        extra_stops=price(job.info['extra_stops']),
-        overnight=price(job.info['overnight']),
-        fax_confirm=price(job.info['fax_confirm']),
-        waiting_time=price(job.info['waiting_time']),
-        type=type_(job.info['type']),
+        order_id=number(job.data.info['order_id']),
+        client_id=number(job.data.info['client_id']),
+        distance=decimal(job.data.info['km']),
+        cash=boolean(job.data.info['cash']),
+        city_tour=price(job.data.info['city_tour']),
+        extra_stops=price(job.data.info['extra_stops']),
+        overnight=price(job.data.info['overnight']),
+        fax_confirm=price(job.data.info['fax_confirm']),
+        service=price(job.data.info['service']),
+        type=type_(job.data.info['type']),
         uuid=number(job.stamp.uuid),
         date=job.stamp.date,
         user=job.stamp.user
@@ -105,74 +170,52 @@ def package(job, geolocations):
     checkpoints = []
     checkins = []
 
-    for address, geolocation in zip(job.addresses, geolocations):
+    for address in job.data.addresses:
+        address = geocode(address)
 
         checkpoint = Checkpoint(
-            checkpoint_id=geolocation['osm_id'],
-            display_name=geolocation['display_name'],
-            lat=geolocation['lat'],
-            lon=geolocation['lon'],
-            street=text(address['address']),
+            checkpoint_id=address['address'],
+            place_id=address['place_id'],
+            lat=address['lat'],
+            lon=address['lon'],
+            street_number=number(address['street_number']),
             city=text(address['city']),
-            postal_code=number(address['postal_code']),
-            company=text(address['company'])
+            postal_code=text(address['postal_code']),
+            company=text(address['company']),
+            country=address['country'],
+            country_code=address['country_code'],
+            as_scraped=address['as_scraped'],
+            street_name=address['street_name']
         )
 
+        _timestamp = timestamp(job.stamp.date, address['timestamp'])
+        _checkpoint_id = address['address']
+        _order_id = number(job.data.info['order_id'])
+        _purpose = purpose(address['purpose'])
+        _after = timestamp(job.stamp.date, address['after'])
+        _until = timestamp(job.stamp.date, address['until'])
+
         checkin = Checkin(
-            checkin_id=timestamp(job.stamp.day, address['timestamp']),
-            checkpoint_id=geolocation['osm_id'],
-            order_id=number(job.info['order_id']),
-            purpose=purpose(address['purpose']),
-            after_=timestamp(job.stamp.date, address['after']),
-            until=timestamp(job.stamp.day, address['until'])
+            timestamp=_timestamp,
+            checkpoint_id=_checkpoint_id,
+            order_id=_order_id,
+            purpose=_purpose,
+            after_=_after,
+            until=_until,
+            # This is a simple hash of the object itself
+            checkin_id=' | '.join([
+                str(_timestamp),
+                _checkpoint_id,
+                str(_order_id),
+                _purpose,
+                str(_after),
+                str(_until)
+            ]),
+
         )
 
         checkpoints.append(checkpoint)
         checkins.append(checkin)
 
-    debug('Packaged %s', job.stamp.day)
-
-    return client, order, checkpoints, checkins
-
-
-def geocode(address):
-    """
-    Geocode an address with Nominatim (http://nominatim.openstreetmap.org).
-    We use the osm_id returned by OpenStreetMap as the primary key for the
-    checkpoint table. If the service fails to geocode an address, it won't
-    make it into the database.
-    """
-
-    g = Nominatim()
-
-    payload = {'postalcode': address['postal_code'],
-               'street': address['address'],
-               'city': address['city'],
-               'country': address['country']}
-
-    empty = {key: None for key in ('osm_id',
-                                   'lat',
-                                   'lon',
-                                   'display_name')}
-
-    for key, value in payload.items():
-        if not value:
-            warning('Cannot geocode %s without %s', address['address'], key)
-            return empty
-
-    # noinspection PyBroadException
-    # -> we have to catch a socket timeout.
-    try:
-        response = g.geocode(payload)
-    except:
-        warning('Nominatim probably timed-out %s', address['address'])
-        return empty
-
-    if response is None:
-        geolocation = empty
-        warning('Nominatim failed to match %s', address['address'])
-    else:
-        geolocation = response.raw
-        debug('Nominatim succesfully matched %s', address['address'])
-
-    return geolocation
+    debug('Packaged %s', job.stamp.date)
+    return [client], [order], checkpoints, checkins

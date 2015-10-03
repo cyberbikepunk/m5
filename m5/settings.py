@@ -7,11 +7,14 @@ from sys import modules
 
 
 # Program folders
+from geopy import GoogleV3
+
 USER_BASE_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
 PACKAGE_DIR = join(PROJECT_DIR, 'm5')
 INSTANCE_DIR = join(PROJECT_DIR, 'instance')
+TEST_JOBS_DIR = join(ASSETS_DIR, 'test_jobs')
 MOCK_DIRNAME = 'mock_user'
 
 # Assets files

@@ -1,6 +1,7 @@
 """ This module connects the user locally (to the database) and remotely (to the company website). """
-from glob import glob
 
+
+from glob import glob
 from requests import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -84,7 +85,8 @@ class User:
 
     def start_db(self):
         self.engine = create_engine(self.db_uri, echo=self.verbose)
-        self.model = Model.metadata.create_all(self.engine)
+        m = Model
+        Model.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine)()
 
         info('Switched on database')
@@ -131,6 +133,8 @@ class Ghost(User):
 
     def flush(self):
         for file in glob(join(self.archive, '*.html')):
+            remove(file)
+        for file in glob(join(self.userdir, '*.sqlite')):
             remove(file)
         return self
 

@@ -6,9 +6,6 @@ from os.path import join, abspath, expanduser
 from sys import modules
 
 
-# Program folders
-from geopy import GoogleV3
-
 USER_BASE_DIR = join(expanduser('~'), '.m5', )
 PROJECT_DIR = abspath(__file__ + '/../..')
 ASSETS_DIR = join(PROJECT_DIR, 'assets')
@@ -36,6 +33,7 @@ JOB_URL = 'http://bamboo-mec.de/ll_detail.php5'
 SUMMARY_URL = 'http://bamboo-mec.de/ll.php5'
 
 # String constants
+LOGGING_FORMAT = '[M5] [%(asctime)s] [%(levelname)s] [%(module)s] [%(funcName)s] %(message)s'
 JOB_QUERY_URL = 'http://bamboo-mec.de/ll_detail.php5?status=delivered&uuid={uuid}&datum={date}'
 FAILURE_REPORT = '{date}-{uuid}: Failed to scrape {field} inside {tag}.'
 JOB_FILENAME = '{date}-uuid-{uuid}.html'
@@ -49,7 +47,7 @@ CENTER = '^'
 LEAP = '\n\n'
 SKIP = '\n'
 STEP = ''
-SEPERATOR = '\n' + '-'*79
+SEPERATOR = '-'*30
 
 # Readability
 LOGGED_IN = 'erfolgreich'

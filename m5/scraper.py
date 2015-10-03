@@ -157,8 +157,7 @@ def _report_failure(stamp, field, fragment):
 
     debug(FAILURE_REPORT.format(date=stamp.date,
                                 uuid=stamp.uuid,
-                                field=field,
-                                tag=tag))
+                                field=field))
     if len(fragment):
         for line_nb, line_content in enumerate(fragment):
             debug(str(line_nb) + ': ' + line_content)

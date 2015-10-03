@@ -96,7 +96,7 @@ def test_processor(scraped_webpage, expected_webpage):
 
     def expose(tables_, i):
         # I cannot compare whole ORM table objects, only their public attributes
-        return {k: v for k, v in vars(tables_[i]).items()if not k.startswith('_')}
+        return {k: v for k, v in vars(tables_[i]).items() if not k.startswith('_')}
 
     for processed, expected in zip(processed_webpage, expected_webpage):
         for tables in zip(processed, expected):

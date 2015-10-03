@@ -118,7 +118,7 @@ def geocode(address):
         raise
 
     except GeopyError as e:
-        warning('%s ! Error while geocoding %s', e, address)
+        warning('Error geocoding %s: %s', address['address'], e)
 
     finally:
         ac = 'address_components'
@@ -128,7 +128,6 @@ def geocode(address):
         address['lat'] = point.point.latitude if point else None
         address['lon'] = point.point.longitude if point else None
         address['city'] = point.raw[ac][4]['long_name'] if point else address['city']
-        address['postal_code'] = point.raw[ac][7]['long_name'] if point else address['postal_code']
         address['country'] = point.raw[ac][6]['long_name'] if point else None
         address['country_code'] = point.raw[ac][6]['short_name'] if point else None
         address['street_name'] = point.raw[ac][1]['long_name'] if point else None
@@ -217,5 +216,5 @@ def process(job):
         checkpoints.append(checkpoint)
         checkins.append(checkin)
 
-    debug('Packaged %s', job.stamp.date)
+    debug('Processed %s', job.stamp.date)
     return [client], [order], checkpoints, checkins

@@ -18,8 +18,8 @@ from m5.spider import download
 from m5.settings import LOGGING_FORMAT
 
 
-def setup_logger():
-    basicConfig(level=DEBUG if args.verbose else INFO,
+def setup_logger(verbose):
+    basicConfig(level=DEBUG if verbose else INFO,
                 format=LOGGING_FORMAT)
 
 
@@ -101,10 +101,10 @@ def build_parser():
 
 
 if __name__ == '__main__':
-    setup_logger()
-
     parser = build_parser()
     args = parser.parse_args()
+
+    setup_logger(args.verbose)
 
     info('User %s is %s', args.username, 'offline' if args.offline else 'online')
     info('Scraping from %s to %s', args.begin, args.end)

@@ -118,10 +118,10 @@ def test_geocoder(expected_address, raw_address):
 
 
 @fixture(scope='function')
-def ghost(test):
+def ghost(request):
     user = Ghost(offline=True).bootstrap().flush()
     user = initialize(user=user)
-    test.addfinalizer(lambda: user.clear())
+    request.addfinalizer(lambda: user.clear())
 
     return user
 

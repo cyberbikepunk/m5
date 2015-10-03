@@ -48,7 +48,7 @@ class User:
         if username:
             self._configure(username)
 
-    def initialize(self):
+    def init(self):
         try:
             if self.offline:
                 self.check_installation()

@@ -20,16 +20,16 @@ class TestSpider(TestCase):
         self.user.logout()
 
     def test_load_one_day_from_cache(self):
-        self.user = Ghost(offline=True).bootstrap().initialize()
+        self.user = Ghost(offline=True).bootstrap().init()
         self._check()
 
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_download_one_day(self):
-        self.user = Ghost().bootstrap().flush().initialize()
+        self.user = Ghost().bootstrap().flush().init()
         self._check()
 
     def _check(self):
-        self.soups = download(self.day, self.user.initialize())
+        self.soups = download(self.day, self.user.init())
 
         expected_files = [
             join(self.user.archive, '2014-12-23-uuid-2984702.html'),

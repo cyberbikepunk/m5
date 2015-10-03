@@ -12,16 +12,16 @@ from m5.user import User, UserError, Ghost
 class TestUser(TestCase):
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_returning_user_online(self):
-        self.user = Ghost().bootstrap().initialize()
+        self.user = Ghost().bootstrap().init()
         self._assert_ok()
 
     def test_returning_user_offline(self):
-        self.user = Ghost(offline=True).bootstrap().initialize()
+        self.user = Ghost(offline=True).bootstrap().init()
         self._assert_ok()
 
     @skipIf(not USERNAME or not PASSWORD, WARN)
     def test_new_user_online(self):
-        self.user = Ghost().initialize()
+        self.user = Ghost().init()
         self._assert_ok()
 
     def _assert_ok(self):
@@ -35,5 +35,5 @@ class TestUser(TestCase):
 
     def test_new_user_offline(self):
         self.user = Ghost(offline=True, username='new', password='user')
-        self.assertRaises(UserError, lambda: self.user.initialize())
+        self.assertRaises(UserError, lambda: self.user.init())
 

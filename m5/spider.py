@@ -16,7 +16,7 @@ Stamp = namedtuple('Stamp', ('user', 'date', 'uuid'))
 RawData = namedtuple('Data', ('info', 'addresses'))
 
 
-def fetch_one_day(day, user):
+def download(day, user):
     """
     Download the user webpages for that day, save them to file and return
     a generator of beautiful soup objects. Do not download things twice:
@@ -34,8 +34,7 @@ def fetch_one_day(day, user):
         uuids = s.scrape_job_uuids()
 
     if not uuids:
-        info('No jobs found %s on %s',
-             lambda: 'offline' if user.offline else 'online', s.date_string)
+        info('No jobs found %s on %s', 'offline' if user.offline else 'online', s.date_string)
         return
 
     for uuid in uuids:

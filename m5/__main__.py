@@ -41,8 +41,8 @@ def migrate(**options):
             tables = process(job)
             archive(user.db, tables)
 
-    info('Finished the migration process')
     user.logout()
+    info('Finished the migration process')
 
 
 def build_parser():

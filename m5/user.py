@@ -88,7 +88,7 @@ class User:
         Model.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine)()
 
-        debug('Switched on user database')
+        debug('Switched on user database %s', self.db_uri)
 
     @property
     def folders(self):

@@ -18,17 +18,10 @@ def boolean(value):
 
 
 def price(raw_subprices):
-    pattern = '(\d+,\d{2})$'
     subprices = []
-
-    for raw_subprice in raw_subprices:
-        matched = match(pattern, raw_subprice)
-        if matched:
-            subprice = matched.group(0).replace(',', '.')
-            subprices.append(float(subprice))
-        else:
-            warning('Failed to convert %s into a price', raw_subprice)
-
+    if raw_subprices:
+        for raw_subprice in raw_subprices:
+            subprices.append(decimal(raw_subprice))
     return sum(subprices)
 
 
@@ -88,7 +81,6 @@ def archive(db, tables_bundle):
 
     for table in tables:
         db.merge(table)
-
     try:
         db.commit()
         debug('Soft inserted %s tables', len(tables))
@@ -104,37 +96,48 @@ def geocode(address):
     service = GoogleV3()
 
     query = '{address}, {city} {postal_code}'.format(**address)
-    point = None
 
     try:
         point = service.geocode(query)
 
-        if point:
-            debug('Google geocoded %s', query)
+        if not point:
+            raise GeopyError('Google returned empty object')
+
+        if 'partial_match' in point.raw.keys():
+            warning('Google approximately matched %s', query)
         else:
-            warning('Google did not recognize %s', query)
+            debug('Google matched %s', query)
 
     except GeocoderQuotaExceeded:
         raise
 
     except GeopyError as e:
-        warning('Error geocoding %s: %s', address['address'], e)
+        warning('Error geocoding %s (%s)', address['address'], e)
+        point = None
 
-    finally:
-        ac = 'address_components'
+    def get_raw_info(name, default=None, option='long_name'):
+        if not point:
+            return
+        for component in point.raw['address_components']:
+            if name in component['types']:
+                return component[option]
+        else:
+            warning('Google did not return %s', name)
+            return default
 
-        address['place_id'] = point.raw['place_id'] if point else None
-        address['address'] = point.address if point else query
-        address['lat'] = point.point.latitude if point else None
-        address['lon'] = point.point.longitude if point else None
-        address['city'] = point.raw[ac][4]['long_name'] if point else address['city']
-        address['country'] = point.raw[ac][6]['long_name'] if point else None
-        address['country_code'] = point.raw[ac][6]['short_name'] if point else None
-        address['street_name'] = point.raw[ac][1]['long_name'] if point else None
-        address['street_number'] = point.raw[ac][0]['long_name'] if point else None
-        address['as_scraped'] = query
+    address['as_scraped'] = query
+    address['lat'] = point.point.latitude if point else None
+    address['lon'] = point.point.longitude if point else None
+    address['address'] = point.address if point else address['address']
 
-        return address
+    address['place_id'] = get_raw_info('place_id')
+    address['country'] = get_raw_info('country')
+    address['street_name'] = get_raw_info('route')
+    address['street_number'] = get_raw_info('street_number')
+    address['country_code'] = get_raw_info('country', option='short_name')
+    address['city'] = get_raw_info('locality', default=address['city'])
+
+    return address
 
 
 def process(job):

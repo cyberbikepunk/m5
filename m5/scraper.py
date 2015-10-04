@@ -2,7 +2,7 @@
 
 
 from re import match
-from logging import debug
+from logging import debug, warning
 from m5.spider import Stamped, RawData
 from m5.settings import SEPERATOR, FAILURE_REPORT
 
@@ -153,16 +153,16 @@ def _scrape_prices(fragment, stamp):
 
 
 def _report_failure(stamp, field, fragment):
-    debug(SEPERATOR)
+    warning(SEPERATOR)
 
-    debug(FAILURE_REPORT.format(date=stamp.date,
-                                uuid=stamp.uuid,
-                                field=field))
+    warning(FAILURE_REPORT.format(date=stamp.date,
+                                  uuid=stamp.uuid,
+                                  field=field))
     if len(fragment):
         for line_nb, line_content in enumerate(fragment):
-            debug(str(line_nb) + ': ' + line_content)
+            warning(str(line_nb) + ': ' + line_content)
     else:
-        debug('No content inside the fragment')
+        warning('No content inside the fragment')
 
-    debug(SEPERATOR)
+    warning(SEPERATOR)
 

@@ -29,7 +29,7 @@ class TestSpider(TestCase):
         self._check()
 
     def _check(self):
-        self.soups = download(self.day, self.user.init())
+        self.soups = download(self.day, self.user)
 
         expected_files = [
             join(self.user.archive, '2014-12-23-uuid-2984702.html'),

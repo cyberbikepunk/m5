@@ -74,6 +74,8 @@ def scrape(job):
         address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp)
         addresses.append(address)
 
+    debug('Scraped %s-uuid-%s.html', job.stamp.date, job.stamp.uuid)
+
     return Stamped(job.stamp, RawData(info, addresses))
 
 
@@ -91,16 +93,16 @@ def _scrape_fragment(blueprints, fragment, stamp):
     for field, bp in blueprints.items():
         try:
             matched = match(bp['pattern'], contents[bp['line_nb']])
-        except IndexError:
-            collected[field] = None
-            _report_failure(stamp, field, contents)
-        else:
+
             if matched:
                 collected[field] = matched.group(1)
             else:
-                collected[field] = None
-                if not bp['nullable']:
-                    _report_failure(stamp, field, contents)
+                raise ValueError
+
+        except (IndexError, ValueError):
+            collected[field] = None
+            if not bp['nullable']:
+                _report_failure(stamp, field, contents)
 
     return collected
 
@@ -133,21 +135,26 @@ PRICE_CATEGORIES = {
 
 
 def _scrape_prices(fragment, stamp):
-    # This section is treated separately because it's
-    # a table containing multiple price categories.
+    # This fragment is treated separately because it's a
+    # table with a whole bunch of possible price labels.
+    pattern = r'(\d+,\d{2})$'
 
     cells = list(fragment.stripped_strings)
-    raw_price_table = dict(zip(cells[::2], cells[1::2]))
-
+    raw_price_table = list(zip(cells[::2], cells[1::2]))
     price_table = {k: [] for k in PRICE_CATEGORIES.keys()}
 
-    for label, raw_price in sorted(raw_price_table.items()):
+    for raw_label, raw_price in sorted(raw_price_table):
         for category, category_synonyms in PRICE_CATEGORIES.items():
-            if label in category_synonyms:
-                price_table[category].append(raw_price)
-                break
-        else:
-            _report_failure(stamp, 'prices', fragment)
+            if raw_label in category_synonyms:
+                matched = match(pattern, raw_price)
+                if matched:
+                    price = matched.group(0)
+                    price_table[category].append(price)
+                else:
+                    warning('Could not convert "%s" into a price', raw_price)
+
+    if not any(price_table.values()):
+        _report_failure(stamp, 'prices', cells)
 
     return price_table
 

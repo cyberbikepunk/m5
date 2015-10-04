@@ -16,7 +16,7 @@ from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base, synonym_for
 
-from m5.settings import JOB_QUERY_URL, JOB_FILENAME, FILE_DATE_FORMAT, URL_DATE_FORMAT
+from m5.settings import JOB_URL_FORMAT, JOB_FILE_FORMAT, FILE_DATE_FORMAT, URL_DATE_FORMAT
 
 
 Model = declarative_base()
@@ -66,11 +66,11 @@ class Order(Model):
 
     @property
     def url(self):
-        return JOB_QUERY_URL.format(uuid=self.uuid, date=self.date.strftime(URL_DATE_FORMAT))
+        return JOB_URL_FORMAT.format(uuid=self.uuid, date=self.date.strftime(URL_DATE_FORMAT))
 
     @property
     def file(self):
-        return JOB_FILENAME.format(date=self.date.strftime(FILE_DATE_FORMAT), uuid=self.uuid)
+        return JOB_FILE_FORMAT.format(date=self.date.strftime(FILE_DATE_FORMAT), uuid=self.uuid)
 
     @synonym_for('order_id')
     @property

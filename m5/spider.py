@@ -9,7 +9,7 @@ from collections import namedtuple
 from logging import info
 from glob import glob
 
-from m5.settings import JOB_QUERY_URL, SUMMARY_URL, JOB_FILENAME, UUID
+from m5.settings import JOB_URL_FORMAT, SUMMARY_URL, JOB_FILE_FORMAT, UUID
 
 Stamped = namedtuple('Stamped', ('stamp', 'data'))
 Stamp = namedtuple('Stamp', ('user', 'date', 'uuid'))
@@ -86,10 +86,10 @@ class Spider(object):
         return self._date.strftime('%Y-%m-%d')
 
     def job_url(self, uuid):
-        return JOB_QUERY_URL.format(uuid=uuid, date=self._date.strftime('%d.%m.%Y'))
+        return JOB_URL_FORMAT.format(uuid=uuid, date=self._date.strftime('%d.%m.%Y'))
 
     def _job_filepath(self, uuid):
-        return join(self._archive, JOB_FILENAME.format(date=self.date_string, uuid=uuid))
+        return join(self._archive, JOB_FILE_FORMAT.format(date=self.date_string, uuid=uuid))
 
     def save_job(self, soup, uuid):
         with open(self._job_filepath(uuid), 'w+') as f:

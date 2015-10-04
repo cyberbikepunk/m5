@@ -1,4 +1,4 @@
-""" This module connects the user locally (to the database) and remotely (to the company website). """
+""" The user module connects the user locally (to the database) and remotely (to the company website). """
 
 
 from glob import glob

@@ -1,4 +1,4 @@
-""" A very basic test suite for the user module. """
+""" Test the user module. """
 
 
 from unittest import TestCase, skipIf

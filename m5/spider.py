@@ -1,4 +1,4 @@
-""" The spider crawls the company website and downloads webpages showing user data. """
+""" The spider crawls the company website and downloads webpages containing user data. """
 
 
 from os.path import join

@@ -1,4 +1,4 @@
-""" This module declares the following database:
+""" This module declares the following SQLALchemy database.
 
                Clients
                   |

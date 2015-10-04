@@ -1,4 +1,4 @@
-""" The pipeline module processes raw data from the scraper and stores it inside the database. """
+""" The pipeline module processes raw data extracted by the scraper and stores it in the database. """
 
 
 from logging import warning, debug

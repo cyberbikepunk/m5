@@ -1,7 +1,7 @@
 """ The scraper module extracts data from webpages. """
 
 
-from re import match
+from re import match, search
 from logging import debug, warning
 from m5.spider import Stamped, RawData
 from m5.settings import SEPERATOR, FAILURE_REPORT
@@ -146,12 +146,15 @@ def _scrape_prices(fragment, stamp):
     for raw_label, raw_price in sorted(raw_price_table):
         for category, category_synonyms in PRICE_CATEGORIES.items():
             if raw_label in category_synonyms:
-                matched = match(pattern, raw_price)
+                matched = search(pattern, raw_price)
+
                 if matched:
                     price = matched.group(0)
-                    price_table[category].append(price)
                 else:
+                    price = None
                     warning('Could not convert "%s" into a price', raw_price)
+
+                price_table[category].append(price)
 
     if not any(price_table.values()):
         _report_failure(stamp, 'prices', cells)

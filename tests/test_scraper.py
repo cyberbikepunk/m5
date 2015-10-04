@@ -67,7 +67,7 @@ SERVICE = Stamped(
             'order_id': '1303070990',
             'overnight': [],
             'type': 'Ladehilfe',
-            'service': ['12,00', '(90,00) 36,00'],
+            'service': ['12,00', '36,00'],
         },
         [
             {

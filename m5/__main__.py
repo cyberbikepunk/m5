@@ -3,7 +3,7 @@
 
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from logging import basicConfig, INFO, DEBUG, debug, info
+from logging import basicConfig, INFO, DEBUG, info
 from datetime import date
 from textwrap import dedent
 from time import strptime

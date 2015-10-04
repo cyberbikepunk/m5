@@ -50,28 +50,28 @@ def build_parser():
                        description=dedent(__doc__),
                        formatter_class=RawDescriptionHelpFormatter,
                        fromfile_prefix_chars='@',
-                       epilog='To read arguments from file, type: m5 @/absolute/path/to/file.')
+                       epilog='To read arguments from file pass @/absolute/path/to/file.ini')
 
     p.add_argument('-u',
-                   help='username for the company website',
+                   help='username for the bammboo-mec.de website',
                    type=str,
                    default=None,
                    dest='username')
 
     p.add_argument('-p',
-                   help='password for the company website',
+                   help='password for the bammboo-mec.de website',
                    type=str,
                    default=None,
                    dest='password')
 
     p.add_argument('-v',
-                   help='switch the verbose mode on',
+                   help='verbose mode on',
                    default=False,
                    action='store_true',
                    dest='verbose')
 
     p.add_argument('-o',
-                   help='switch the offline mode on',
+                   help='offline mode on',
                    default=False,
                    action='store_true',
                    dest='offline')
@@ -84,13 +84,13 @@ def build_parser():
         return day
 
     p.add_argument('-b',
-                   help='scrape all data since dd-mm-yyyy',
+                   help='migrate data since dd-mm-yyyy (default to today)',
                    type=calendar_day,
                    default=date.today(),
                    dest='begin')
 
     p.add_argument('-e',
-                   help='scrape all data until dd-mm-yyyy',
+                   help='migrate data until dd-mm-yyyy (defauls to today)',
                    type=calendar_day,
                    default=date.today(),
                    dest='end')

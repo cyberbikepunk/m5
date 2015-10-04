@@ -6,7 +6,7 @@ from datetime import date
 from bs4 import BeautifulSoup
 from re import findall
 from collections import namedtuple
-from logging import info
+from logging import debug
 from glob import glob
 
 from m5.settings import JOB_URL_FORMAT, SUMMARY_URL, JOB_FILE_FORMAT, UUID
@@ -34,7 +34,7 @@ def download(day, user):
         uuids = s.scrape_job_uuids()
 
     if not uuids:
-        info('No jobs found %s on %s', 'offline' if user.offline else 'online', s.date_string)
+        debug('No jobs found %s on %s', 'offline' if user.offline else 'online', s.date_string)
         return
 
     for uuid in uuids:
@@ -42,11 +42,11 @@ def download(day, user):
 
         if user.offline:
             soup = s.load_job(uuid)
-            info('Loaded from cache %s ', s.job_url(uuid))
+            debug('Loaded from cache %s ', s.job_filepath(uuid))
         else:
             soup = s.download_job(uuid)
             s.save_job(soup, uuid)
-            info('Downloaded and cached %s', s.job_url(uuid))
+            debug('Downloaded %s', s.job_url(uuid))
 
         yield Stamped(stamp, soup)
 
@@ -88,14 +88,14 @@ class Spider(object):
     def job_url(self, uuid):
         return JOB_URL_FORMAT.format(uuid=uuid, date=self._date.strftime('%d.%m.%Y'))
 
-    def _job_filepath(self, uuid):
+    def job_filepath(self, uuid):
         return join(self._archive, JOB_FILE_FORMAT.format(date=self.date_string, uuid=uuid))
 
     def save_job(self, soup, uuid):
-        with open(self._job_filepath(uuid), 'w+') as f:
+        with open(self.job_filepath(uuid), 'w+') as f:
             f.write(soup.prettify())
 
     def load_job(self, uuid):
-        with open(self._job_filepath(uuid), 'r') as f:
+        with open(self.job_filepath(uuid), 'r') as f:
             html = f.read()
         return BeautifulSoup(html)

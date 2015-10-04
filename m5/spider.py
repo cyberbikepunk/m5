@@ -38,7 +38,7 @@ def download(day, user):
         return
 
     for uuid in uuids:
-        stamp = Stamp(user, day, uuid)
+        stamp = Stamp(user.username, day, uuid)
 
         if user.offline:
             soup = s.load_job(uuid)

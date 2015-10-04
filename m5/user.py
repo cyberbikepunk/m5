@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from os.path import isdir, join
 from os import makedirs, remove
-from logging import info
+from logging import debug
 from shutil import rmtree, copytree
 
 
@@ -40,7 +40,6 @@ class User:
 
         self.db_uri = None
         self.engine = None
-        self.model = None
 
         self.db = None
         self.web = Session()
@@ -51,45 +50,45 @@ class User:
     def init(self):
         try:
             if self.offline:
-                self.check_installation()
+                self._check_installation()
             else:
-                self.authenticate()
-                self.soft_install()
+                self._authenticate()
+                self._soft_install()
         except UserError:
             raise
 
-        self.start_db()
+        self._start_db()
 
-        info('User initialization done')
         return self
 
     def _configure(self, dirname):
         self.userdir = join(USER_BASE_DIR, dirname)
         self.archive = join(USER_BASE_DIR, dirname, 'archive')
         self.plots = join(USER_BASE_DIR, dirname, 'plots')
-
         self.db_uri = 'sqlite:///' + self.userdir + '/' + dirname + '.sqlite'
 
-    def check_installation(self):
+        debug('Configured user to %s', self.userdir)
+
+    def _check_installation(self):
         if self.offline:
             if not all(list(map(isdir, self.folders))):
                 raise UserError('Missing directories')
 
-        info('User is returning')
+        debug('User is returning')
 
-    def authenticate(self):
+    def _authenticate(self):
         response = self._login()
         if LOGGED_IN not in response.text:
             raise UserError('Authentication failed')
 
-        info('User authenticated')
+        debug('User authenticated')
 
-    def start_db(self):
+    def _start_db(self):
         self.engine = create_engine(self.db_uri)
         Model.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine)()
 
-        info('Switched on database')
+        debug('Switched on user database')
 
     @property
     def folders(self):
@@ -97,12 +96,12 @@ class User:
                 self.plots,
                 self.userdir]
 
-    def soft_install(self):
+    def _soft_install(self):
         for folder in self.folders:
             if not isdir(folder):
                 makedirs(folder)
 
-        info('Created user folders')
+        debug('User folders installed')
 
     def _login(self):
         return self.web.post(LOGIN_URL, data={'username': self.username, 'password': self.password})
@@ -113,7 +112,7 @@ class User:
             if response.history[0].status_code == REDIRECT:
                 self.web.close()
 
-        info('Goodbye')
+        debug('Logged out from website')
 
     def __str__(self):
         return self.username

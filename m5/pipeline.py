@@ -104,7 +104,7 @@ def geocode(address):
             raise GeopyError('Google returned empty object')
 
         if 'partial_match' in point.raw.keys():
-            warning('Google approximately matched %s', query)
+            warning('Google only partly matched %s', query)
         else:
             debug('Google matched %s', query)
 
@@ -129,8 +129,8 @@ def geocode(address):
     address['lat'] = point.point.latitude if point else None
     address['lon'] = point.point.longitude if point else None
     address['address'] = point.address if point else address['address']
+    address['place_id'] = point.raw['place_id'] if point else None
 
-    address['place_id'] = get_raw_info('place_id')
     address['country'] = get_raw_info('country')
     address['street_name'] = get_raw_info('route')
     address['street_number'] = get_raw_info('street_number')

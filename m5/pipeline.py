@@ -91,7 +91,7 @@ def archive(db, tables_bundle):
 
     try:
         db.commit()
-        debug('Soft inserted % tables', len(tables))
+        debug('Soft inserted %s tables', len(tables))
     except FlushError as e:
         db.rollback()
         warning('%s ! Rollback', e)

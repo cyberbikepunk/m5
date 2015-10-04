@@ -3,18 +3,17 @@
 
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from logging import basicConfig, INFO, DEBUG
+from logging import basicConfig, INFO, DEBUG, debug, info
 from datetime import date
 from textwrap import dedent
 from time import strptime
-
-from logging import info
 from datetime import timedelta
 
 from m5.scraper import scrape
 from m5.pipeline import process, archive
 from m5.spider import download
 from m5.settings import LOGGING_FORMAT
+from m5.user import User
 
 
 def setup_logger(verbose):
@@ -24,13 +23,14 @@ def setup_logger(verbose):
 def migrate(**options):
     """ Migrate user data from the company website to the local database. """
 
-    info('Starting migration process')
-
     start_date = options.pop('begin')
     stop_date = options.pop('end')
     period = stop_date - start_date
 
-    user = initialize(**options)
+    user = User(**options).init()
+
+    info('User %s is %s', options['username'], 'offline' if options['offline'] else 'online')
+    info('Migrating data from %s to %s', start_date, stop_date)
 
     for day in range(period.days):
         date_ = start_date + timedelta(days=day)
@@ -101,10 +101,5 @@ def build_parser():
 if __name__ == '__main__':
     parser = build_parser()
     args = parser.parse_args()
-
     setup_logger(args.verbose)
-
-    info('User %s is %s', args.username, 'offline' if args.offline else 'online')
-    info('Scraping from %s to %s', args.begin, args.end)
-
     migrate(**vars(args))

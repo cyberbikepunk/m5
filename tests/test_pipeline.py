@@ -45,7 +45,7 @@ OVERNIGHT_PROCESSED = (
             country='Germany',
             country_code='DE',
             street_name='Lützowstraße',
-            street_number=107,
+            street_number='107',
             as_scraped='Luetzowstrasse 107, Berlin 10785',
             place_id='ChIJj6NNFzVQqEcRxpeJsUaDork'
         ),
@@ -59,7 +59,7 @@ OVERNIGHT_PROCESSED = (
             country='Germany',
             country_code='DE',
             street_name='Potsdamer Straße',
-            street_number=4,
+            street_number='4',
             as_scraped='Potsdamer Str. 4, BERLIN 10785',
             place_id='ChIJyw9Yv8lRqEcROlWIrlxpItQ'
         ),

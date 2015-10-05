@@ -6,9 +6,9 @@ from datetime import datetime
 from time import strptime
 from collections import Iterable
 from geopy import GoogleV3
-from geopy.exc import GeopyError, GeocoderQuotaExceeded
-from re import match
-from sqlalchemy.orm.exc import FlushError
+from geopy.exc import GeopyError, GeocoderQuotaExceeded, GeocoderTimedOut
+from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError
 
 from m5.model import Checkin, Checkpoint, Client, Order
 
@@ -18,7 +18,7 @@ def boolean(value):
 
 
 def price(raw_subprices):
-    subprices = []
+    subprices = [0.0]
     if raw_subprices:
         for raw_subprice in raw_subprices:
             subprices.append(decimal(raw_subprice))
@@ -43,7 +43,8 @@ def text(value):
 def purpose(value):
     if value:
         return {'Abholung': 'pickup',
-                'Zustellung': 'dropoff'}[value]
+                'Zustellung': 'dropoff',
+                'Abh./Zust.': 'stopover'}[value]
 
 
 def type_(value):
@@ -63,7 +64,7 @@ def timestamp(day, time):
                         minute=t.tm_min)
 
 
-def archive(db, tables_bundle):
+def archive(db, rows):
     """
     Take table objects from the processor and commit them to the database.
     Rollback if a row already exists or a non nullable value is missing.
@@ -77,47 +78,63 @@ def archive(db, tables_bundle):
             else:
                 yield node
 
-    tables = list(flatten(tables_bundle))
+    rows = list(flatten(rows))
+    ignored = 0
 
-    for table in tables:
-        db.merge(table)
-    try:
-        db.commit()
-        debug('Soft inserted %s tables', len(tables))
-    except FlushError as e:
-        db.rollback()
-        warning('%s ! Rollback', e)
-        raise
+    for row in rows:
+        state = db.merge(row)
+        if not inspect(state).pending:
+            debug('Row is already in db: %s', row)
+            ignored += 1
+        else:
+            try:
+                db.flush()
+            except IntegrityError as e:
+                db.rollback()
+                warning('Rolled back %s (%s)', row, e)
+                ignored += 1
+
+    db.commit()
+    debug('Committed rows: skipped %s / inserted %s', ignored, len(rows)-ignored)
 
 
-def geocode(address):
+def geocode(address, attempt=0):
     # Google is free up to 2500 requests per day, then 0.50€ per 1000. We don't use
     # Nominatim because it doesn't like bulk requests. Other services cost money.
     service = GoogleV3()
 
     query = '{address}, {city} {postal_code}'.format(**address)
 
-    try:
-        point = service.geocode(query)
-
-        if not point:
-            raise GeopyError('Google returned empty object')
-
-        if 'partial_match' in point.raw.keys():
-            warning('Google only partly matched %s', query)
-        else:
-            debug('Google matched %s', query)
-
-    except GeocoderQuotaExceeded:
-        raise
-
-    except GeopyError as e:
-        warning('Error geocoding %s (%s)', address['address'], e)
+    if attempt > 2:
+        warning('Google timed out 3 times. Giving up on %s', query)
         point = None
+
+    else:
+        try:
+            point = service.geocode(query)
+
+            if not point:
+                raise GeopyError('Google returned empty object')
+
+            if 'partial_match' in point.raw.keys():
+                warning('Google partly matched %s', query)
+            else:
+                debug('Google matched %s', query)
+
+        except GeocoderQuotaExceeded:
+            raise
+
+        except GeocoderTimedOut:
+            geocode(address, attempt=attempt+1)
+
+        except GeopyError as e:
+            warning('Error geocoding %s (%s)', address['address'], e)
+            point = None
 
     def get_raw_info(name, default=None, option='long_name'):
         if not point:
             return
+
         for component in point.raw['address_components']:
             if name in component['types']:
                 return component[option]
@@ -180,7 +197,7 @@ def process(job):
             place_id=address['place_id'],
             lat=address['lat'],
             lon=address['lon'],
-            street_number=number(address['street_number']),
+            street_number=text(address['street_number']),
             city=text(address['city']),
             postal_code=text(address['postal_code']),
             company=text(address['company']),

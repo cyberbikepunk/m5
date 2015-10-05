@@ -86,7 +86,7 @@ class User:
     def _start_db(self):
         self.engine = create_engine(self.db_uri)
         Model.metadata.create_all(self.engine)
-        self.db = sessionmaker(bind=self.engine)()
+        self.db = sessionmaker(autoflush=False, bind=self.engine)()
 
         debug('Switched on user database %s', self.db_uri)
 

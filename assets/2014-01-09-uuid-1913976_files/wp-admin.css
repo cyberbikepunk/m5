@@ -1,0 +1,1127 @@
+/*------------------------------------------------------------------------------
+
+
+Hello, this is the main WordPress admin CSS file.
+All the important stuff is in here.
+
+
+TABLE OF CONTENTS:
+------------------
+ 1.0 - Text Elements
+ 2.0 - Forms
+ 3.0 - Actions
+ 4.0 - Notifications
+ 5.0 - TinyMCE
+ 6.0 - Admin Header
+	6.1 - Favorites Menu
+	6.2 - Screen Options Tabs
+ 7.0 - Main Navigation
+ 8.0 - Layout Blocks
+ 9.0 - Dashboard
+10.0 - List Posts
+	10.1 - Inline Editing
+11.0 - Write/Edit Post Screen
+	11.1 - Custom Fields
+	11.2 - Post Revisions
+12.0 - Categories
+13.0 - Tags
+14.0 - Media Screen
+	14.1 - Media Uploader
+	14.2 - Image Editor
+15.0 - Comments Screen
+16.0 - Themes
+	16.1 - Custom Header
+	16.2 - Custom Background
+	16.3 - Tabbed Admin Screen Interface
+17.0 - Plugins
+18.0 - Users
+19.0 - Tools
+20.0 - Settings
+21.0 - Admin Footer
+22.0 - Misc
+23.0 - Dead
+
+
+------------------------------------------------------------------------------*/
+
+
+        textarea {
+            height: 200px;
+        }
+
+/*------------------------------------------------------------------------------
+  1.0 - Text Styles
+------------------------------------------------------------------------------*/
+
+p,
+ul,
+ol,
+blockquote,
+input,
+select {
+	font-size: 12px;
+}
+
+ol {
+	list-style-type: decimal;
+	margin-left: 2em;
+}
+
+.code, code {
+	font-family: Consolas, Monaco, Courier, monospace;
+}
+
+kbd, code {
+	padding: 1px 3px;
+	margin: 0 1px;
+	font-size: 11px;
+}
+
+.quicktags, .search {
+	font: 12px Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+}
+
+.icon32 {
+	float: left;
+	height: 36px;
+	margin: 14px 6px 0 0;
+	width: 36px;
+}
+
+.key-labels label {
+	line-height: 24px;
+}
+
+.subtitle {
+	font-size: 0.75em;
+	line-height: 1;
+	padding-left: 25px;
+}
+
+.pre {
+	/* http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/ */
+	white-space: pre-wrap; /* css-3 */
+	white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+	white-space: -pre-wrap; /* Opera 4-6 */
+	white-space: -o-pre-wrap; /* Opera 7 */
+	word-wrap: break-word; /* Internet Explorer 5.5+ */
+}
+
+.howto {
+	font-style: italic;
+	display: block;
+	font-family: "Lucida Grande", Verdana, Arial, "Bitstream Vera Sans", sans-serif;
+}
+
+p.install-help {
+	margin: 8px 0;
+	font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
+  2.0 - Forms
+------------------------------------------------------------------------------*/
+
+textarea,
+input[type="text"],
+input[type="password"],
+input[type="file"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select {
+	border-width: 1px;
+	border-style: solid;
+	-moz-border-radius: 4px;
+	-khtml-border-radius: 4px;
+	-webkit-border-radius: 4px;
+	border-radius: 4px;
+}
+
+select option {
+	padding: 2px;
+}
+
+.submit {
+	padding: 1.5em 0;
+	margin: 5px 0;
+	-moz-border-radius: 0 0 3px 3px;
+	-webkit-border-bottom-left-radius: 3px;
+	-webkit-border-bottom-right-radius: 3px;
+	-khtml-border-bottom-left-radius: 3px;
+	-khtml-border-bottom-right-radius: 3px;
+	border-bottom-left-radius: 3px;
+	border-bottom-right-radius: 3px;
+}
+
+form p.submit a.cancel:hover {
+	text-decoration: none;
+}
+
+.submit input,
+.button,
+input.button,
+.button-primary,
+input.button-primary,
+.button-secondary,
+input.button-secondary,
+.button-highlighted,
+input.button-highlighted,
+#postcustomstuff .submit input {
+	text-decoration: none;
+	font-size: 11px !important;
+	line-height: 13px;
+	padding: 3px 8px;
+	cursor: pointer;
+	border-width: 1px;
+	border-style: solid;
+	-moz-border-radius: 11px;
+	-khtml-border-radius: 11px;
+	-webkit-border-radius: 11px;
+	border-radius: 11px;
+	-moz-box-sizing: content-box;
+	-webkit-box-sizing: content-box;
+	-khtml-box-sizing: content-box;
+	box-sizing: content-box;
+}
+
+#minor-publishing-actions input,
+#major-publishing-actions input,
+#minor-publishing-actions .preview {
+	min-width: 80px;
+	text-align: center;
+}
+
+textarea.all-options, input.all-options {
+	width: 250px;
+}
+
+input.large-text,
+textarea.large-text {
+	width: 99%;
+}
+
+input.regular-text,
+#adduser .form-field input {
+	width: 25em;
+}
+
+input.small-text {
+	width: 50px;
+}
+
+#doaction,
+#doaction2,
+#post-query-submit {
+	margin-right: 8px;
+}
+
+.tablenav select[name="action"],
+.tablenav select[name="action2"] {
+	width: 130px;
+}
+
+.tablenav select[name="m"] {
+	width: 155px;
+}
+
+.tablenav select#cat {
+	width: 170px;
+}
+
+#wpcontent select {
+	padding: 2px;
+	font-size: 11px;
+}
+
+#wpcontent option {
+	padding: 2px;
+}
+
+#timezone_string option {
+	margin-left: 1em;
+}
+
+label,
+#your-profile label + a {
+	vertical-align: middle;
+}
+
+#misc-publishing-actions label {
+	vertical-align: baseline;
+}
+
+#pass-strength-result {
+	border-style: solid;
+	border-width: 1px;
+	float: left;
+	margin: 12px 5px 5px 1px;
+	padding: 3px 5px;
+	text-align: center;
+	width: 200px;
+	display: none;
+}
+.indicator-hint {
+	padding-top: 8px;
+}
+
+p.search-box {
+	float: right;
+	margin: -5px 0 0;
+}
+
+
+/*------------------------------------------------------------------------------
+  6.0 - Admin Header
+------------------------------------------------------------------------------*/
+#wphead-info {
+	margin: 0 0 0 15px;
+	padding-right: 15px;
+}
+
+#user_info {
+	float: right;
+	font-size: 12px;
+	line-height: 46px;
+	height: 46px;
+}
+
+#user_info p {
+	margin: 0;
+	padding: 0;
+	line-height: 46px;
+}
+
+#wphead {
+	height: 46px;
+}
+
+#wphead a,
+#adminmenu a,
+#sidemenu a,
+#taglist a,
+#catlist a,
+#show-settings a {
+	text-decoration: none;
+}
+
+#header-logo {
+	float: left;
+	margin: 7px 0 0 15px;
+}
+
+#wphead h1 {
+	font: normal 22px Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+	padding: 10px 8px 5px;
+	margin: 0;
+	float: left;
+}
+
+#wphead h1.long-title {
+	font: normal 18px Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+	padding: 12px 10px 5px;
+}
+
+#wphead #privacy-on-link {
+	font-size: 50%;
+	font-style: normal;
+	line-height: 17px;
+	padding: 0 6px;
+	vertical-align: middle;
+}
+
+#wphead h1 a:hover {
+	text-decoration:none;
+}
+#wphead h1 a:hover #site-title,
+#wphead h1 a#privacy-on-link:hover {
+	text-decoration:underline;
+}
+
+/*------------------------------------------------------------------------------
+  8.0 - Layout Blocks
+------------------------------------------------------------------------------*/
+body.admin-bar #wphead {
+	padding-top: 28px;
+}
+
+.narrow {
+	width: 70%;
+	margin-bottom: 40px;
+}
+
+.narrow p {
+	line-height: 150%;
+}
+
+.widefat th,
+.widefat td {
+	overflow: hidden;
+}
+
+.widefat td p {
+	margin: 2px 0 0.8em;
+}
+
+.widefat .column-comment p {
+	margin: 0.6em 0;
+}
+
+.widget .widget-top,
+.postbox h3 {
+	cursor: move;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	user-select: none;
+}
+
+.postbox-container {
+	float: left;
+	padding-right: 0.5%;
+}
+
+.postbox-container .meta-box-sortables {
+	min-height: 300px;
+}
+
+.postbox .hndle span {
+	padding: 6px 0;
+}
+
+.postbox .hndle {
+	cursor: move;
+}
+
+.hndle a {
+	font-size: 11px;
+	font-weight: normal;
+}
+
+.postbox .handlediv {
+	float: right;
+	width: 23px;
+	height: 26px;
+}
+
+.sortable-placeholder {
+	border-width: 1px;
+	border-style: dashed;
+	margin-bottom: 20px;
+}
+
+.widget,
+.postbox,
+.stuffbox {
+	margin-bottom: 20px;
+	border-width: 1px;
+	border-style: solid;
+	line-height: 1;
+	-moz-border-radius: 6px;
+	-khtml-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+}
+
+.widget .widget-top,
+.postbox h3,
+.postbox h3,
+.stuffbox h3 {
+	-moz-border-radius: 6px 6px 0 0;
+	-webkit-border-top-right-radius: 6px;
+	-webkit-border-top-left-radius: 6px;
+	-khtml-border-top-right-radius: 6px;
+	-khtml-border-top-left-radius: 6px;
+	border-top-right-radius: 6px;
+	border-top-left-radius: 6px;
+}
+
+.postbox.closed h3 {
+	-moz-border-radius-bottomleft: 4px;
+	-webkit-border-bottom-left-radius: 4px;
+	-khtml-border-bottom-left-radius: 4px;
+	border-bottom-left-radius: 4px;
+	-moz-border-radius-bottomright: 4px;
+	-webkit-border-bottom-right-radius: 4px;
+	-khtml-border-bottom-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+}
+
+.postbox table.form-table {
+	margin-bottom: 0;
+}
+
+.postbox input[type="text"],
+.postbox textarea,
+.stuffbox input[type="text"],
+.stuffbox textarea {
+	border-width: 1px;
+	border-style: solid;
+}
+
+.temp-border {
+	border: 1px dotted #ccc;
+}
+
+.columns-prefs label {
+	padding: 0 5px;
+}
+
+/*------------------------------------------------------------------------------
+  14.0 - Media Screen
+------------------------------------------------------------------------------*/
+
+#wpbody-content #media-items .describe {
+	border-collapse: collapse;
+	width: 100%;
+	border-top-style: solid;
+	border-top-width: 1px;
+	clear: both;
+	cursor: default;
+	padding: 5px;
+}
+
+#wpbody-content .describe th {
+	vertical-align: top;
+	text-align: left;
+	padding: 10px;
+	width: 140px;
+}
+
+#wpbody-content .describe .media-item-info tr {
+	background-color: transparent;
+}
+
+#wpbody-content .describe .media-item-info td {
+	padding: 4px 10px 0;
+}
+
+.describe .media-item-info .A1B1 {
+	padding: 0 0 0 10px;
+}
+
+#wpbody-content .filename {
+	padding: 0 10px;
+}
+
+#wpbody-content .media-item .thumbnail {
+	max-height: 128px;
+	max-width: 128px;
+}
+
+#wpbody-content #async-upload-wrap a {
+	display: none;
+}
+
+.media-upload-form td label {
+	margin-right: 6px;
+	margin-left: 2px;
+}
+
+.media-upload-form .align .field label {
+	display: inline;
+	padding: 0 0 0 22px;
+	margin: 0 1em 0 0;
+	font-weight: bold;
+}
+
+.media-upload-form tr.image-size label {
+	margin: 0 0 0 3px;
+	font-weight: bold;
+}
+
+.media-upload-form th.label label {
+	font-weight: bold;
+	margin: 0.5em;
+	font-size: 13px;
+}
+
+.media-upload-form th.label label span {
+	padding: 0 5px;
+}
+
+abbr.required {
+	border: medium none;
+	text-decoration: none;
+}
+
+#wpbody-content .describe input[type="text"],
+#wpbody-content .describe textarea {
+	width: 460px;
+}
+
+#wpbody-content .describe p.help {
+	margin: 0;
+	padding: 0 0 0 5px;
+}
+
+.media-item .error-div a.dismiss,
+.describe-toggle-on,
+.describe-toggle-off {
+	display: block;
+	line-height: 36px;
+	float: right;
+	margin-right: 20px;
+}
+
+.describe-toggle-off {
+	display: none;
+}
+
+#wpbody-content .media-item {
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
+	min-height: 36px;
+	position: relative;
+	width: 100%;
+}
+
+#wpbody-content .media-single .media-item {
+	border-bottom-style: none;
+	border-bottom-width: 0;
+}
+
+#wpbody-content #media-items {
+	border-style: solid solid none;
+	border-width: 1px;
+	width: 670px;
+}
+
+#wpbody-content #media-items .filename {
+	line-height: 36px;
+	overflow: hidden;
+}
+
+.media-item .error-div {
+	padding-left: 10px;
+}
+
+.media-item .pinkynail {
+	float: left;
+	margin: 2px;
+	max-width: 40px;
+	max-height: 32px;
+}
+
+.media-item .startopen,
+.media-item .startclosed {
+	display: none;
+}
+
+.media-item .original {
+	position: relative;
+	height: 34px;
+	width: 503px;
+}
+
+.media-item .percent {
+	font-weight: bold;
+}
+
+.crunching {
+	display: block;
+	line-height: 32px;
+	text-align: right;
+	margin-right: 5px;
+}
+
+.progress {
+	position: relative;
+	margin-bottom: -36px;
+	height: 36px;
+}
+
+.bar {
+	width: 0;
+	height: 100%;
+	border-right-width: 3px;
+	border-right-style: solid;
+}
+
+.upload-php .fixed .column-parent {
+	width: 25%;
+}
+
+
+/*------------------------------------------------------------------------------
+  14.1 - Media Uploader
+------------------------------------------------------------------------------*/
+
+.find-box {
+	width: 500px;
+	height: 300px;
+	overflow: hidden;
+	padding: 33px 5px 40px;
+	position: absolute;
+	z-index: 1000;
+}
+
+.find-box-head {
+	cursor: move;
+	font-weight: bold;
+	height: 2em;
+	line-height: 2em;
+	padding: 1px 12px;
+	position: absolute;
+	top: 5px;
+	width: 100%;
+}
+
+.find-box-inside {
+	overflow: auto;
+	width: 100%;
+	height: 100%;
+}
+
+.find-box-search {
+	padding: 12px;
+	border-width: 1px;
+	border-style: none none solid;
+}
+
+#find-posts-response {
+	margin: 8px 0;
+	padding: 0 1px;
+}
+
+#find-posts-response table {
+	width: 100%;
+}
+
+#find-posts-response .found-radio {
+	padding: 5px 0 0 8px;
+	width: 15px;
+}
+
+.find-box-buttons {
+	width: 480px;
+	margin: 8px;
+}
+
+.find-box-search label {
+	padding-right: 6px;
+}
+
+.find-box #resize-se {
+	position: absolute;
+	right: 1px;
+	bottom: 1px;
+}
+
+/* favorite-actions */
+#favorite-actions {
+	float: right;
+	margin: 11px 12px 0;
+	min-width: 130px;
+	position: relative;
+}
+
+.round_button {
+	-moz-border-radius: 12px;
+	-khtml-border-radius: 12px;
+	-webkit-border-radius: 12px;
+	border-radius: 12px;
+	line-height: 15px;
+	padding: 3px 5px 4px 5px;
+	border-width: 1px;
+	border-style: solid;
+	float: left;
+	margin-right: 2px;
+}
+
+.round_button a {
+	text-decoration: none;
+}
+
+#favorite-inside {
+	margin: 0 0 0 0px;
+	padding: 2px 1px;
+	border-width: 1px;
+	border-style: solid;
+	position: absolute;
+	z-index: 11;
+	display: none;
+	-moz-border-radius: 0 0 12px 12px;
+	-webkit-border-bottom-right-radius: 12px;
+	-webkit-border-bottom-left-radius: 12px;
+	-khtml-border-bottom-right-radius: 12px;
+	-khtml-border-bottom-left-radius: 12px;
+	border-bottom-right-radius: 12px;
+	border-bottom-left-radius: 12px;
+}
+
+#favorite-actions a {
+	display: block;
+	text-decoration: none;
+	font-size: 11px;
+}
+
+#favorite-inside a {
+	padding: 3px 5px 3px 10px;
+}
+
+#favorite-toggle {
+	height: 22px;
+	position: absolute;
+	right: 0;
+	top: 1px;
+	width: 28px;
+}
+
+#favorite-actions .slide-down {
+	-moz-border-radius: 12px 12px 0 0;
+	-webkit-border-bottom-right-radius: 0;
+	-webkit-border-bottom-left-radius: 0;
+	-khtml-border-bottom-right-radius: 0;
+	-khtml-border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	border-bottom-left-radius: 0;
+	border-bottom: none;
+}
+
+ul#dismissed-updates {
+	display: none;
+}
+
+form.upgrade {
+	margin-top: 8px;
+}
+
+form.upgrade .hint {
+	font-style: italic;
+	font-size: 85%;
+	margin: -0.5em 0 2em 0;
+}
+
+#poststuff .inside .the-tagcloud {
+	margin: 5px 0 10px;
+	padding: 8px;
+	border-width: 1px;
+	border-style: solid;
+	line-height: 1.8em;
+	word-spacing: 3px;
+	-moz-border-radius: 6px;
+	-khtml-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+}
+
+br.clear {
+	height: 2px;
+	line-height: 2px;
+}
+
+.swfupload {
+	margin: 5px 10px;
+	vertical-align: middle;
+}
+
+
+/*------------------------------------------------------------------------------
+  16.3 - Tabbed Admin Screen Interface (Experimental)
+------------------------------------------------------------------------------*/
+
+.nav-tab {
+	border-style: solid;
+	border-color: #ccc #ccc #f9f9f9;
+	border-width: 1px 1px 0;
+	color: #c1c1c1;
+	text-shadow: rgba(255,255,255,1) 0 1px 0;
+	font-size: 12px;
+	line-height: 16px;
+	display: inline-block;
+	padding: 4px 14px 6px;
+	text-decoration: none;
+	margin: 0 6px -1px 0;
+	-moz-border-radius: 5px 5px 0 0;
+	-webkit-border-top-left-radius: 5px;
+	-webkit-border-top-right-radius: 5px;
+	-khtml-border-top-left-radius: 5px;
+	-khtml-border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+}
+
+.nav-tab-active {
+	border-width: 1px;
+	color: #464646;
+}
+
+h2.nav-tab-wrapper, h3.nav-tab-wrapper {
+	border-bottom: 1px solid #ccc;
+	padding-bottom: 0;
+}
+
+h2 .nav-tab {
+	padding: 4px 20px 6px;
+	font: italic normal normal 24px/35px Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+}
+
+
+/*------------------------------------------------------------------------------
+  21.0 - Admin Footer
+------------------------------------------------------------------------------*/
+
+#footer {
+	margin-top: -46px;
+	border-top: 1px;
+	border-style: solid;
+}
+
+#footer,
+#footer a {
+	font-size: 12px;
+	font-family: Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+	font-style: italic;
+}
+
+#footer p {
+	margin: 0;
+	padding: 15px;
+	line-height: 15px;
+}
+
+#footer a {
+	text-decoration: none;
+}
+
+#footer a:hover {
+	text-decoration: underline;
+}
+
+
+/*------------------------------------------------------------------------------
+  22.0 - Misc
+------------------------------------------------------------------------------*/
+
+#excerpt, .attachmentlinks {
+	margin: 0;
+	height: 4em;
+	width: 98%;
+}
+
+#template div {
+	margin-right: 190px;
+}
+
+p.pagenav {
+	margin: 0;
+	display: inline;
+}
+
+.pagenav span {
+	font-weight: bold;
+	margin: 0 6px;
+}
+
+.row-title {
+	font-size: 12px !important;
+	font-weight: bold;
+}
+
+.column-author img, .column-username img {
+	float: left;
+	margin-right: 10px;
+	margin-top: 3px;
+}
+
+.row-actions {
+	visibility: hidden;
+	padding: 2px 0 0;
+}
+
+tr:hover .row-actions,
+div.comment-item:hover .row-actions {
+	visibility: visible;
+}
+
+.row-actions-visible {
+	padding: 2px 0 0;
+}
+
+.form-table .pre {
+	padding: 8px;
+	margin: 0;
+}
+
+table.form-table td .updated {
+	font-size: 13px;
+}
+
+
+.tagchecklist {
+	margin-left: 14px;
+	font-size: 12px;
+	overflow: auto;
+}
+.tagchecklist strong {
+	margin-left: -8px;
+	position: absolute;
+}
+.tagchecklist span {
+	margin-right: 25px;
+	display: block;
+	float: left;
+	font-size: 11px;
+	line-height: 1.8em;
+	white-space: nowrap;
+	cursor: default;
+}
+.tagchecklist span a {
+	margin: 6px 0pt 0pt -9px;
+	cursor: pointer;
+	width: 10px;
+	height: 10px;
+	display: block;
+	float: left;
+	text-indent: -9999px;
+	overflow: hidden;
+	position: absolute;
+}
+
+
+#poststuff h2 {
+	margin-top: 20px;
+	font-size: 1.5em;
+	margin-bottom: 15px;
+	padding: 0 0 3px;
+	clear: left;
+}
+#poststuff h3,
+.metabox-holder h3 {
+	font-size: 12px;
+	font-weight: bold;
+	padding: 7px 9px;
+	margin: 0;
+	line-height: 1;
+}
+#poststuff .inside,
+#poststuff .inside p {
+	font-size: 11px;
+	margin: 6px 6px 8px;
+}
+#poststuff .inside .submitbox p {
+	margin: 1em 0;
+}
+#post-visibility-select, #post-formats-select {
+	line-height: 1.5em;
+	margin-top: 3px;
+}
+#poststuff #submitdiv .inside {
+	margin: 0;
+}
+#titlediv, #poststuff .postarea {
+	margin-bottom: 20px;
+}
+
+
+td.post-title strong, td.plugin-title strong {
+	display: block;
+	margin-bottom: .2em;
+}
+td.post-title p, td.plugin-title p {
+	margin: 6px 0;
+}
+
+
+.wp-hidden-children .wp-hidden-child,
+.ui-tabs-hide {
+	display: none;
+}
+
+#templateside ul li a {
+	text-decoration: none;
+}
+
+
+.tool-box {
+	margin: 15px 0 35px;
+}
+.tool-box .buttons {
+	margin: 15px 0;
+}
+.tool-box .title {
+	margin: 8px 0;
+	font: 18px/24px Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
+}
+
+
+.pressthis a {
+	font-size: 1.2em;
+}
+
+
+#sidemenu {
+	margin: -30px 15px 0 315px;
+	list-style: none;
+	position: relative;
+	float: right;
+	padding-left: 10px;
+	font-size: 12px;
+}
+#sidemenu a {
+	padding: 0 7px;
+	display: block;
+	float: left;
+	line-height: 28px;
+	border-top-width: 1px;
+	border-top-style: solid;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+#sidemenu li {
+	display: inline;
+	line-height: 200%;
+	list-style: none;
+	text-align: center;
+	white-space: nowrap;
+	margin: 0;
+	padding: 0;
+}
+#sidemenu a.current {
+	font-weight: normal;
+	padding-left: 6px;
+	padding-right: 6px;
+	-moz-border-radius: 4px 4px 0 0;
+	-webkit-border-top-left-radius: 4px;
+	-webkit-border-top-right-radius: 4px;
+	-khtml-border-top-left-radius: 4px;
+	-khtml-border-top-right-radius: 4px;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	border-width: 1px;
+	border-style: solid;
+}
+#sidemenu li a .count-0 {
+	display: none;
+}
+
+#poststuff .inside .the-tagcloud {
+	margin: 5px 0 10px;
+	padding: 8px;
+	border-width: 1px;
+	border-style: solid;
+	line-height: 1.8em;
+	word-spacing: 3px;
+	-moz-border-radius: 6px;
+	-khtml-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+}
+
+.plugin-install #description, .plugin-install-network #description {
+	width: 60%;
+}
+
+table .vers,
+table .column-visible,
+table .column-rating {
+	text-align: left;
+}
+
+
+/* Scrollbar fix for bulk upgrade iframe */
+body.iframe {
+	height: 98%;
+}

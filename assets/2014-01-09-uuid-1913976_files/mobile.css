@@ -1,0 +1,71 @@
+#order_detail h3 {
+	font-style: italic;
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+#order_detail p {
+	margin: 0;
+}
+
+#order_list h3, #order_list p {
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+#order_list p {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+#order_list p a{
+	color: #000000;
+	text-decoration: none;
+}
+#search {
+	width: 80px;
+}
+
+.ui-btn-active {
+	border-color: #557124;
+    background-color: #a2bf68;
+    background-image:
+        -webkit-gradient(linear, left top, left bottom,
+            from(#a2bf68),
+            color-stop(49%, #91af57),
+            color-stop(50%, #89a84d),
+            to(#759739)
+            );
+    background-image:
+        -moz-linear-gradient(
+            center top,
+            rgb(162,191,104) 0%,
+            rgb(146,175,87) 49%,
+            rgb(138,168,77) 50%,
+            rgb(116,151,57) 100%
+        );
+    text-shadow: 0 1px 1px rgba(0,0,0,.3);
+    color: #ffffff;
+}
+
+.ui-btn-active a {
+	color: #ffffff;
+}
+
+.ui-li-count {
+	color: red; 
+	font-size: 40px; 
+	float: right; 
+	padding-top: 15px;
+	margin-right: 10px;
+}
+
+.ui-li-count a {
+	color: red;
+	text-decoration: none;
+}
+
+.form-wrap {
+    margin: 0;
+    width: 100%;
+}

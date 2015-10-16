@@ -44,7 +44,7 @@ LOGGED_IN = 'erfolgreich'
 REDIRECT = 302
 EXIT = {'logout': '1'}
 UUID = slice(-12, -5)
-SEPERATOR = '-'*30
+SEPERATOR = '-'*60
 
 # Matplotlib settings
 PLOT_FONTSIZE = 14

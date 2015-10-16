@@ -1,8 +1,8 @@
-""" This module declares the following database:
+""" This module declares the following SQLALchemy database.
 
-           Clients  Users
-              |      |
-             ^^     ^^
+               Clients
+                  |
+                 ^^
                Orders   Checkpoints
                   |        |
                  ^^       ^^
@@ -11,12 +11,12 @@
 """
 
 
-from sqlalchemy import Column, ForeignKey, DateTime
+from sqlalchemy import Column, ForeignKey, DateTime, String
 from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base, synonym_for
 
-from m5.settings import JOB_QUERY_URL, JOB_FILENAME, FILE_DATE_FORMAT, URL_DATE_FORMAT
+from m5.settings import JOB_URL_FORMAT, JOB_FILE_FORMAT, FILE_DATE_FORMAT, URL_DATE_FORMAT
 
 
 Model = declarative_base()
@@ -28,26 +28,15 @@ class Client(Model):
     client_id = Column(Integer, primary_key=True, autoincrement=False)
     name = Column(UnicodeText)
 
-    def __str__(self):
-        return 'Client (%s)', self.name
-
-    __repr__ = __str__
-
-
-class User(Model):
-    __tablename__ = 'users'
-
-    user_id = Column(UnicodeText, primary_key=True, autoincrement=False)
-
-    def __str__(self):
-        return 'User (%s)', self.user_id
-
-    __repr__ = __str__
-
-    @synonym_for('user_id')
+    @synonym_for('client_id')
     @property
-    def name(self):
-        return self.user_id
+    def id(self):
+        return self.client_id
+
+    def __str__(self):
+        return 'Client(%s)' % self.name
+
+    __repr__ = __str__
 
 
 class Order(Model):
@@ -59,29 +48,30 @@ class Order(Model):
     type = Column(Enum('city_tour', 'overnight', 'service'))
     city_tour = Column(Float)
     overnight = Column(Float)
-    waiting_time = Column(Float)
+    service = Column(Float)
     extra_stops = Column(Float)
     fax_confirm = Column(Float)
     distance = Column(Float)
     cash = Column(Boolean)
     date = Column(DateTime)
     uuid = Column(Integer)
+    user = Column(UnicodeText)
 
     client = relationship('Client', backref=backref('orders'))
-    user = relationship('User', backref=backref('users'))
 
     def __str__(self):
-        return 'Order (%s n°%s for %0.2f€)' % (self.type, self.id, self.price)
+
+        return 'Order(%s %0.2f€)' % (self.type or 'None', self.price or 0.0)
 
     __repr__ = __str__
 
     @property
     def url(self):
-        return JOB_QUERY_URL.format(uuid=self.uuid, date=self.date.strftime(URL_DATE_FORMAT))
+        return JOB_URL_FORMAT.format(uuid=self.uuid, date=self.date.strftime(URL_DATE_FORMAT))
 
     @property
     def file(self):
-        return JOB_FILENAME.format(date=self.strftime(FILE_DATE_FORMAT), uuid=self.uuid)
+        return JOB_FILE_FORMAT.format(date=self.date.strftime(FILE_DATE_FORMAT), uuid=self.uuid)
 
     @synonym_for('order_id')
     @property
@@ -90,22 +80,23 @@ class Order(Model):
 
     @property
     def price(self):
-        return sum([self.city_tour,
-                    self.overnight,
-                    self.waiting_time,
-                    self.fax_confirm,
-                    self.extra_stops])
+        total = sum([self.city_tour,
+                     self.overnight,
+                     self.service,
+                     self.fax_confirm,
+                     self.extra_stops])
+        if total is not None:
+            return total
 
 
 class Checkin(Model):
     __tablename__ = 'checkins'
 
-    checkin_id = Column(Integer, primary_key=True, autoincrement=False)
+    checkin_id = Column(UnicodeText, primary_key=True, autoincrement=False)
     checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    user_id = Column(UnicodeText, ForeignKey('users.user_id'), nullable=False)
     timestamp = Column(DateTime, nullable=False)
-    purpose = Column(Enum('pickup', 'dropoff'))
+    purpose = Column(Enum('pickup', 'dropoff', 'stopover'))
     after_ = Column(DateTime)
     until = Column(DateTime)
 
@@ -113,7 +104,7 @@ class Checkin(Model):
     order = relationship('Order', backref=backref('checkins'))
 
     def __str__(self):
-        return 'Checkin (%s on %s)' % (self.checkpoint_id, self.timestamp)
+        return 'Checkin(%s %s)' % (self.purpose, self.timestamp)
 
     __repr__ = __str__
 
@@ -126,18 +117,21 @@ class Checkin(Model):
 class Checkpoint(Model):
     __tablename__ = 'checkpoints'
 
-    checkpoint_id = Column(Integer, primary_key=True, autoincrement=False)
-    lat = Column(Float, nullable=False)
-    lon = Column(Float, nullable=False)
+    checkpoint_id = Column(UnicodeText, primary_key=True, autoincrement=False)
+    lat = Column(Float)
+    lon = Column(Float)
     city = Column(UnicodeText)
-    display_name = Column(UnicodeText)
-    postal_code = Column(Integer)
-    street = Column(UnicodeText)
+    postal_code = Column(String)
     company = Column(UnicodeText)
     country = Column(UnicodeText)
+    place_id = Column(String)
+    as_scraped = Column(UnicodeText)
+    country_code = Column(String)
+    street_name = Column(UnicodeText)
+    street_number = Column(String)
 
     def __str__(self):
-        return 'Checkpoint (%s)' % self.display_name
+        return 'Checkpoint(%s %s)' % (self.street_name, self.street_number)
 
     __repr__ = __str__
 
@@ -145,3 +139,13 @@ class Checkpoint(Model):
     @property
     def id(self):
         return self.checkpoint_id
+
+    @synonym_for('checkpoint_id')
+    @property
+    def address(self):
+        return self.checkpoint_id
+
+    @property
+    def geocoded(self):
+        if self.lat and self.lon:
+            return True

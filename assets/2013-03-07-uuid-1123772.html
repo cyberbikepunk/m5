@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   bamboo mec
+  </title>
+  <base href="http://bamboo-mec.de/"/>
+  <link href="/stylesheets/global.dev.css" media="all" rel="stylesheet"/>
+  <link href="/stylesheets/wp-admin.dev.css" media="all" rel="stylesheet"/>
+  <link href="/stylesheets/colors-fresh.dev.css" media="all" rel="stylesheet"/>
+  <link href="/stylesheets/mobile.css" media="all" rel="stylesheet"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <!-- Adding "maximum-scale=1" fixes the Mobile Safari auto-zoom bug: http://filamentgroup.com/examples/iosScaleBug/ -->
+ </head>
+ <body class="wp-admin">
+  <div id="wpwrap">
+   <div id="wpcontent">
+    <div id="wphead">
+     <h1 id="siteheading">
+      messenger Berlin
+     </h1>
+     <div id="wphead-info">
+      <div id="user_info">
+       <p>
+        <a href="/offers.php5" style="">
+         Angebote (0)
+        </a>
+        |
+        <a href="/tagesliste.php5">
+         Tagesliste
+        </a>
+        |
+        <a href="/mymec.php5">
+         my mec
+        </a>
+        |
+        <a href="/index.php5?logout=1">
+         Logout
+        </a>
+       </p>
+      </div>
+     </div>
+    </div>
+    <div id="wpbody">
+     <div>
+      <ul style="height: 20px;">
+       <li class="round_button">
+        <a href="ll.php5?status=delivered&amp;datum=06.03.2013&amp;time=1423694602">
+         -1 Tag
+        </a>
+       </li>
+       <li class="round_button">
+        <a href="ll.php5?status=delivered&amp;datum=08.03.2013&amp;time=1423694602">
+         +1 Tag
+        </a>
+       </li>
+       <li class="round_button ">
+        <a href="ll.php5?datum=07.03.2013&amp;time=1423694602">
+         0 Neu
+        </a>
+       </li>
+       <li class="round_button ">
+        <a href="ll.php5?status=working&amp;datum=07.03.2013&amp;time=1423694602">
+         0 In Arbeit
+        </a>
+       </li>
+       <li class="round_button ui-btn-active">
+        <a href="ll.php5?status=delivered&amp;datum=07.03.2013&amp;time=1423694602">
+         11 Fertig
+        </a>
+       </li>
+      </ul>
+      <div class="clear">
+      </div>
+     </div>
+     <div>
+      <ul style="height: 20px;">
+       <li class="round_button">
+        <a href="/ll_detail.php5?uuid=1123675&amp;status=delivered&amp;datum=07.03.2013" style="text-align: center;width: 35px; display: block">
+         &lt;
+        </a>
+       </li>
+       <li>
+        <form action="/ll.php5" method="get" rel="external">
+         <input name="status" type="hidden" value="delivered"/>
+         <input id="search" name="search" size="10" style="float:left" type="search" value="07.03.2013"/>
+         <input id="search_submit" style="float: left;" type="submit" value="suchen"/>
+         <input id="search_submit" name="current" style="float: left;" type="submit" value="heute"/>
+        </form>
+       </li>
+       <li class="round_button">
+        <a href="/ll_detail.php5?uuid=1123959&amp;status=delivered&amp;datum=07.03.2013" style="text-align: center;width: 35px; display: block">
+         &gt;
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="clear">
+     </div>
+     <div id="order_detail">
+      <h2>
+       BAR 1303070239 | Stadtkurier
+      </h2>
+      <h4 style="margin-bottom: 5px">
+       Kunde: Johannes Barthelmes | 66092
+       <br/>
+       Ansprechpartner: 
+    Hr. 		Barthelmes, Johannes
+       <br/>
+       Telefon:
+       <a href="tel:">
+       </a>
+      </h4>
+      <p style="margin-top: 5px">
+       <br/>
+       4,294 km
+      </p>
+      <a class="round_button" data-rel="dialog" href="/notice.php5?order=1123772&amp;mode=pu&amp;uuid=1123772&amp;status=delivered&amp;datum=07.03.2013" style="float:none; margin: 3px 0 3px 0; text-decoration: none; display: block; width: 110px; text-align: center;">
+       Notiz erfassen
+      </a>
+      <hr/>
+      <div data-collapsed="true" data-role="collapsible" data-theme="green">
+       <h3>
+        Abholung  - Abgeholt
+       </h3>
+       <p>
+        Johannes Barthelmes Serenebar
+        <br/>
+        Willibald-Alexis-Straße 22
+        <br/>
+        10965 Berlin
+        <br/>
+        <a href="tel:+49 (30) 69 42 34 2">
+         +49 (30) 69 42 34 2
+        </a>
+        <span class="f-07-span">
+         (Tel)
+        </span>
+        <br/>
+        Klingeln bei Mauritz!!!!! zahlt bar!!!
+        <span class="f-07-span">
+         (Hinweis)
+        </span>
+        <br/>
+        07. 03. 13 ab 10:37 bis 11:30
+        <br/>
+       </p>
+       <p style="color: green">
+        ST: 11:05
+       </p>
+       <img src="/sync/getimage?order=1303070239&amp;mandanten_id=m&amp;ooarank=0&amp;ooatype=1"/>
+       <a class="round_button" data-rel="dialog" href="/status.php5?order=1123772&amp;mode=pu&amp;uuid=1123772&amp;addressuuid=&amp;status=delivered&amp;datum=07.03.2013" style="float:none; margin: 3px 0 3px 0; text-decoration: none; display: block; width: 110px; text-align: center;">
+        Status erfassen
+       </a>
+      </div>
+      <div data-collapsed="true" data-role="collapsible" data-theme="green">
+       <h3>
+        Zustellung  - ausgeliefert (Empfänger)
+       </h3>
+       <p>
+        SB Tiede
+        <br/>
+        Nollendorfplatz 5
+        <br/>
+        10777 Berlin
+        <br/>
+        <a href="tel:">
+        </a>
+        <span class="f-07-span">
+         (Tel)
+        </span>
+        <br/>
+        07. 03. 13
+        <br/>
+       </p>
+       <p style="color: green">
+        ST: 11:27 Herr Golke
+       </p>
+       <img src="/sync/getimage?order=1303070239&amp;mandanten_id=m&amp;ooarank=0&amp;ooatype=2"/>
+       <a class="round_button" data-rel="dialog" href="/status.php5?order=1123772&amp;mode=dl&amp;uuid=1123772&amp;addressuuid=&amp;status=delivered&amp;datum=07.03.2013" style="float:none; margin: 3px 0 3px 0; text-decoration: none; display: block; width: 110px; text-align: center;">
+        Status erfassen
+       </a>
+      </div>
+      <hr/>
+      <div class="preise">
+       <h3>
+        BARAUFTRAG
+       </h3>
+       <p>
+        Preis BAR
+        <br/>
+        Netto: 9,30 MwSt: 1,77
+        <strong>
+         Brutto: 11,07
+        </strong>
+       </p>
+       <p>
+        Preis Kurier
+       </p>
+       <p>
+        <b>
+         Netto: 9,30
+        </b>
+       </p>
+       <table cellpadding="2">
+        <tbody>
+         <tr>
+          <td>
+           Stadtkurier
+          </td>
+          <td align="right">
+           9,30
+          </td>
+         </tr>
+        </tbody>
+       </table>
+       <br/>
+       Fahrrad
+       <!--  /ob fahrzeug int  -->
+       <!--  /ob fahrzeug ï¿½berhaupt  -->
+       <br/>
+       Dokumente / Documents
+       <p>
+       </p>
+      </div>
+      <hr/>
+      <div class="packstuecke">
+       <h3>
+        Packstücke
+       </h3>
+       1: 0,00kg 0x0x0
+       <br/>
+      </div>
+     </div>
+     <div class="clear">
+     </div>
+    </div>
+   </div>
+  </div>
+  <div id="footer">
+   <p class="alignleft" id="footer-left">
+    <span id="footer-thankyou">
+     Dies ist von
+     <a href="http://www.bamboo-software.de" target="_blank">
+      bamboo Software
+     </a>
+     |
+     <a href="/l.php5?logout=1">
+      Logout
+     </a>
+    </span>
+   </p>
+   <p class="alignright" id="footer-upgrade">
+    V 0.1
+   </p>
+   <div class="clear">
+   </div>
+  </div>
+ </body>
+</html>

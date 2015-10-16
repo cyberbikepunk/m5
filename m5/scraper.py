@@ -1,31 +1,10 @@
 """ The scraper module extracts data from webpages. """
 
 
-from contextlib import redirect_stdout
-from os.path import join
-from re import match
-from collections import namedtuple
-from logging import debug
-
-from m5.settings import BREAK, JOB_QUERY_URL, LOG_DIR, FAILURE_REPORT
-
-
-# Notes on the scraping strategy:
-# ===============================
-#
-# Given that
-#   1. fields may or may not be there
-#   2. fields may be bundled together inside a single tag
-#   3. the number of fields inside a tag may vary
-#   4. the number of lines for a single field may vary
-#   5. the number of fields inside a single line may vary
-# we use regex extensively and return to the same place
-# several times if necessary. The goal is to end up with
-# a decent set of data.
-
-
-Stamped = namedtuple('Stamped', ['stamp', 'info', 'adresses'])
-Stamp = namedtuple('Stamp', ['date', 'uuid', 'user'])
+from re import match, search
+from logging import debug, warning
+from m5.spider import Stamped, RawData
+from m5.settings import SEPERATOR, FAILURE_REPORT
 
 
 BLUEPRINTS = {
@@ -46,15 +25,15 @@ BLUEPRINTS = {
         'address': {'line_nb': 2, 'pattern': r'(.*)', 'nullable': False},
         'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'nullable': False},
         'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'nullable': False},
-        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s(\d{2}:\d{2})', 'nullable': True},
-        'purpose': {'line_nb': 0, 'pattern': r'(Abholung|Zustellung)', 'nullable': False},
-        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s(\d{2}:\d{2})', 'nullable': False},
-        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True}
+        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s+(\d{2}:\d{2})', 'nullable': True},
+        'purpose': {'line_nb': 0, 'pattern': r'(Abh./Zust.|Abholung|Zustellung)', 'nullable': False},
+        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s+(\d{2}:\d{2})', 'nullable': False},
+        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True},
     }
 }
 
 
-TAGS = {
+HTML = {
     'header': {'name': 'h2', 'attrs': None},
     'client': {'name': 'h4', 'attrs': None},
     'itinerary': {'name': 'p', 'attrs': None},
@@ -63,133 +42,137 @@ TAGS = {
 }
 
 
-OVERNIGHTS = [
-    ('Stadtkurier', 'city_tour'),
-    ('Stadt Stopp(s)', 'extra_stops'),
-    ('OV Ex Nat PU', 'overnight'),
-    ('ON Ex Nat Del.', 'overnight'),
-    ('OV EcoNat PU', 'overnight'),
-    ('OV Ex Int PU', 'overnight'),
-    ('ON Int Exp Del', 'overnight'),
-    ('EmpfangsbestÃ¤t.', 'fax_confirm'),
-    ('Wartezeit min.', 'waiting_time')
-]
-
-
-def scrape_job(job):
+def scrape(job):
     """
-    In goes a webpage, out comes data. The unit of data is a stamped tuple.
-    Each tuple holds a dictionary with job info (ID, price etc...) plus a
-    list of addresses. All fields are stored as strings.
+    In goes a webpage (as a beautiful soup), out comes data (as a Stamped data object).
+    Each Stamped data object has an info attribute (a dictionary with IDs, prices etc...)
+    and an addresses attribute containing an arbitrary number of addresses. All fields
+    are raw strings at this stage.
     """
 
     order = job.data.find(id='order_detail')
     addresses = list()
     info = dict()
 
-    # Step 1: scrape all sections except prices
-    # -----------------------------------------
-    sections = ['header', 'client', 'itinerary']
+    # Step 1: scrape all information fragments
+    tags = ['header', 'client', 'itinerary']
 
-    for section in sections:
-        fragment = order.find_next(name=TAGS[section]['name'])
-        fields = _scrape_fragment(BLUEPRINTS[section], fragment, job.stamp, section)
+    for tag in tags:
+        fragment = order.find_next(name=HTML[tag]['name'])
+        fields = _scrape_fragment(BLUEPRINTS[tag], fragment, job.stamp)
         info.update(fields)
 
     # Step 2: scrape the price table
-    # ------------------------------
-    fragment = order.find(TAGS['prices']['name'])
-    prices = _scrape_prices(fragment)
+    fragment = order.find(HTML['prices']['name'])
+    prices = _scrape_prices(fragment, job.stamp)
     info.update(prices)
 
     # Step 3: scrape an arbitrary number of addresses
-    # -----------------------------------------------
-    fragments = order.find_all(name=TAGS['address']['name'], attrs=TAGS['address']['attrs'])
+    fragments = order.find_all(name=HTML['address']['name'], attrs=HTML['address']['attrs'])
 
     for fragment in fragments:
-        address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp, 'address')
+        address = _scrape_fragment(BLUEPRINTS['address'], fragment, job.stamp)
         addresses.append(address)
 
-    return Stamped(job.stamp, (info, addresses))
+    debug('Scraped %s-uuid-%s.html', job.stamp.date, job.stamp.uuid)
+
+    return Stamped(job.stamp, RawData(info, addresses))
 
 
-def _job_url_query(soup):
-    JOB_QUERY_URL.format(uuid=soup.stamp.uuid, date=soup.stamp.date.strftime('%d.%m.%Y'))
+def _scrape_fragment(blueprints, fragment, stamp):
+    # Fields are ambiguously inserted in the markup.
+    # Fields may or may not be there.
+    # Fields may be bundled together inside a single tag.
+    # The number of fields inside a tag may vary.
+    # The number of lines for a single field may vary.
+    # The number of fields inside a single line may vary.
 
-
-def _scrape_fragment(blueprints, soup_fragment, stamp, tag):
-    """
-    Scrape a very small fragment of the webpage following the relevant instructions.
-    Save a report inside the log directory if a non-nullable field cannot be found.
-    """
-
-    contents = list(soup_fragment.stripped_strings)
+    contents = list(fragment.stripped_strings)
     collected = {}
 
     for field, bp in blueprints.items():
         try:
             matched = match(bp['pattern'], contents[bp['line_nb']])
-        except IndexError:
-            collected[field] = None
-            _report_failure(stamp, field, bp, contents, tag)
-        else:
+
             if matched:
                 collected[field] = matched.group(1)
             else:
-                collected[field] = None
-                if not bp['nullable']:
-                    _report_failure(stamp, field, bp, contents, tag)
+                raise ValueError
+
+        except (IndexError, ValueError):
+            collected[field] = None
+            if not bp['nullable']:
+                _report_failure(stamp, field, contents)
 
     return collected
 
 
-def _scrape_prices(soup_fragment):
-    """
-    Scrape the price information at the bottom of the webpage. This
-    section is treated seperately because it's in the form of a table.
-    """
+PRICE_CATEGORIES = {
+    'city_tour': {
+        'Stadtkurier',
+        'Fehlanfarht'
+    },
+    'extra_stops': {
+        'Stadt Stopp(s)'
+    },
+    'overnight': {
+        'OV Ex Nat PU',
+        'ON Ex Nat Del.',
+        'OV EcoNat PU',
+        'OV Ex Int PU',
+        'ON Int Exp Del'
+    },
+    'fax_confirm': {
+        'EmpfangsbestÃ¤t.',
+        'Empfangsbestät.'
+    },
+    'service': {
+        'Wartezeit min.',
+        'Ladezeit in min',
+        'Ladehilfe'
+    }
+}
 
-    cells = list(soup_fragment.stripped_strings)
-    price_table = dict(zip(cells[::2], cells[1::2]))
 
-    for old, new in OVERNIGHTS:
-        if old in price_table:
-            price_table[new] = price_table.pop(old)
-        else:
-            price_table[new] = None
+def _scrape_prices(fragment, stamp):
+    # This fragment is treated separately because it's a
+    # table with a whole bunch of possible price labels.
+    pattern = r'(\d+,\d{2})$'
 
-    if price_table['waiting_time'] is not None:
-        # We want the price of the waiting time not the time itself.
-        price_table['waiting_time'] = price_table['waiting_time'][7::]
+    cells = list(fragment.stripped_strings)
+    raw_price_table = list(zip(cells[::2], cells[1::2]))
+    price_table = {k: [] for k in PRICE_CATEGORIES.keys()}
+
+    for raw_label, raw_price in sorted(raw_price_table):
+        for category, category_synonyms in PRICE_CATEGORIES.items():
+            if raw_label in category_synonyms:
+                matched = search(pattern, raw_price)
+
+                if matched:
+                    price = matched.group(0)
+                else:
+                    price = None
+                    warning('Could not convert "%s" into a price', raw_price)
+
+                price_table[category].append(price)
+
+    if not any(price_table.values()):
+        _report_failure(stamp, 'prices', cells)
 
     return price_table
 
 
-def _report_failure(stamp, field_name, blueprint, fragment, tag):
-    """
-    Print a report showing precisely the context in which
-    the scraping went wrong and the reason why it went wrong.
-    """
+def _report_failure(stamp, field, fragment):
+    warning(SEPERATOR)
 
-    report_filepath = join(LOG_DIR, _job_url_query(stamp))
-    debug('Saving scraping failure report in %s', report_filepath)
+    warning(FAILURE_REPORT.format(date=stamp.date,
+                                  uuid=stamp.uuid,
+                                  field=field))
+    if len(fragment):
+        for line_nb, line_content in enumerate(fragment):
+            warning(str(line_nb) + ': ' + line_content)
+    else:
+        warning('No content inside the fragment')
 
-    with open(report_filepath, 'a') as rf:
-        with redirect_stdout(rf):
-            print(FAILURE_REPORT.format(date=stamp.date,
-                                        uuid=stamp.uuid,
-                                        field=field_name,
-                                        nb=blueprint['line_nb'],
-                                        tag=tag))
+    warning(SEPERATOR)
 
-            if len(fragment):
-                for line_nb, line_content in enumerate(fragment):
-                    print(str(line_nb) + ': ' + line_content)
-            else:
-                print('No content inside %s', tag)
-
-            print(BREAK)
-
-
-if __name__ == '__main__':
-    pass

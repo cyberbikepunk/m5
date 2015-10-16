@@ -46,7 +46,7 @@ def download(day, user):
         else:
             soup = s.download_job(uuid)
             s.save_job(soup, uuid)
-            debug('Downloaded %s', s.job_url(uuid))
+            debug('Downloaded and cached %s', s.job_url(uuid))
 
         yield Stamped(stamp, soup)
 
@@ -61,7 +61,7 @@ class Spider(object):
         return '<Spider: %s to %s>' % (self._date, self._archive)
 
     def get_job_uuids_from_cache(self):
-        pattern = self.date_string + '-uuid-**.html'
+        pattern = self.date_string + '-uuid-*.html'
         filepaths = glob(join(self._archive, pattern))
 
         if filepaths:

@@ -60,7 +60,8 @@ class Order(Model):
     client = relationship('Client', backref=backref('orders'))
 
     def __str__(self):
-        return 'Order(%s %0.2f€)' % (self.type, self.price)
+
+        return 'Order(%s %0.2f€)' % (self.type or 'None', self.price or 0.0)
 
     __repr__ = __str__
 
@@ -84,7 +85,7 @@ class Order(Model):
                      self.service,
                      self.fax_confirm,
                      self.extra_stops])
-        if total:
+        if total is not None:
             return total
 
 
@@ -95,7 +96,7 @@ class Checkin(Model):
     checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
     timestamp = Column(DateTime, nullable=False)
-    purpose = Column(Enum('pickup', 'dropoff'))
+    purpose = Column(Enum('pickup', 'dropoff', 'stopover'))
     after_ = Column(DateTime)
     until = Column(DateTime)
 
@@ -127,7 +128,7 @@ class Checkpoint(Model):
     as_scraped = Column(UnicodeText)
     country_code = Column(String)
     street_name = Column(UnicodeText)
-    street_number = Column(Integer)
+    street_number = Column(String)
 
     def __str__(self):
         return 'Checkpoint(%s %s)' % (self.street_name, self.street_number)
@@ -143,3 +144,8 @@ class Checkpoint(Model):
     @property
     def address(self):
         return self.checkpoint_id
+
+    @property
+    def geocoded(self):
+        if self.lat and self.lon:
+            return True

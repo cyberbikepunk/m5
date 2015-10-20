@@ -6,7 +6,7 @@ from datetime import date, datetime
 
 from m5.user import Ghost
 from m5.model import Client, Order, Checkpoint, Checkin
-from m5.pipeline import process, geocode, archive
+from m5.pipeline import process, geocode, archive, fix_unicode
 from tests.test_scraper import OVERNIGHT_SCRAPED
 
 
@@ -134,3 +134,26 @@ def test_archiver(ghost):
     assert len(ghost.db.query(Checkpoint).all()) == 2
     assert ghost.db.query(Client.id).scalar() == 59017
     assert ghost.db.query(Order.id).scalar() == 1402120029
+
+
+def test_unicode_correction():
+    original_tokens = [
+        'KurfÃ¼rstenstraÃe',
+        'KindergÃ¤rten City GeschÃ¤ftsstelle',
+        'MÃ¼nchen',
+        'Paul-LÃ¶be Haus',
+        'LennÃ©straÃe',
+        'Auslage 30â¬',
+    ]
+
+    final_tokens = [
+        'Kurfürstenstraße',
+        'Kindergärten City Geschäftsstelle',
+        'München',
+        'Paul-Löbe Haus',
+        'Lennéstraße',
+        'Auslage 30€',
+    ]
+
+    for original, final in zip(original_tokens, final_tokens):
+        assert final == fix_unicode(original)

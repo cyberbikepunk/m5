@@ -9,26 +9,26 @@ from m5.settings import SEPERATOR, FAILURE_REPORT
 
 BLUEPRINTS = {
     'itinerary': {
-        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'nullable': True}
+        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'silent': True}
     },
     'header': {
-        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'nullable': True},
-        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'nullable': False},
-        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'nullable': True}
+        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'silent': True},
+        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'silent': False},
+        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'silent': True}
     },
     'client': {
-        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'nullable': False},
-        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'nullable': False}
+        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'silent': False},
+        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'silent': False}
     },
     'address': {
-        'company': {'line_nb': 1, 'pattern': r'(.*)', 'nullable': False},
-        'address': {'line_nb': 2, 'pattern': r'(.*)', 'nullable': False},
-        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'nullable': False},
-        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'nullable': False},
-        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s+(\d{2}:\d{2})', 'nullable': True},
-        'purpose': {'line_nb': 0, 'pattern': r'(Abh./Zust.|Abholung|Zustellung)', 'nullable': False},
-        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s+(\d{2}:\d{2})', 'nullable': False},
-        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'nullable': True},
+        'company': {'line_nb': 1, 'pattern': r'(.*)', 'silent': False},
+        'address': {'line_nb': 2, 'pattern': r'(.*)', 'silent': False},
+        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'silent': False},
+        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'silent': False},
+        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s+(\d{2}:\d{2})', 'silent': True},
+        'purpose': {'line_nb': 0, 'pattern': r'(Abh./Zust.|Abholung|Zustellung)', 'silent': False},
+        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s+(\d{2}:\d{2})', 'silent': False},
+        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'silent': True},
     }
 }
 
@@ -81,8 +81,7 @@ def scrape(job):
 
 def fix_unicode(original_text):
     # This function is deprecated because web-pages are now correctly decoded into unicode.
-    # But there could still be a few in the cache that haven't. Also, this is just a quick
-    # fix: the list of substitutions only covers a few german language characters.
+    # But there could still be a few in the cache that haven't. This is a really dirty fix.
     substitutions = [
         ('Ã¼', 'ü'),
         ('Ã¤', 'ä'),
@@ -90,6 +89,7 @@ def fix_unicode(original_text):
         ('Ã©', 'é'),
         ('â¬', '€'),
         ('Ã', 'ß'),
+        ('Ã', 'Ö'),
     ]
 
     corrected_text = original_text
@@ -97,7 +97,7 @@ def fix_unicode(original_text):
         corrected_text = corrected_text.replace(bad, good)
 
     if corrected_text != original_text:
-        debug('Fixed %s to %s', original_text, corrected_text)
+        debug('Fixed %s', corrected_text)
 
     return corrected_text
 
@@ -125,7 +125,7 @@ def _scrape_fragment(blueprints, fragment, stamp):
 
         except (IndexError, ValueError):
             collected[field] = None
-            if not bp['nullable']:
+            if not bp['silent']:
                 _report_failure(stamp, field, contents)
 
     return collected

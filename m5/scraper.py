@@ -79,6 +79,29 @@ def scrape(job):
     return Stamped(job.stamp, RawData(info, addresses))
 
 
+def fix_unicode(original_text):
+    # This function is deprecated because web-pages are now correctly decoded into unicode.
+    # But there could still be a few in the cache that haven't. Also, this is just a quick
+    # fix: the list of substitutions only covers a few german language characters.
+    substitutions = [
+        ('Ã¼', 'ü'),
+        ('Ã¤', 'ä'),
+        ('Ã¶', 'ö'),
+        ('Ã©', 'é'),
+        ('â¬', '€'),
+        ('Ã', 'ß'),
+    ]
+
+    corrected_text = original_text
+    for bad, good in substitutions:
+        corrected_text = corrected_text.replace(bad, good)
+
+    if corrected_text != original_text:
+        debug('Fixed %s to %s', original_text, corrected_text)
+
+    return corrected_text
+
+
 def _scrape_fragment(blueprints, fragment, stamp):
     # Fields are ambiguously inserted in the markup.
     # Fields may or may not be there.
@@ -95,7 +118,8 @@ def _scrape_fragment(blueprints, fragment, stamp):
             matched = match(bp['pattern'], contents[bp['line_nb']])
 
             if matched:
-                collected[field] = matched.group(1)
+                raw_value = matched.group(1)
+                collected[field] = fix_unicode(raw_value)
             else:
                 raise ValueError
 

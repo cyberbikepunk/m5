@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from os.path import join
 from pytest import mark
 
-from m5.scraper import scrape
+from m5.scraper import scrape, fix_unicode
 from m5.settings import ASSETS_DIR
 from m5.spider import Stamp, Stamped, RawData
 
@@ -159,3 +159,26 @@ def test_scraper(filename, expected):
 
     assert result.data.info == expected.data.info
     assert result.data.addresses == expected.data.addresses
+
+
+def test_unicode_correction():
+    original_tokens = [
+        'KurfÃ¼rstenstraÃe',
+        'KindergÃ¤rten City GeschÃ¤ftsstelle',
+        'MÃ¼nchen',
+        'Paul-LÃ¶be Haus',
+        'LennÃ©straÃe',
+        'Auslage 30â¬',
+    ]
+
+    final_tokens = [
+        'Kurfürstenstraße',
+        'Kindergärten City Geschäftsstelle',
+        'München',
+        'Paul-Löbe Haus',
+        'Lennéstraße',
+        'Auslage 30€',
+    ]
+
+    for original, final in zip(original_tokens, final_tokens):
+        assert final == fix_unicode(original)

@@ -64,29 +64,6 @@ def timestamp(day, time):
                         minute=t.tm_min)
 
 
-def fix_unicode(original_text):
-    # This function is deprecated because web-pages are now correctly decoded into unicode.
-    # But there could still be a few in the cache that haven't. Also, this is just a quick
-    # fix: the list of substitutions only covers a few german language characters.
-    substitutions = [
-        ('Ã¼', 'ü'),
-        ('Ã¤', 'ä'),
-        ('Ã¶', 'ö'),
-        ('Ã©', 'é'),
-        ('â¬', '€'),
-        ('Ã', 'ß'),
-    ]
-
-    corrected_text = original_text
-    for bad, good in substitutions:
-        corrected_text = corrected_text.replace(bad, good)
-
-    if corrected_text != original_text:
-        debug('Fixed %s to %s', original_text, corrected_text)
-
-    return corrected_text
-
-
 def archive(db, rows):
     """
     Take table objects from the processor and commit them to the database.
@@ -126,7 +103,7 @@ def geocode(address, attempt=0):
     # Nominatim because it doesn't like bulk requests. Other services cost money.
     service = GoogleV3()
 
-    query = fix_unicode('{address}, {city} {postal_code}'.format(**address))
+    query = '{address}, {city} {postal_code}'.format(**address)
 
     if attempt > 2:
         warning('Google timed out 3 times. Giving up on %s', query)

@@ -13,7 +13,7 @@ BLUEPRINTS = {
     },
     'header': {
         'order_id': {'lines': [0], 'pattern': r'.*(\d{10})', 'optional': True},
-        'type': {'lines': [0], 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'optional': False},
+        'type': {'lines': [0], 'pattern': r'.*(OV|Ladehilfe|Stadtkurier|Treibstoff', 'optional': False},
         'cash': {'lines': [0], 'pattern': r'(BAR)', 'optional': True}
     },
     'client': {
@@ -145,7 +145,7 @@ PRICE_CATEGORIES = {
         'ON Ex Nat Del.',
         'OV EcoNat PU',
         'OV Ex Int PU',
-        'ON Int Exp Del'
+        'ON Int Exp Del',
     },
     'fax_confirm': {
         'EmpfangsbestÃ¤t.',
@@ -200,4 +200,3 @@ def _report_failure(stamp, field, fragment):
         warning('No content inside the fragment')
 
     warning(SEPERATOR)
-

@@ -50,7 +50,8 @@ def type_(value):
     if value:
         return {'OV': 'overnight',
                 'Ladehilfe': 'service',
-                'Stadtkurier': 'city_tour'}[value]
+                'Stadtkurier': 'city_tour',
+                'Treibstoff': 'overnight'}[value]
 
 
 def timestamp(day, time):

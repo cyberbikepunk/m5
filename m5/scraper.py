@@ -9,26 +9,26 @@ from m5.settings import SEPERATOR, FAILURE_REPORT
 
 BLUEPRINTS = {
     'itinerary': {
-        'km': {'line_nb': 0, 'pattern': r'(\d{1,2},\d{3})\s', 'silent': True}
+        'km': {'lines': [0], 'pattern': r'(\d{1,2},\d{3})\s', 'optional': True}
     },
     'header': {
-        'order_id': {'line_nb': 0, 'pattern': r'.*(\d{10})', 'silent': True},
-        'type': {'line_nb': 0, 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'silent': False},
-        'cash': {'line_nb': 0, 'pattern': r'(BAR)', 'silent': True}
+        'order_id': {'lines': [0], 'pattern': r'.*(\d{10})', 'optional': True},
+        'type': {'lines': [0], 'pattern': r'.*(OV|Ladehilfe|Stadtkurier)', 'optional': False},
+        'cash': {'lines': [0], 'pattern': r'(BAR)', 'optional': True}
     },
     'client': {
-        'client_id': {'line_nb': 0, 'pattern': r'.*(\d{5})$', 'silent': False},
-        'client_name': {'line_nb': 0, 'pattern': r'Kunde:\s(.*)\s\|', 'silent': False}
+        'client_id': {'lines': [0], 'pattern': r'.*(\d{5})$', 'optional': False},
+        'client_name': {'lines': [0], 'pattern': r'Kunde:\s(.*)\s\|', 'optional': False}
     },
     'address': {
-        'company': {'line_nb': 1, 'pattern': r'(.*)', 'silent': False},
-        'address': {'line_nb': 2, 'pattern': r'(.*)', 'silent': False},
-        'city': {'line_nb': 3, 'pattern': r'(?:\d{5})\s(.*)', 'silent': False},
-        'postal_code': {'line_nb': 3, 'pattern': r'(\d{5})(?:.*)', 'silent': False},
-        'after': {'line_nb': -3, 'pattern': r'(?:.*)ab\s+(\d{2}:\d{2})', 'silent': True},
-        'purpose': {'line_nb': 0, 'pattern': r'(Abh./Zust.|Abholung|Zustellung)', 'silent': False},
-        'timestamp': {'line_nb': -2, 'pattern': r'ST:\s+(\d{2}:\d{2})', 'silent': False},
-        'until': {'line_nb': -3, 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'silent': True},
+        'company': {'lines': [1], 'pattern': r'(.*)', 'optional': False},
+        'address': {'lines': [2], 'pattern': r'(.*)', 'optional': False},
+        'city': {'lines': [3], 'pattern': r'(?:\d{5})\s(.*)', 'optional': False},
+        'postal_code': {'lines': [3], 'pattern': r'(\d{5})(?:.*)', 'optional': False},
+        'after': {'lines': [-3], 'pattern': r'(?:.*)ab\s+(\d{2}:\d{2})', 'optional': True},
+        'purpose': {'lines': [0], 'pattern': r'(Abh./Zust.|Abholung|Zustellung)', 'optional': False},
+        'timestamp': {'lines': [-2], 'pattern': r'ST:\s+(\d{2}:\d{2})', 'optional': False},
+        'until': {'lines': [-3], 'pattern': r'(?:.*)bis\s+(\d{2}:\d{2})', 'optional': True},
     }
 }
 
@@ -81,7 +81,7 @@ def scrape(job):
 
 def fix_unicode(original_text):
     # This function is deprecated because web-pages are now correctly decoded into unicode.
-    # But there could still be a few in the cache that haven't. This is a really dirty fix.
+    # But there could still be a few in the cache that haven't. This is a really DIRTY FIX.
     substitutions = [
         ('Ã¼', 'ü'),
         ('Ã¤', 'ä'),
@@ -115,17 +115,18 @@ def _scrape_fragment(blueprints, fragment, stamp):
 
     for field, bp in blueprints.items():
         try:
-            matched = match(bp['pattern'], contents[bp['line_nb']])
-
-            if matched:
-                raw_value = matched.group(1)
-                collected[field] = fix_unicode(raw_value)
+            for line in bp['lines']:
+                matched = match(bp['pattern'], contents[line])
+                if matched:
+                    raw_value = matched.group(1)
+                    collected[field] = fix_unicode(raw_value)
+                    break
             else:
                 raise ValueError
 
         except (IndexError, ValueError):
             collected[field] = None
-            if not bp['silent']:
+            if not bp['optional']:
                 _report_failure(stamp, field, contents)
 
     return collected

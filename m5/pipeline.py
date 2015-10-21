@@ -4,7 +4,6 @@
 from logging import warning, debug
 from datetime import datetime
 from time import strptime
-from collections import Iterable
 from geopy import GoogleV3
 from geopy.exc import GeopyError, GeocoderQuotaExceeded, GeocoderTimedOut
 from sqlalchemy import inspect
@@ -70,32 +69,52 @@ def archive(db, rows):
     Rollback if a row already exists or a non nullable value is missing.
     """
 
-    def flatten(tree):
-        for node in tree:
-            if isinstance(node, Iterable):
-                for subnode in flatten(node):
-                    yield subnode
-            else:
-                yield node
-
-    rows = list(flatten(rows))
-    ignored = 0
+    skipped = 0
 
     for row in rows:
         state = db.merge(row)
         if not inspect(state).pending:
             debug('Row is already in db: %s', row)
-            ignored += 1
+            skipped += 1
         else:
             try:
                 db.flush()
             except IntegrityError as e:
                 db.rollback()
                 warning('Rolled back %s (%s)', row, e)
-                ignored += 1
+                skipped += 1
 
     db.commit()
-    debug('Committed rows: skipped %s / inserted %s', ignored, len(rows)-ignored)
+
+    debug('Committed rows: skipped %s / inserted %s', skipped, len(rows)-skipped)
+
+
+def _update_address(address, point):
+
+    def get_field(name, default=None, option='long_name'):
+        if not point:
+            return
+
+        for component in point.raw['address_components']:
+            if name in component['types']:
+                return component[option]
+        else:
+            warning('Google did not return %s', name)
+            return default
+
+    address['as_scraped'] = '{address}, {city} {postal_code}'.format(**address)
+    address['lat'] = point.point.latitude if point else None
+    address['lon'] = point.point.longitude if point else None
+    address['address'] = point.address if point else address['address']
+    address['place_id'] = point.raw['place_id'] if point else None
+
+    address['country'] = get_field('country')
+    address['street_name'] = get_field('route')
+    address['street_number'] = get_field('street_number')
+    address['country_code'] = get_field('country', option='short_name')
+    address['city'] = get_field('locality', default=address['city'])
+
+    return address
 
 
 def geocode(address, attempt=0):
@@ -104,10 +123,10 @@ def geocode(address, attempt=0):
     service = GoogleV3()
 
     query = '{address}, {city} {postal_code}'.format(**address)
+    point = None
 
     if attempt > 2:
         warning('Google timed out 3 times. Giving up on %s', query)
-        point = None
 
     else:
         try:
@@ -129,46 +148,24 @@ def geocode(address, attempt=0):
 
         except GeopyError as e:
             warning('Error geocoding %s (%s)', address['address'], e)
-            point = None
 
-    def get_raw_info(name, default=None, option='long_name'):
-        if not point:
-            return
-
-        for component in point.raw['address_components']:
-            if name in component['types']:
-                return component[option]
-        else:
-            warning('Google did not return %s', name)
-            return default
-
-    address['as_scraped'] = query
-    address['lat'] = point.point.latitude if point else None
-    address['lon'] = point.point.longitude if point else None
-    address['address'] = point.address if point else address['address']
-    address['place_id'] = point.raw['place_id'] if point else None
-
-    address['country'] = get_raw_info('country')
-    address['street_name'] = get_raw_info('route')
-    address['street_number'] = get_raw_info('street_number')
-    address['country_code'] = get_raw_info('country', option='short_name')
-    address['city'] = get_raw_info('locality', default=address['city'])
-
-    return address
+    return _update_address(address, point)
 
 
 def process(job):
     """
     In goes raw data from the scraper module.
-    Out comes table data for the SQLAlchemy API.
+    Out come table rows for the SQLAlchemy API.
     """
 
     assert job is not None, 'Cannot package nothingness'
+    rows = []
 
     client = Client(
         client_id=number(job.data.info['client_id']),
         name=text(job.data.info['client_name'])
     )
+    rows.append(client)
 
     order = Order(
         order_id=number(job.data.info['order_id']),
@@ -185,9 +182,7 @@ def process(job):
         date=job.stamp.date,
         user=job.stamp.user
     )
-
-    checkpoints = []
-    checkins = []
+    rows.append(order)
 
     for address in job.data.addresses:
         address = geocode(address)
@@ -206,35 +201,17 @@ def process(job):
             as_scraped=address['as_scraped'],
             street_name=address['street_name']
         )
-
-        _timestamp = timestamp(job.stamp.date, address['timestamp'])
-        _checkpoint_id = address['address']
-        _order_id = number(job.data.info['order_id'])
-        _purpose = purpose(address['purpose'])
-        _after = timestamp(job.stamp.date, address['after'])
-        _until = timestamp(job.stamp.date, address['until'])
+        rows.append(checkpoint)
 
         checkin = Checkin(
-            timestamp=_timestamp,
-            checkpoint_id=_checkpoint_id,
-            order_id=_order_id,
-            purpose=_purpose,
-            after_=_after,
-            until=_until,
-            # This is a simple hash of the object itself
-            checkin_id=' | '.join([
-                str(_timestamp),
-                _checkpoint_id,
-                str(_order_id),
-                _purpose,
-                str(_after),
-                str(_until)
-            ]),
-
+            timestamp=timestamp(job.stamp.date, address['timestamp']),
+            checkpoint_id=address['address'],
+            order_id=number(job.data.info['order_id']),
+            purpose=purpose(address['purpose']),
+            after_=timestamp(job.stamp.date, address['after']),
+            until=timestamp(job.stamp.date, address['until']),
         )
-
-        checkpoints.append(checkpoint)
-        checkins.append(checkin)
+        rows.append(checkin)
 
     debug('Processed %s', job.stamp.date)
-    return [client], [order], checkpoints, checkins
+    return rows

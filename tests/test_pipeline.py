@@ -1,7 +1,7 @@
 """ Test the pipeline module. """
 
 
-from pytest import mark, fixture
+from pytest import mark
 from datetime import date, datetime
 
 from m5.user import Ghost
@@ -11,13 +11,10 @@ from tests.test_scraper import OVERNIGHT_SCRAPED
 
 
 OVERNIGHT_PROCESSED = (
-    [
         Client(
             client_id=59017,
             name='Norsk European Wholesale Ltd.'
-        )
-    ],
-    [
+        ),
         Order(
             order_id=1402120029,
             client_id=59017,
@@ -32,9 +29,7 @@ OVERNIGHT_PROCESSED = (
             uuid=2041699,
             date=date(2014, 2, 12),
             user='pytest'
-        )
-    ],
-    [
+        ),
         Checkpoint(
             checkpoint_id='Lützowstraße 107, 10785 Berlin, Germany',
             company='messenger Transport Logistik GmbH',
@@ -48,6 +43,14 @@ OVERNIGHT_PROCESSED = (
             street_number='107',
             as_scraped='Luetzowstrasse 107, Berlin 10785',
             place_id='ChIJj6NNFzVQqEcRxpeJsUaDork'
+        ),
+        Checkin(
+            timestamp=datetime(2014, 2, 12, 10, 57),
+            checkpoint_id='Lützowstraße 107, 10785 Berlin, Germany',
+            order_id=1402120029,
+            purpose='pickup',
+            after_=datetime(2014, 2, 12, 7),
+            until=datetime(2014, 2, 12, 8),
         ),
         Checkpoint(
             checkpoint_id='Potsdamer Straße 4, 10785 Berlin, Germany',
@@ -63,18 +66,6 @@ OVERNIGHT_PROCESSED = (
             as_scraped='Potsdamer Str. 4, BERLIN 10785',
             place_id='ChIJyw9Yv8lRqEcROlWIrlxpItQ'
         ),
-    ],
-    [
-        Checkin(
-            timestamp=datetime(2014, 2, 12, 10, 57),
-            checkpoint_id='Lützowstraße 107, 10785 Berlin, Germany',
-            order_id=1402120029,
-            purpose='pickup',
-            after_=datetime(2014, 2, 12, 7),
-            until=datetime(2014, 2, 12, 8),
-            checkin_id='2014-02-12 10:57:00 | Lützowstraße 107, 10785 Berlin, Germany | '
-                       '1402120029 | pickup | 2014-02-12 07:00:00 | 2014-02-12 08:00:00',
-        ),
         Checkin(
             timestamp=datetime(2014, 2, 12, 11, 9),
             checkpoint_id='Potsdamer Straße 4, 10785 Berlin, Germany',
@@ -82,10 +73,7 @@ OVERNIGHT_PROCESSED = (
             purpose='dropoff',
             after_=datetime(2014, 2, 12, 8),
             until=datetime(2014, 2, 12, 12),
-            checkin_id='2014-02-12 11:09:00 | Potsdamer Straße 4, 10785 Berlin, Germany | '
-                       '1402120029 | dropoff | 2014-02-12 08:00:00 | 2014-02-12 12:00:00'
         )
-    ]
 )
 
 
@@ -98,9 +86,8 @@ def test_processor(scraped_webpage, expected_webpage):
         # I cannot compare whole ORM table objects, only their public attributes
         return {k: v for k, v in vars(tables_[i]).items() if not k.startswith('_')}
 
-    for processed, expected in zip(processed_webpage, expected_webpage):
-        for tables in zip(processed, expected):
-            assert expose(tables, 0) == expose(tables, 1)
+    for tables in zip(processed_webpage, expected_webpage):
+        assert expose(tables, 0) == expose(tables, 1)
 
 
 ADDRESS_EXAMPLES = [
@@ -117,20 +104,14 @@ def test_geocoder(expected_address, raw_address):
     assert point['address'] == expected_address
 
 
-@fixture(scope='function')
-def ghost(request):
-    user = Ghost(offline=True).bootstrap().flush().init()
-    request.addfinalizer(lambda: user.clear())
-
-    return user
-
-
 @mark.run(order=3)
-def test_archiver(ghost):
-    tables = [OVERNIGHT_PROCESSED, OVERNIGHT_PROCESSED]
-    archive(ghost.db, tables)
+def test_archiver():
+    user = Ghost(offline=True).bootstrap().flush().init()
+    archive(user.db, OVERNIGHT_PROCESSED)
 
-    assert len(ghost.db.query(Checkin).all()) == 2
-    assert len(ghost.db.query(Checkpoint).all()) == 2
-    assert ghost.db.query(Client.id).scalar() == 59017
-    assert ghost.db.query(Order.id).scalar() == 1402120029
+    assert len(user.db.query(Checkin).all()) == 2
+    assert len(user.db.query(Checkpoint).all()) == 2
+    assert user.db.query(Client.id).scalar() == 59017
+    assert user.db.query(Order.id).scalar() == 1402120029
+
+    user.clear()

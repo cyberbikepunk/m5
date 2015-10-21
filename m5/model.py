@@ -92,10 +92,10 @@ class Order(Model):
 class Checkin(Model):
     __tablename__ = 'checkins'
 
-    checkin_id = Column(UnicodeText, primary_key=True, autoincrement=False)
+    checkin_id = Column(Integer, primary_key=True, autoincrement=True)
     checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    timestamp = Column(DateTime, nullable=False)
+    timestamp = Column(DateTime)
     purpose = Column(Enum('pickup', 'dropoff', 'stopover'))
     after_ = Column(DateTime)
     until = Column(DateTime)

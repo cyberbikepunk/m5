@@ -61,7 +61,7 @@ class Spider(object):
         return '<Spider: %s to %s>' % (self._date, self._archive)
 
     def get_job_uuids_from_cache(self):
-        pattern = self.date_string + '-uuid-*.html'
+        pattern = self.date_string + '-uuid-' + '[0-9]'*7 + '.html'
         filepaths = glob(join(self._archive, pattern))
 
         if filepaths:

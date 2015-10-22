@@ -13,7 +13,7 @@ BLUEPRINTS = {
     },
     'header': {
         'order_id': {'lines': [0], 'pattern': r'.*(\d{10})', 'optional': True},
-        'type': {'lines': [0], 'pattern': r'.*(OV|Ladehilfe|Stadtkurier|Treibstoff', 'optional': False},
+        'type': {'lines': [0], 'pattern': r'.*(OV|Ladehilfe|Stadtkurier|Treibstoff|Kundensupport|t:m)', 'optional': False},
         'cash': {'lines': [0], 'pattern': r'(BAR)', 'optional': True}
     },
     'client': {
@@ -135,7 +135,8 @@ def _scrape_fragment(blueprints, fragment, stamp):
 PRICE_CATEGORIES = {
     'city_tour': {
         'Stadtkurier',
-        'Fehlanfarht'
+        'Fehlanfarht',
+        't:m Stadt',
     },
     'extra_stops': {
         'Stadt Stopp(s)'
@@ -154,7 +155,8 @@ PRICE_CATEGORIES = {
     'service': {
         'Wartezeit min.',
         'Ladezeit in min',
-        'Ladehilfe'
+        'Ladehilfe',
+        '2,50 Euro',  # Client Support
     }
 }
 

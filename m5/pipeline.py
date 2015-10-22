@@ -214,5 +214,5 @@ def process(job):
         )
         rows.append(checkin)
 
-    debug('Processed %s', job.stamp.date)
+    debug('Processed %s uuid=%s', job.stamp.date, job.stamp.uuid)
     return rows

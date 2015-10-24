@@ -15,6 +15,7 @@ from sqlalchemy import Column, ForeignKey, DateTime, String
 from sqlalchemy.types import Integer, Float, Boolean, Enum, UnicodeText
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base, synonym_for
+from hashlib import md5
 
 from m5.settings import JOB_URL_FORMAT, JOB_FILE_FORMAT, FILE_DATE_FORMAT, URL_DATE_FORMAT
 
@@ -45,12 +46,15 @@ class Order(Model):
     order_id = Column(Integer, primary_key=True, autoincrement=False)
     client_id = Column(Integer, ForeignKey('clients.client_id'), nullable=False)
 
-    type = Column(Enum('city_tour', 'overnight', 'service'))
+    type = Column(Enum('city_tour', 'overnight', 'loading_service'))
     city_tour = Column(Float)
     overnight = Column(Float)
-    service = Column(Float)
+    waiting_time = Column(Float)
     extra_stops = Column(Float)
     fax_confirm = Column(Float)
+    cancelled_stop = Column(Float)
+    loading_service = Column(Float)
+    client_support = Column(Float)
     distance = Column(Float)
     cash = Column(Boolean)
     date = Column(DateTime)
@@ -61,7 +65,7 @@ class Order(Model):
 
     def __str__(self):
 
-        return 'Order(%s %0.2f€)' % (self.type or 'None', self.price or 0.0)
+        return 'Order(%s %0.2f€)' % (self.type or 'Type?', self.price or 0.0)
 
     __repr__ = __str__
 
@@ -82,21 +86,31 @@ class Order(Model):
     def price(self):
         total = sum([self.city_tour,
                      self.overnight,
-                     self.service,
+                     self.loading_service,
                      self.fax_confirm,
-                     self.extra_stops])
+                     self.extra_stops,
+                     self.cancelled_stop,
+                     self.client_support])
         if total is not None:
             return total
+
+
+class CheckinError(Exception):
+    pass
 
 
 class Checkin(Model):
     __tablename__ = 'checkins'
 
-    checkin_id = Column(UnicodeText, primary_key=True, autoincrement=False)
+    def __init__(self, **kwargs):
+        super(Checkin, self).__init__(**kwargs)
+        self.checkin_id = self.hexdigest
+
+    checkin_id = Column(String, primary_key=True)
     checkpoint_id = Column(Integer, ForeignKey('checkpoints.checkpoint_id'), nullable=False)
     order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    timestamp = Column(DateTime, nullable=False)
     purpose = Column(Enum('pickup', 'dropoff', 'stopover'))
+    timestamp = Column(DateTime)
     after_ = Column(DateTime)
     until = Column(DateTime)
 
@@ -104,7 +118,7 @@ class Checkin(Model):
     order = relationship('Order', backref=backref('checkins'))
 
     def __str__(self):
-        return 'Checkin(%s %s)' % (self.purpose, self.timestamp)
+        return 'Checkin(%s %s)' % (self.purpose or 'Purpose?', self.timestamp or 'Timestamp?')
 
     __repr__ = __str__
 
@@ -112,6 +126,24 @@ class Checkin(Model):
     @property
     def id(self):
         return self.checkin_id
+
+    # We hash all attributes to bootstrap an ID
+    # because no single attribute does the job.
+    @property
+    def hexdigest(self):
+        h = md5()
+
+        try:
+            h.update(bytes(self.checkpoint_id, 'utf-8'))
+            h.update(bytes(str(self.order_id), 'utf-8'))
+            h.update(bytes(self.purpose, 'utf-8'))
+            h.update(bytes(str(self.after_), 'utf-8'))
+            h.update(bytes(str(self.until), 'utf-8'))
+            h.update(bytes(str(self.timestamp), 'utf-8'))
+        except TypeError as e:
+            raise CheckinError(e)
+
+        return h.hexdigest()
 
 
 class Checkpoint(Model):
@@ -121,7 +153,7 @@ class Checkpoint(Model):
     lat = Column(Float)
     lon = Column(Float)
     city = Column(UnicodeText)
-    postal_code = Column(String)
+    postal_code = Column(UnicodeText)
     company = Column(UnicodeText)
     country = Column(UnicodeText)
     place_id = Column(String)
@@ -146,6 +178,6 @@ class Checkpoint(Model):
         return self.checkpoint_id
 
     @property
-    def geocoded(self):
+    def is_geocoded(self):
         if self.lat and self.lon:
             return True

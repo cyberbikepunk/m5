@@ -18,6 +18,9 @@ MASK_FILEPATH = join(ASSETS_DIR, 'mask.png')
 SHP_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.shp')
 DBF_FILEPATH = join(ASSETS_DIR, 'berlin_postleitzahlen.dbf')
 
+# Google geocoding
+GOOGLE_API_KEY = getenv('GOOGLE_API_KEY')
+
 # Wordcloud parameters
 WORD_BLACKLIST = {'strasse', 'allee', 'platz', 'a', 'b', 'c', 'd'}
 WORD_SOURCE = 'street'

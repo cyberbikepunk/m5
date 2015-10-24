@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from os.path import join
 from pytest import mark
 
-from m5.scraper import scrape
+from m5.scraper import scrape, fix_unicode
 from m5.settings import ASSETS_DIR
 from m5.spider import Stamp, Stamped, RawData
 
@@ -21,19 +21,21 @@ OVERNIGHT_SCRAPED = Stamped(
             'client_name': 'Norsk European Wholesale Ltd.',
             'extra_stops': [],
             'fax_confirm': [],
+            'waiting_time': [],
+            'loading_service': [],
+            'client_support': [],
+            'cancelled_stop': [],
             'km': None,
             'order_id': '1402120029',
             'overnight': ['4,20'],
             'type': 'OV',
-            'service': [],
         },
         [
             {
                 'address': 'Luetzowstrasse 107',
                 'after': '07:00',
-                'city': 'Berlin',
                 'company': 'messenger Transport Logistik GmbH',
-                'postal_code': '10785',
+                'locality': '10785 Berlin',
                 'purpose': 'Abholung',
                 'timestamp': '10:57',
                 'until': '08:00',
@@ -41,9 +43,8 @@ OVERNIGHT_SCRAPED = Stamped(
             {
                 'address': 'Potsdamer Str. 4',
                 'after': '08:00',
-                'city': 'BERLIN',
                 'company': 'Cinestar iMAX IM Sony Center',
-                'postal_code': '10785',
+                'locality': '10785 BERLIN',
                 'purpose': 'Zustellung',
                 'timestamp': '11:09',
                 'until': '12:00',
@@ -63,19 +64,21 @@ SERVICE = Stamped(
             'client_name': 'Zalando GmbH',
             'extra_stops': [],
             'fax_confirm': [],
+            'overnight': [],
+            'loading_service': ['12,00'],
+            'client_support': [],
+            'cancelled_stop': [],
             'km': None,
             'order_id': '1303070990',
-            'overnight': [],
             'type': 'Ladehilfe',
-            'service': ['12,00', '36,00'],
+            'waiting_time': ['36,00'],
         },
         [
             {
                 'address': 'Prenzlauer Allee 33',
                 'after': '16:15',
-                'city': 'Berlin',
                 'company': 'Loft Werner Franz',
-                'postal_code': '10405',
+                'locality': '10405 Berlin',
                 'purpose': 'Abholung',
                 'timestamp': '16:59',
                 'until': None,
@@ -83,9 +86,8 @@ SERVICE = Stamped(
             {
                 'address': 'Prenzlauer Allee 33',
                 'after': None,
-                'city': 'Berlin',
                 'company': 'Loft Werner Franz',
-                'postal_code': '10405',
+                'locality': '10405 Berlin',
                 'purpose': 'Zustellung',
                 'timestamp': '18:45',
                 'until': None,
@@ -105,19 +107,21 @@ CASH = Stamped(
             'client_name': 'Johannes Barthelmes',
             'extra_stops': [],
             'fax_confirm': [],
+            'client_support': [],
+            'loading_service': [],
+            'waiting_time': [],
+            'overnight': [],
+            'cancelled_stop': [],
             'km': '4,294',
             'order_id': '1303070239',
-            'overnight': [],
             'type': 'Stadtkurier',
-            'service': [],
         },
         [
             {
                 'address': 'Willibald-Alexis-Straße 22',
                 'after': '10:37',
-                'city': 'Berlin',
                 'company': 'Johannes Barthelmes Serenebar',
-                'postal_code': '10965',
+                'locality': '10965 Berlin',
                 'purpose': 'Abholung',
                 'timestamp': '11:05',
                 'until': '11:30',
@@ -125,9 +129,8 @@ CASH = Stamped(
             {
                 'address': 'Nollendorfplatz 5',
                 'after': None,
-                'city': 'Berlin',
                 'company': 'SB Tiede',
-                'postal_code': '10777',
+                'locality': '10777 Berlin',
                 'purpose': 'Zustellung',
                 'timestamp': '11:27',
                 'until': None,
@@ -159,3 +162,26 @@ def test_scraper(filename, expected):
 
     assert result.data.info == expected.data.info
     assert result.data.addresses == expected.data.addresses
+
+
+def test_unicode_correction():
+    original_tokens = [
+        'KurfÃ¼rstenstraÃe',
+        'KindergÃ¤rten City GeschÃ¤ftsstelle',
+        'MÃ¼nchen',
+        'Paul-LÃ¶be Haus',
+        'LennÃ©straÃe',
+        'Auslage 30â¬',
+    ]
+
+    final_tokens = [
+        'Kurfürstenstraße',
+        'Kindergärten City Geschäftsstelle',
+        'München',
+        'Paul-Löbe Haus',
+        'Lennéstraße',
+        'Auslage 30€',
+    ]
+
+    for original, final in zip(original_tokens, final_tokens):
+        assert final == fix_unicode(original)

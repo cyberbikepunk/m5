@@ -4,57 +4,68 @@
 from logging import warning, debug
 from datetime import datetime
 from time import strptime
-from collections import Iterable
 from geopy import GoogleV3
 from geopy.exc import GeopyError, GeocoderQuotaExceeded, GeocoderTimedOut
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from m5.model import Checkin, Checkpoint, Client, Order
+from m5.settings import GOOGLE_API_KEY
 
 
-def boolean(value):
+def _boolean(value):
     return True if value else False
 
 
-def price(raw_subprices):
+def _price(raw_subprices):
     subprices = [0.0]
     if raw_subprices:
         for raw_subprice in raw_subprices:
-            subprices.append(decimal(raw_subprice))
+            subprices.append(_decimal(raw_subprice))
     return sum(subprices)
 
 
-def decimal(value):
+def _decimal(value):
     if value:
         return float(value.replace(',', '.'))
 
 
-def number(value):
+def _number(value):
     if value:
         return int(value)
 
 
-def text(value):
+def _text(value):
     if value:
         return str(value)
 
 
-def purpose(value):
+def _purpose(value):
     if value:
         return {'Abholung': 'pickup',
                 'Zustellung': 'dropoff',
                 'Abh./Zust.': 'stopover'}[value]
 
 
-def type_(value):
+def _type(value):
     if value:
         return {'OV': 'overnight',
-                'Ladehilfe': 'service',
-                'Stadtkurier': 'city_tour'}[value]
+                'Ladehilfe': 'loading_service',
+                'Stadtkurier': 'city_tour',
+                'Treibstoff': 'overnight',
+                'Kundensupport': 'overnight',
+                't:m': 'city_tour',
+                'Abgabe': 'city_tour',
+                'IC': 'city_tour',
+                'International': 'overnight',
+                'Treibst': 'overnight',
+                'City Same Day': 'overnight',
+                'Staatsoper': 'city_tour',
+                'Postfesttour': 'city_tour',
+                'FS': 'loading_service',}[value]
 
 
-def timestamp(day, time):
+def _timestamp(day, time):
     if day and time:
         t = strptime(time, '%H:%M')
         return datetime(day.year,
@@ -66,48 +77,68 @@ def timestamp(day, time):
 
 def archive(db, rows):
     """
-    Take table objects from the processor and commit them to the database.
-    Rollback if a row already exists or a non nullable value is missing.
+    Take table objects from the processor, merge and commit them to the database.
     """
 
-    def flatten(tree):
-        for node in tree:
-            if isinstance(node, Iterable):
-                for subnode in flatten(node):
-                    yield subnode
-            else:
-                yield node
-
-    rows = list(flatten(rows))
-    ignored = 0
+    skipped = 0
 
     for row in rows:
         state = db.merge(row)
         if not inspect(state).pending:
             debug('Row is already in db: %s', row)
-            ignored += 1
+            skipped += 1
         else:
             try:
                 db.flush()
             except IntegrityError as e:
                 db.rollback()
                 warning('Rolled back %s (%s)', row, e)
-                ignored += 1
+                skipped += 1
 
     db.commit()
-    debug('Committed rows: skipped %s / inserted %s', ignored, len(rows)-ignored)
+
+    debug('Committed rows: skipped %s / inserted %s', skipped, len(rows)-skipped)
+
+
+def _update_address(address, point):
+
+    def get_field(name, default=None, option='long_name'):
+        if not point:
+            return
+
+        for component in point.raw['address_components']:
+            if name in component['types']:
+                return component[option]
+        else:
+            warning('Google did not return %s', name)
+            return default
+
+    address['as_scraped'] = '{address}, {locality}'.format(**address)
+    address['lat'] = point.point.latitude if point else None
+    address['lon'] = point.point.longitude if point else None
+    address['address'] = point.address if point else address['address']
+    address['place_id'] = point.raw['place_id'] if point else None
+
+    address['country'] = get_field('country')
+    address['street_name'] = get_field('route')
+    address['street_number'] = get_field('street_number')
+    address['country_code'] = get_field('country', option='short_name')
+    address['city'] = get_field('locality')
+    address['postal_code'] = get_field('postal_code')
+
+    return address
 
 
 def geocode(address, attempt=0):
     # Google is free up to 2500 requests per day, then 0.50€ per 1000. We don't use
     # Nominatim because it doesn't like bulk requests. Other services cost money.
-    service = GoogleV3()
+    service = GoogleV3(api_key=GOOGLE_API_KEY)
 
-    query = '{address}, {city} {postal_code}'.format(**address)
+    query = '{address}, {locality}'.format(**address)
+    point = None
 
     if attempt > 2:
         warning('Google timed out 3 times. Giving up on %s', query)
-        point = None
 
     else:
         try:
@@ -129,112 +160,77 @@ def geocode(address, attempt=0):
 
         except GeopyError as e:
             warning('Error geocoding %s (%s)', address['address'], e)
-            point = None
 
-    def get_raw_info(name, default=None, option='long_name'):
-        if not point:
-            return
-
-        for component in point.raw['address_components']:
-            if name in component['types']:
-                return component[option]
-        else:
-            warning('Google did not return %s', name)
-            return default
-
-    address['as_scraped'] = query
-    address['lat'] = point.point.latitude if point else None
-    address['lon'] = point.point.longitude if point else None
-    address['address'] = point.address if point else address['address']
-    address['place_id'] = point.raw['place_id'] if point else None
-
-    address['country'] = get_raw_info('country')
-    address['street_name'] = get_raw_info('route')
-    address['street_number'] = get_raw_info('street_number')
-    address['country_code'] = get_raw_info('country', option='short_name')
-    address['city'] = get_raw_info('locality', default=address['city'])
-
-    return address
+    return point
 
 
-def process(job):
+def process(job, is_offline=False):
     """
     In goes raw data from the scraper module.
-    Out comes table data for the SQLAlchemy API.
+    Out come table rows for the SQLAlchemy API.
     """
 
     assert job is not None, 'Cannot package nothingness'
+    rows = []
 
     client = Client(
-        client_id=number(job.data.info['client_id']),
-        name=text(job.data.info['client_name'])
+        client_id=_number(job.data.info['client_id']),
+        name=_text(job.data.info['client_name'])
     )
+    rows.append(client)
 
     order = Order(
-        order_id=number(job.data.info['order_id']),
-        client_id=number(job.data.info['client_id']),
-        distance=decimal(job.data.info['km']),
-        cash=boolean(job.data.info['cash']),
-        city_tour=price(job.data.info['city_tour']),
-        extra_stops=price(job.data.info['extra_stops']),
-        overnight=price(job.data.info['overnight']),
-        fax_confirm=price(job.data.info['fax_confirm']),
-        service=price(job.data.info['service']),
-        type=type_(job.data.info['type']),
-        uuid=number(job.stamp.uuid),
+        order_id=_number(job.data.info['order_id']),
+        client_id=_number(job.data.info['client_id']),
+        distance=_decimal(job.data.info['km']),
+        cash=_boolean(job.data.info['cash']),
+        city_tour=_price(job.data.info['city_tour']),
+        extra_stops=_price(job.data.info['extra_stops']),
+        overnight=_price(job.data.info['overnight']),
+        fax_confirm=_price(job.data.info['fax_confirm']),
+        loading_service=_price(job.data.info['loading_service']),
+        cancelled_stop=_price(job.data.info['cancelled_stop']),
+        waiting_time=_price(job.data.info['waiting_time']),
+        client_support=_price(job.data.info['client_support']),
+        type=_type(job.data.info['type']),
+        uuid=_number(job.stamp.uuid),
         date=job.stamp.date,
         user=job.stamp.user
     )
-
-    checkpoints = []
-    checkins = []
+    rows.append(order)
 
     for address in job.data.addresses:
-        address = geocode(address)
+        if is_offline:
+            point = None
+        else:
+            point = geocode(address)
+        address = _update_address(address, point)
 
         checkpoint = Checkpoint(
             checkpoint_id=address['address'],
             place_id=address['place_id'],
             lat=address['lat'],
             lon=address['lon'],
-            street_number=text(address['street_number']),
-            city=text(address['city']),
-            postal_code=text(address['postal_code']),
-            company=text(address['company']),
+            street_number=_text(address['street_number']),
+            city=_text(address['city']),
+            postal_code=_text(address['postal_code']),
+            company=_text(address['company']),
             country=address['country'],
             country_code=address['country_code'],
             as_scraped=address['as_scraped'],
             street_name=address['street_name']
         )
-
-        _timestamp = timestamp(job.stamp.date, address['timestamp'])
-        _checkpoint_id = address['address']
-        _order_id = number(job.data.info['order_id'])
-        _purpose = purpose(address['purpose'])
-        _after = timestamp(job.stamp.date, address['after'])
-        _until = timestamp(job.stamp.date, address['until'])
+        rows.append(checkpoint)
 
         checkin = Checkin(
-            timestamp=_timestamp,
-            checkpoint_id=_checkpoint_id,
-            order_id=_order_id,
-            purpose=_purpose,
-            after_=_after,
-            until=_until,
-            # This is a simple hash of the object itself
-            checkin_id=' | '.join([
-                str(_timestamp),
-                _checkpoint_id,
-                str(_order_id),
-                _purpose,
-                str(_after),
-                str(_until)
-            ]),
-
+            timestamp=_timestamp(job.stamp.date, address['timestamp']),
+            checkpoint_id=address['address'],
+            order_id=_number(job.data.info['order_id']),
+            purpose=_purpose(address['purpose']),
+            after_=_timestamp(job.stamp.date, address['after']),
+            until=_timestamp(job.stamp.date, address['until']),
         )
+        rows.append(checkin)
 
-        checkpoints.append(checkpoint)
-        checkins.append(checkin)
-
-    debug('Processed %s', job.stamp.date)
-    return [client], [order], checkpoints, checkins
+    debug('Processed %s uuid=%s', job.stamp.date, job.stamp.uuid)
+    return rows

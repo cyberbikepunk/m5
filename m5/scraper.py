@@ -23,7 +23,8 @@ BLUEPRINTS = {
         },
         'type': {
             'lines': {'default': [0], 'variant': [0]},
-            'pattern': compile(r'.*(OV|Ladehilfe|Stadtkurier|Treibstoff|Kundensupport|Stadt|Abgabe)'),
+            'pattern': compile('.*(OV|Ladehilfe|Stadtkurier|Treibstoff|Kundensupport|t:m'
+                               '|Abgabe|IC|Treibst|Staatsoper|Postfesttour|FS)'),
             'optional': False
         },
         'cash': {'lines': {'default': [0], 'variant': [0]},
@@ -96,7 +97,9 @@ PRICE_CATEGORIES = {
     'city_tour': {
         'Stadtkurier',
         't:m Stadt',
-        'Subm.Abg.'
+        'Subm.Abg.',
+        '24/7 Stadt',
+        '24SEVEN',
     },
     'cancelled_stop': {
         'Fehlanfarht',
@@ -111,6 +114,9 @@ PRICE_CATEGORIES = {
         'OV Ex Int PU',
         'ON Int Exp Del',
         'OV Ex Int TE PU',
+        'Roll Out',
+        'OV Eco Int PU',
+        'Eco Int PU',
     },
     'client_support': {
         '2,50 Euro',
@@ -125,6 +131,7 @@ PRICE_CATEGORIES = {
     },
     'loading_service': {
         'Ladehilfe',
+        'FS Zonen',
     }
 }
 

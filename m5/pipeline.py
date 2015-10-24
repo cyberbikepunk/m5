@@ -54,7 +54,15 @@ def _type(value):
                 'Stadtkurier': 'city_tour',
                 'Treibstoff': 'overnight',
                 'Kundensupport': 'overnight',
-                't:m Stadt': 'city_tour'}[value]
+                't:m': 'city_tour',
+                'Abgabe': 'city_tour',
+                'IC': 'city_tour',
+                'International': 'overnight',
+                'Treibst': 'overnight',
+                'City Same Day': 'overnight',
+                'Staatsoper': 'city_tour',
+                'Postfesttour': 'city_tour',
+                'FS': 'loading_service',}[value]
 
 
 def _timestamp(day, time):

@@ -10,7 +10,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from m5.model import Checkin, Checkpoint, Client, Order
-from m5.settings import GOOGLE_CLIENT_ID, GOOGLE_API_KEY
+from m5.settings import GOOGLE_API_KEY
 
 
 def _boolean(value):
@@ -124,7 +124,7 @@ def _update_address(address, point):
 def geocode(address, attempt=0):
     # Google is free up to 2500 requests per day, then 0.50€ per 1000. We don't use
     # Nominatim because it doesn't like bulk requests. Other services cost money.
-    service = GoogleV3()
+    service = GoogleV3(api_key=GOOGLE_API_KEY)
 
     query = '{address}, {locality}'.format(**address)
     point = None

@@ -46,12 +46,15 @@ class Order(Model):
     order_id = Column(Integer, primary_key=True, autoincrement=False)
     client_id = Column(Integer, ForeignKey('clients.client_id'), nullable=False)
 
-    type = Column(Enum('city_tour', 'overnight', 'service'))
+    type = Column(Enum('city_tour', 'overnight', 'loading_service'))
     city_tour = Column(Float)
     overnight = Column(Float)
-    service = Column(Float)
+    waiting_time = Column(Float)
     extra_stops = Column(Float)
     fax_confirm = Column(Float)
+    cancelled_stop = Column(Float)
+    loading_service = Column(Float)
+    client_support = Column(Float)
     distance = Column(Float)
     cash = Column(Boolean)
     date = Column(DateTime)
@@ -83,9 +86,11 @@ class Order(Model):
     def price(self):
         total = sum([self.city_tour,
                      self.overnight,
-                     self.service,
+                     self.loading_service,
                      self.fax_confirm,
-                     self.extra_stops])
+                     self.extra_stops,
+                     self.cancelled_stop,
+                     self.client_support])
         if total is not None:
             return total
 
@@ -148,7 +153,7 @@ class Checkpoint(Model):
     lat = Column(Float)
     lon = Column(Float)
     city = Column(UnicodeText)
-    postal_code = Column(String)
+    postal_code = Column(UnicodeText)
     company = Column(UnicodeText)
     country = Column(UnicodeText)
     place_id = Column(String)

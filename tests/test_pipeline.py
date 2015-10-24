@@ -24,11 +24,14 @@ OVERNIGHT_PROCESSED = (
             extra_stops=0,
             overnight=4.20,
             fax_confirm=0,
-            service=0,
+            cancelled_stop=0,
+            client_support=0,
+            loading_service=0,
+            waiting_time=0,
             type='overnight',
             uuid=2041699,
             date=date(2014, 2, 12),
-            user='pytest'
+            user='pytest',
         ),
         Checkpoint(
             checkpoint_id='Lützowstraße 107, 10785 Berlin, Germany',
@@ -41,7 +44,7 @@ OVERNIGHT_PROCESSED = (
             country_code='DE',
             street_name='Lützowstraße',
             street_number='107',
-            as_scraped='Luetzowstrasse 107, Berlin 10785',
+            as_scraped='Luetzowstrasse 107, 10785 Berlin',
             place_id='ChIJj6NNFzVQqEcRxpeJsUaDork'
         ),
         Checkin(
@@ -63,7 +66,7 @@ OVERNIGHT_PROCESSED = (
             country_code='DE',
             street_name='Potsdamer Straße',
             street_number='4',
-            as_scraped='Potsdamer Str. 4, BERLIN 10785',
+            as_scraped='Potsdamer Str. 4, 10785 BERLIN',
             place_id='ChIJyw9Yv8lRqEcROlWIrlxpItQ'
         ),
         Checkin(
@@ -91,8 +94,8 @@ def test_processor(scraped_webpage, expected_webpage):
 
 
 ADDRESS_EXAMPLES = [
-    ('Potsdamer Straße 4, 10785 Berlin, Germany', dict(address='Potsdamer Str. 4', city='BERLIN', postal_code='10785')),
-    ('Lützowstraße 107, 10785 Berlin, Germany', dict(address='Luetzowstr 107', city='berlin', postal_code='10785')),
+    ('Potsdamer Straße 4, 10785 Berlin, Germany', dict(address='Potsdamer Str. 4', locality='10785 BERLIN')),
+    ('Lützowstraße 107, 10785 Berlin, Germany', dict(address='Luetzowstr 107', locality='10785 berlin')),
 ]
 
 
@@ -101,7 +104,7 @@ ADDRESS_EXAMPLES = [
 def test_geocoder(expected_address, raw_address):
     point = geocode(raw_address)
 
-    assert point['address'] == expected_address
+    assert str(point) == expected_address
 
 
 @mark.run(order=3)

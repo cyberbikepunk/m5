@@ -38,7 +38,7 @@ def migrate(**options):
 
         for webpage in webpages:
             job = scrape(webpage)
-            tables = process(job)
+            tables = process(job, is_offline=user.offline)
             archive(user.db, tables)
 
     user.logout()

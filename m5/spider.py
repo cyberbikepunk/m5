@@ -40,7 +40,7 @@ def download(day, user):
     for uuid in uuids:
         stamp = Stamp(user.username, day, uuid)
 
-        if user.offline:
+        if s.is_cached:
             soup = s.load_job(uuid)
             debug('Loaded from cache %s ', s.job_filepath(uuid))
         else:
@@ -56,6 +56,7 @@ class Spider(object):
         self._archive = user.archive
         self._session = user.web
         self._date = day
+        self.is_cached = False
 
     def __repr__(self):
         return '<Spider: %s to %s>' % (self._date, self._archive)
@@ -65,6 +66,7 @@ class Spider(object):
         filepaths = glob(join(self._archive, pattern))
 
         if filepaths:
+            self.is_cached = True
             return [filepath[UUID] for filepath in filepaths]
 
     def scrape_job_uuids(self):
@@ -74,6 +76,7 @@ class Spider(object):
         jobs = findall(pattern, response.text)
 
         if jobs:
+            self.is_cached = False
             return set(jobs)
 
     def download_job(self, uuid):
